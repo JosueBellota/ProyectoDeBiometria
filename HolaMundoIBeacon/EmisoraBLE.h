@@ -6,7 +6,14 @@
 // ----------------------------------------------------------
 #ifndef EMISORA_H_INCLUIDO
 #define EMISORA_H_INCLUIDO
-
+// ----------------------------------------------------------
+// ----------------------------------------------------------
+// Clase EmisoraBLE:
+// ----------------------------------------------------------
+// Esta clase representa una emisora Bluetooth Low Energy (BLE).
+// Permite encender/apagar la emisora, configurar anuncios en formato iBeacon,
+// añadir servicios y características, así como gestionar callbacks de conexión.
+// Se utiliza la librería Bluefruit para controlar el hardware BLE.
 // ----------------------------------------------------------
 // ----------------------------------------------------------
 #include "ServicioEnEmisora.h"
