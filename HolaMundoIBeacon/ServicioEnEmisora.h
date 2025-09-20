@@ -177,7 +177,7 @@ public:
 	// -->
 	// escribirDatos() --> (escribe datos en la característica BLE)
 	// -->
-	// cantidad de bytes escritos
+	// cantidad de bytes escritos: numero N
 	//------------------------------------------------------------------------------------
 	uint16_t escribirDatos( const char * str ) {
 	  return (*this).laCaracteristica.write( str );
@@ -188,7 +188,7 @@ public:
 	// -->
 	// notificarDatos() --> (envía notificación BLE con los datos de la característica)
 	// -->
-	// cantidad de bytes notificados
+	// cantidad de bytes notificados: numero N
 	//------------------------------------------------------------------------------------
 	uint16_t notificarDatos( const char * str ) {
 	  return laCaracteristica.notify( &str[0] );
