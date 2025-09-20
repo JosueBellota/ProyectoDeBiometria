@@ -9,6 +9,7 @@ import android.bluetooth.le.BluetoothLeScanner;
 import android.bluetooth.le.ScanCallback;
 import android.bluetooth.le.ScanFilter;
 import android.bluetooth.le.ScanResult;
+import android.bluetooth.le.ScanSettings;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.os.ParcelUuid;
@@ -19,6 +20,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 
@@ -184,35 +186,60 @@ public class MainActivity extends AppCompatActivity {
             }
         };
 
-        ScanFilter sf = new ScanFilter.Builder().setDeviceName( dispositivoBuscado ).build();
+        // Crear el filtro (aunque Android a veces ignora los filtros de nombre)
+        ScanFilter sf = new ScanFilter.Builder()
+                .setDeviceName(dispositivoBuscado)
+                .build();
+        // Configuración del escaneo
+        ScanSettings settings = new ScanSettings.Builder()
+                .setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY)
+                .build();
 
-        Log.d(ETIQUETA_LOG, "  buscarEsteDispositivoBTLE(): empezamos a escanear buscando: " + dispositivoBuscado );
 
-        // AÑADIR: Verificación de permisos BLUETOOTH_SCAN antes de startScan
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_SCAN) != PackageManager.PERMISSION_GRANTED) {
-            Log.d(ETIQUETA_LOG, " buscarEsteDispositivoBTLE(): Sin permiso BLUETOOTH_SCAN para escanear");
-            return;
+        try {
+            // ✅ Aplicar el filtro CORRECTAMENTE
+            this.elEscanner.startScan(Arrays.asList(sf), settings, this.callbackDelEscaneo);
+            Log.d(ETIQUETA_LOG, "Escaneando específicamente para: " + dispositivoBuscado);
+        } catch (Exception e) {
+            Log.e(ETIQUETA_LOG, "Error al iniciar escaneo filtrado: " + e.getMessage());
+
+            // Fallback: escanear todo y filtrar manualmente
+            this.elEscanner.startScan(this.callbackDelEscaneo);
+            Log.d(ETIQUETA_LOG, "Usando escaneo general con filtro manual");
         }
-        this.elEscanner.startScan( this.callbackDelEscaneo );
     } // ()
 
     // --------------------------------------------------------------
     // --------------------------------------------------------------
     private void detenerBusquedaDispositivosBTLE() {
 
-        if ( this.callbackDelEscaneo == null ) {
+        // AÑADIR: Verificar si el escáner es nulo
+        if (this.elEscanner == null) {
+            Log.d(ETIQUETA_LOG, "detenerBusquedaDispositivosBTLE(): elEscanner es null");
+            return;
+        }
+
+        if (this.callbackDelEscaneo == null) {
+            Log.d(ETIQUETA_LOG, "detenerBusquedaDispositivosBTLE(): No hay escaneo activo");
             return;
         }
 
         // AÑADIR: Verificación de permisos BLUETOOTH_SCAN
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_SCAN) != PackageManager.PERMISSION_GRANTED) {
-            Log.d(ETIQUETA_LOG, " detenerBusquedaDispositivosBTLE(): Sin permiso BLUETOOTH_SCAN");
+            Log.d(ETIQUETA_LOG, "detenerBusquedaDispositivosBTLE(): Sin permiso BLUETOOTH_SCAN");
             return;
         }
 
-        this.elEscanner.stopScan( this.callbackDelEscaneo );
-        this.callbackDelEscaneo = null;
-
+        try {
+            this.elEscanner.stopScan(this.callbackDelEscaneo);
+            Log.d(ETIQUETA_LOG, "detenerBusquedaDispositivosBTLE(): Escaneo detenido exitosamente");
+        } catch (SecurityException e) {
+            Log.e(ETIQUETA_LOG, "detenerBusquedaDispositivosBTLE(): Error de seguridad: " + e.getMessage());
+        } catch (Exception e) {
+            Log.e(ETIQUETA_LOG, "detenerBusquedaDispositivosBTLE(): Error inesperado: " + e.getMessage());
+        } finally {
+            this.callbackDelEscaneo = null;
+        }
     } // ()
 
     // --------------------------------------------------------------
@@ -226,7 +253,7 @@ public class MainActivity extends AppCompatActivity {
     // --------------------------------------------------------------
     public void botonBuscarNuestroDispositivoBTLEPulsado( View v ) {
         Log.d(ETIQUETA_LOG, " boton nuestro dispositivo BTLE Pulsado" );
-        this.buscarEsteDispositivoBTLE( "fistro" );
+        this.buscarEsteDispositivoBTLE( "LE_WH-1000XM5" );
 
     } // ()
 
