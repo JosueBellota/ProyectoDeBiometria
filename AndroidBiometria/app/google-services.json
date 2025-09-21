@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "174840664338",
+    "project_id": "proyectodebiometria",
+    "storage_bucket": "proyectodebiometria.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:174840664338:android:b37ff26de9d4a7d50423cb",
+        "android_client_info": {
+          "package_name": "com.example.androidbiometria"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBjABLx5dylt3Z5CDaU8uG-MSKNOY-1yO8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

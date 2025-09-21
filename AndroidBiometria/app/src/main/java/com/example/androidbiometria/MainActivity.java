@@ -35,11 +35,14 @@ public class MainActivity extends AppCompatActivity {
 
     private static final int CODIGO_PETICION_PERMISOS = 11223344;
 
+    private FirebaseManager firebaseManager;
+
     // --------------------------------------------------------------
     // --------------------------------------------------------------
     private BluetoothLeScanner elEscanner;
 
     private ScanCallback callbackDelEscaneo = null;
+
 
     // --------------------------------------------------------------
     // --------------------------------------------------------------
@@ -325,9 +328,15 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+
+        // Inicializar FirebaseManager
+        firebaseManager = new FirebaseManager();
+
         Log.d(ETIQUETA_LOG, " onCreate(): empieza ");
 
         inicializarBlueTooth();
+
+
 
         Log.d(ETIQUETA_LOG, " onCreate(): termina ");
 
