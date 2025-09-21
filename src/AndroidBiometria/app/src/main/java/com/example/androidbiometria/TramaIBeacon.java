@@ -26,64 +26,65 @@ import java.util.Arrays;
 public class TramaIBeacon {
 
     // --------------------------------------------------------------------------------
-    // Campos principales de la trama
-    // --------------------------------------------------------------------------------
-    private byte[] prefijo = null;      // 9 bytes
-    private byte[] uuid = null;         // 16 bytes
-    private byte[] major = null;        // 2 bytes
-    private byte[] minor = null;        // 2 bytes
-    private byte txPower = 0;           // 1 byte
-    private byte[] losBytes;            // array completo
+// Campos principales de la trama
+// --------------------------------------------------------------------------------
+    private byte[] prefijo = null;      // 9 bytes (cabecera y metadatos)
+    private byte[] uuid = null;         // 16 bytes (identificador único, puede interpretarse como texto o número)
+    private byte[] major = null;        // 2 bytes (número natural)
+    private byte[] minor = null;        // 2 bytes (número natural)
+    private byte txPower = 0;           // 1 byte (número entero, potencia)
+    private byte[] losBytes;            // array completo de bytes recibidos
 
     // --------------------------------------------------------------------------------
-    // Subcampos del prefijo
-    // --------------------------------------------------------------------------------
-    private byte[] advFlags = null;     // 3 bytes
-    private byte[] advHeader = null;    // 2 bytes
-    private byte[] companyID = new byte[2]; // 2 bytes
-    private byte iBeaconType = 0 ;      // 1 byte
-    private byte iBeaconLength = 0 ;    // 1 byte
+// Subcampos del prefijo
+// --------------------------------------------------------------------------------
+    private byte[] advFlags = null;     // 3 bytes (flags de la trama, generalmente bits)
+    private byte[] advHeader = null;    // 2 bytes (cabecera del anuncio)
+    private byte[] companyID = new byte[2]; // 2 bytes (identificador de compañía, número natural)
+    private byte iBeaconType = 0 ;      // 1 byte (número natural, tipo de iBeacon)
+    private byte iBeaconLength = 0 ;    // 1 byte (número natural, longitud de la trama iBeacon)
+
 
     // --------------------------------------------------------------------------------
     // Getters de los campos
     // --------------------------------------------------------------------------------
-    // getPrefijo() --> número (9 bytes)
+    // getPrefijo() --> bytes (9, cabecera y metadatos)
     public byte[] getPrefijo() { return prefijo; }
 
-    // getUUID() --> número (16 bytes)
+    // getUUID() --> bytes (16, identificador único, puede interpretarse como texto o número)
     public byte[] getUUID() { return uuid; }
 
-    // getMajor() --> número natural (2 bytes)
+    // getMajor() --> bytes (2, número natural)
     public byte[] getMajor() { return major; }
 
-    // getMinor() --> número natural (2 bytes)
+    // getMinor() --> bytes (2, número natural)
     public byte[] getMinor() { return minor; }
 
-    // getTxPower() --> número entero (1 byte)
+    // getTxPower() --> byte (1, número entero, potencia estimada)
     public byte getTxPower() { return txPower; }
 
-    // getLosBytes() --> número (array completo)
+    // getLosBytes() --> bytes (array completo de la trama)
     public byte[] getLosBytes() { return losBytes; }
 
-    // getAdvFlags() --> número (3 bytes)
+    // getAdvFlags() --> bytes (3, flags de la trama)
     public byte[] getAdvFlags() { return advFlags; }
 
-    // getAdvHeader() --> número (2 bytes)
+    // getAdvHeader() --> bytes (2, cabecera del anuncio)
     public byte[] getAdvHeader() { return advHeader; }
 
-    // getCompanyID() --> número natural (2 bytes)
+    // getCompanyID() --> bytes (2, número natural, identificador de compañía)
     public byte[] getCompanyID() { return companyID; }
 
-    // getiBeaconType() --> número natural (1 byte)
+    // getiBeaconType() --> byte (1, número natural, tipo de iBeacon)
     public byte getiBeaconType() { return iBeaconType; }
 
-    // getiBeaconLength() --> número natural (1 byte)
+    // getiBeaconLength() --> byte (1, número natural, longitud de la trama iBeacon)
     public byte getiBeaconLength() { return iBeaconLength; }
 
     // --------------------------------------------------------------------------------
     // Constructor
     // --------------------------------------------------------------------------------
-    // bytes: array de bytes (entrada)
+    // bytes: [ bytes ]
     // -->
     // TramaIBeacon() --> separa los campos de una trama iBeacon según su posición
     // -->

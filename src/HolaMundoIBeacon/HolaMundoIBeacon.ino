@@ -160,20 +160,17 @@ void loop () {
   // 
   // Al terminar la prueba hay que hacer Publicador::laEmisora privado
   // 
-  // char datos[21] = {
-	// 'H', 'o', 'l', 'a',
-	// 'H', 'o', 'l', 'a',
-	// 'H', 'o', 'l', 'a',
-	// 'H', 'o', 'l', 'a',
-	// 'H', 'o', 'l', 'a',
-	// 'H'
-  // };
+  char datos[21] = {
+	'H', 'o', 'l', 'a',
+	'H', 'o', 'l', 'a',
+	'H', 'o', 'l', 'a',
+	'H', 'o', 'l', 'a',
+	'H', 'o', 'l', 'a',
+	'H'
+  };
 
-  uint8_t numerosBinarios[4] = {1, 2, 3, 4};
-  elPublicador.laEmisora.emitirAnuncioIBeaconLibre(
-      reinterpret_cast<const char*>(numerosBinarios), 4);
-
-  //hexadecimal output: 01 02 03 04
+  // elPublicador.laEmisora.emitirAnuncioIBeaconLibre ( &datos[0], 21 );
+  elPublicador.laEmisora.emitirAnuncioIBeaconLibre ( "HolaHolaHolaHola", 21 );
 
   esperar(4000);
   elPublicador.laEmisora.detenerAnuncio();

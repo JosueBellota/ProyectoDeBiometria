@@ -39,16 +39,25 @@ import java.util.UUID;
 
 public class MainActivity extends AppCompatActivity {
 
-    // ---------------------------------------------------------------------------
-    // Constantes y variables globales
-    // ---------------------------------------------------------------------------
+// ---------------------------------------------------------------------------
+// Constantes y variables globales
+// ---------------------------------------------------------------------------
+
+    // ETIQUETA_LOG: texto (String)
     private static final String ETIQUETA_LOG = ">>>>";
+
+    // CODIGO_PETICION_PERMISOS: número N
     private static final int CODIGO_PETICION_PERMISOS = 11223344;
 
+    // firebaseManager: objeto
     private FirebaseManager firebaseManager;
 
+    // elEscanner: objeto
     private BluetoothLeScanner elEscanner;
+
+    // callbackDelEscaneo: objeto
     private ScanCallback callbackDelEscaneo = null;
+
 
 
 
