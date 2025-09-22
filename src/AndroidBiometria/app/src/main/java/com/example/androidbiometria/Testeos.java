@@ -6,29 +6,47 @@ public class Testeos {
 
     private static final String TAG = "test";
 
-    // Test básico para envío de emisora
-    public static void testearEnvioEmisora(EnviarDatosDeIBeacon enviarDatos) {
-        String nombrePrueba = "emisora";
-        enviarDatos.enviarNombreDeEmisora(nombrePrueba);
-        if ("emisora".equals(nombrePrueba)) {
-            Log.d(TAG, "✅ Test correcto: nombre emisora = " + nombrePrueba);
+    /**
+     * Test simple para verificar que Firebase está inicializado.
+     */
+    public static void testFirebase(EnviarDatosDeIBeacon enviarDatos) {
+        if (enviarDatos != null) {
+            Log.d(TAG, "✅ Firebase inicializado correctamente y objeto EnviarDatosDeIBeacon listo");
         } else {
-            Log.e(TAG, "❌ Test fallido: nombre emisora no coincide");
+            Log.e(TAG, "❌ Error: EnviarDatosDeIBeacon es null");
         }
     }
 
-    // Test para validar dispositivo detectado
-    public static void testearFiltroDispositivo(String nombreDetectado) {
+    /**
+     * Test opcional para validar dispositivo detectado.
+     */
+    public static boolean testFiltrarDispositivo(String nombreDetectado) {
         String dispositivoBuscado = "LE_WH-1000XM5";
 
         Log.d(TAG, "🔍 Probando filtro de dispositivo...");
         Log.d(TAG, "Esperando: " + dispositivoBuscado);
         Log.d(TAG, "Detectado: " + nombreDetectado);
 
-        if (dispositivoBuscado.equals(nombreDetectado)) {
+        boolean coincidencia = dispositivoBuscado.equals(nombreDetectado);
+
+        if (coincidencia) {
             Log.d(TAG, "✅ Test correcto: se detectó el dispositivo esperado (" + dispositivoBuscado + ")");
         } else {
             Log.e(TAG, "❌ Test fallido: no coincide con el esperado");
+        }
+
+        return coincidencia;
+    }
+
+    /**
+     * Método para enviar a Firebase desde el testeo.
+     */
+    public static void testEnviarAFirebase(String nombreDetectado, EnviarDatosDeIBeacon enviarDatos) {
+        if (enviarDatos != null && nombreDetectado != null) {
+            enviarDatos.enviarNombreDeEmisora(nombreDetectado);
+            Log.d(TAG, "✅ Test correcto: Nombre de emisora enviado a Firebase");
+        } else {
+            Log.e(TAG, "❌ No se puede enviar a Firebase, objeto o nombre null");
         }
     }
 }

@@ -56,28 +56,30 @@ public class MainActivity extends AppCompatActivity {
     // callbackDelEscaneo: objeto
     private ScanCallback callbackDelEscaneo = null;
 
+    private boolean testeado = false;
+
+    private boolean enviadoAFirebase = false;
 
     // ---------------------------------------------------------------------------
-    // Ciclo de vida
-    // ---------------------------------------------------------------------------
+// Ciclo de vida
+// ---------------------------------------------------------------------------
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        Log.d(ETIQUETA_LOG, "onCreate(): empieza");
 
-        Log.d(ETIQUETA_LOG, " onCreate(): empieza ");
-
+        // Inicializar Bluetooth y obtener el escáner
         inicializarBlueTooth();
 
-
-
-        Log.d(ETIQUETA_LOG, " onCreate(): termina ");
-
-
+        // Crear el objeto que enviará datos a Firebase
         enviarDatosDeIBeacon = new EnviarDatosDeIBeacon();
 
+        // Test inicial de Firebase: solo verifica que el objeto no sea null
+        Testeos.testFirebase(enviarDatosDeIBeacon);
 
+        Log.d(ETIQUETA_LOG, "onCreate(): termina");
     } // onCreate()
 
     // --------------------------------------------------------------------------------
@@ -222,16 +224,28 @@ public class MainActivity extends AppCompatActivity {
                 super.onScanResult(callbackType, resultado);
                 Log.d(ETIQUETA_LOG, "  buscarEsteDispositivoBTLE(): onScanResult() ");
 
-                // mostrarInformacionDispositivoBTLE( resultado );
+                mostrarInformacionDispositivoBTLE( resultado );
 
 
-                // 🔹 Aquí testear el nombre detectado
-                if (ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED) {
+                if (ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.BLUETOOTH_CONNECT)
+                        == PackageManager.PERMISSION_GRANTED) {
+
                     String nombreDetectado = resultado.getDevice().getName();
-                    Testeos.testearFiltroDispositivo(nombreDetectado);
-                } else {
-                    Log.d(ETIQUETA_LOG, "No se puede obtener nombre detectado: falta permiso BLUETOOTH_CONNECT");
+
+                    if (nombreDetectado != null && !testeado) {
+                        testeado = true;
+
+                        // 🔹 Solo test de filtro
+                        boolean filtroOk = Testeos.testFiltrarDispositivo(nombreDetectado);
+
+                        // 🔹 Solo si pasó el test, enviamos a Firebase
+                        if (filtroOk && !enviadoAFirebase) {
+                            enviadoAFirebase = true;
+                            Testeos.testEnviarAFirebase(nombreDetectado, enviarDatosDeIBeacon);
+                        }
+                    }
                 }
+
             }
 
             @Override

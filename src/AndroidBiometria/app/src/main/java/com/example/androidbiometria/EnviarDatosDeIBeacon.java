@@ -8,18 +8,17 @@ import java.util.Map;
 public class EnviarDatosDeIBeacon {
 
     private static final String TAG = ">>>>>";
+
     private FirebaseFirestore db;
+    private final String DOCUMENTO_EMISORA = "emisora_unica"; // Documento fijo
 
     public EnviarDatosDeIBeacon() {
         // Inicializar Firebase Firestore
         db = FirebaseFirestore.getInstance();
-
-        // Llamamos al test de forma automática
-        Testeos.testearEnvioEmisora(this);
     }
 
     /**
-     * Envía a Firebase el nombre de la emisora detectada.
+     * Envía o actualiza en Firebase el nombre de la emisora detectada.
      *
      * @param nombreEmisora texto con el nombre de la emisora
      */
@@ -32,16 +31,13 @@ public class EnviarDatosDeIBeacon {
         Log.d(TAG, "Enviando nombre de emisora a Firebase: " + nombreEmisora);
 
         Map<String, Object> datos = new HashMap<>();
-        datos.put("nombre_emisora", nombreEmisora);
+        datos.put("nombre", nombreEmisora);
         datos.put("timestamp", System.currentTimeMillis());
 
         db.collection("emisoras")
-                .add(datos) // 🔹 ID automático
-                .addOnSuccessListener(docRef -> {
-                    Log.d(TAG, "Nombre de emisora enviado: " + docRef.getId());
-                })
-                .addOnFailureListener(e -> {
-                    Log.e(TAG, "Error enviando nombre de emisora: " + e.getMessage());
-                });
+                .document(DOCUMENTO_EMISORA) // Documento fijo para evitar repeticiones
+                .set(datos) // reemplaza los datos existentes
+                .addOnSuccessListener(aVoid -> Log.d(TAG, "Nombre de emisora actualizado en Firebase"))
+                .addOnFailureListener(e -> Log.e(TAG, "Error enviando nombre de emisora: " + e.getMessage()));
     }
 }
