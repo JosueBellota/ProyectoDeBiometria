@@ -28,7 +28,7 @@ function App() {
       const querySnapshot = await getDocs(collection(db, "medidas"));
       const docs = querySnapshot.docs.map((doc) => ({
         id: doc.id,          // ejemplo: "placa_1"
-        ...doc.data(),       // ejemplo: { placa: 1234, timestamp: ... }
+          // ejemplo: { placa: 1234, timestamp: ... }
       }));
       setData(docs);
     };

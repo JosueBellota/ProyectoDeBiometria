@@ -12,7 +12,6 @@ import android.bluetooth.le.ScanResult;
 import android.bluetooth.le.ScanSettings;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
-import android.os.ParcelUuid;
 import android.util.Log;
 import android.view.View;
 
@@ -22,7 +21,6 @@ import androidx.core.content.ContextCompat;
 
 import java.util.Arrays;
 import java.util.List;
-import java.util.UUID;
 
 // -----------------------------------------------------------------------------------
 //
@@ -50,7 +48,7 @@ public class MainActivity extends AppCompatActivity {
     private static final int CODIGO_PETICION_PERMISOS = 11223344;
 
     // firebaseManager: objeto
-    private FirebaseManager firebaseManager;
+    private EnviarDatosDeIBeacon enviarDatosDeIBeacon;
 
     // elEscanner: objeto
     private BluetoothLeScanner elEscanner;
@@ -59,7 +57,28 @@ public class MainActivity extends AppCompatActivity {
     private ScanCallback callbackDelEscaneo = null;
 
 
+    // ---------------------------------------------------------------------------
+    // Ciclo de vida
+    // ---------------------------------------------------------------------------
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_main);
 
+
+        Log.d(ETIQUETA_LOG, " onCreate(): empieza ");
+
+        inicializarBlueTooth();
+
+
+
+        Log.d(ETIQUETA_LOG, " onCreate(): termina ");
+
+
+        enviarDatosDeIBeacon = new EnviarDatosDeIBeacon();
+
+
+    } // onCreate()
 
     // --------------------------------------------------------------------------------
     // Sin parámetros de entrada
@@ -203,7 +222,16 @@ public class MainActivity extends AppCompatActivity {
                 super.onScanResult(callbackType, resultado);
                 Log.d(ETIQUETA_LOG, "  buscarEsteDispositivoBTLE(): onScanResult() ");
 
-                mostrarInformacionDispositivoBTLE( resultado );
+                // mostrarInformacionDispositivoBTLE( resultado );
+
+
+                // 🔹 Aquí testear el nombre detectado
+                if (ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED) {
+                    String nombreDetectado = resultado.getDevice().getName();
+                    Testeos.testearFiltroDispositivo(nombreDetectado);
+                } else {
+                    Log.d(ETIQUETA_LOG, "No se puede obtener nombre detectado: falta permiso BLUETOOTH_CONNECT");
+                }
             }
 
             @Override
@@ -378,27 +406,7 @@ public class MainActivity extends AppCompatActivity {
         }
     } // ()
 
-    // ---------------------------------------------------------------------------
-    // Ciclo de vida
-    // ---------------------------------------------------------------------------
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
 
-
-        // Inicializar FirebaseManager
-        firebaseManager = new FirebaseManager();
-
-        Log.d(ETIQUETA_LOG, " onCreate(): empieza ");
-
-        inicializarBlueTooth();
-
-
-
-        Log.d(ETIQUETA_LOG, " onCreate(): termina ");
-
-    } // onCreate()
 
     // -----------------------------------------------------------------------------------
     // requestCode: número N (código de la petición de permisos)
