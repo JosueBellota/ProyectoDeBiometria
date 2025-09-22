@@ -5,6 +5,7 @@ export class testeos {
 
   // Valida que el nombre de la emisora exista y sea igual al esperado
   testNombreEmisora(nombre, esperado = "LE_WH-1000XM5") {
+    
     if (!nombre) {
       console.error("❌ Error: nombre de emisora es null o undefined");
       return false;
