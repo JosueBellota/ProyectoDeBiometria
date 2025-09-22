@@ -1,48 +1,30 @@
 import React, { useEffect, useState } from "react";
-import { getFirestore, collection, getDocs } from "firebase/firestore";
-
-// Import the functions you need from the SDKs you need
-import { initializeApp } from "firebase/app";
-// TODO: Add SDKs for Firebase products that you want to use
-// https://firebase.google.com/docs/web/setup#available-libraries
-
-// Your web app's Firebase configuration
-const firebaseConfig = {
-  apiKey: "AIzaSyDYvrCfTAJn0irG23qF3gTDCTMT9TGZQNk",
-  authDomain: "proyectodebiometria.firebaseapp.com",
-  projectId: "proyectodebiometria",
-  storageBucket: "proyectodebiometria.firebasestorage.app",
-  messagingSenderId: "174840664338",
-  appId: "1:174840664338:web:8cd5fec4b879df480423cb"
-};
-
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
+import { main } from "./API/main";
 
 function App() {
-  const [data, setData] = useState([]);
+
+  const [datos, setDatos] = useState([]);
 
   useEffect(() => {
-    const fetchData = async () => {
-      const querySnapshot = await getDocs(collection(db, "medidas"));
-      const docs = querySnapshot.docs.map((doc) => ({
-        id: doc.id,          // ejemplo: "placa_1"
-          // ejemplo: { placa: 1234, timestamp: ... }
-      }));
-      setData(docs);
+    const fetchDatos = async () => {
+      const resultado = await main();
+      setDatos(resultado);
     };
-    fetchData();
+    fetchDatos();
   }, []);
 
   return (
     <div>
-      <h2>Datos</h2>
-      {data.map((item) => (
-        <div key={item.id}>
-          {item.id}: {item.placa}
-        </div>
-      ))}
+      <h2>Datos de IBeacon</h2>
+      {datos.length === 0 ? (
+        <p>Cargando...</p>
+      ) : (
+        datos.map((item) => (
+          <div key={item.id}>
+            {item.id}: {item.nombre || "Sin nombre"}
+          </div>
+        ))
+      )}
     </div>
   );
 }
