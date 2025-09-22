@@ -29,27 +29,27 @@ public class FirebaseManager {
 
         // Enviar placa 1
         Map<String, Object> placa1 = new HashMap<>();
-        placa1.put("placa", 1);
+        placa1.put("placa", 1234);
         placa1.put("timestamp", System.currentTimeMillis());
         enviarDocumento(placa1, "placa_1");
 
         // Enviar placa 2
         Map<String, Object> placa2 = new HashMap<>();
-        placa2.put("placa", 2);
+        placa2.put("placa", 1234);
         placa2.put("timestamp", System.currentTimeMillis());
-        enviarDocumento(placa2, "placa_2");
+        enviarDocumento(placa2, "placa_1");
 
         // Enviar placa 3
         Map<String, Object> placa3 = new HashMap<>();
-        placa3.put("placa", 3);
+        placa3.put("placa", 1234);
         placa3.put("timestamp", System.currentTimeMillis());
-        enviarDocumento(placa3, "placa_3");
+        enviarDocumento(placa3, "placa_1");
 
         // Enviar placa 4
         Map<String, Object> placa4 = new HashMap<>();
-        placa4.put("placa", 4);
+        placa4.put("placa", 1234);
         placa4.put("timestamp", System.currentTimeMillis());
-        enviarDocumento(placa4, "placa_4");
+        enviarDocumento(placa4, "placa_1");
     }
 
     /**
