@@ -29,7 +29,7 @@ private:
 public:
   // Emisora BLE configurada con nombre, fabricante y potencia de transmisión
   EmisoraBLE laEmisora {
-	"GTI-3A", // caracteres (nombre emisora)
+	"Josue", // caracteres (nombre emisora)
 	0x004c,   // numeros (fabricanteID, Apple)
 	4         // numeros (txPower)
   };
