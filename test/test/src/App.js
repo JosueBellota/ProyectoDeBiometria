@@ -1,23 +1,35 @@
 import React, { useEffect, useState } from "react";
 import { pruebaAutomatica } from "./test";
 
+// variable global en memoria
+let testEjecutado = false;
+
 function App() {
   const [resultados, setResultados] = useState([]);
+  const [cargando, setCargando] = useState(true);
 
   useEffect(() => {
-    const ejecutarTest = async () => {
-      const res = await pruebaAutomatica();
-      setResultados(res);
-    };
+    if (!testEjecutado) {
+      const ejecutarTest = async () => {
+        const res = await pruebaAutomatica();
+        setResultados(res);
+        setCargando(false);
+      };
 
-    ejecutarTest();
+      ejecutarTest();
+      testEjecutado = true; // marcar como ejecutado en esta sesión
+    } else {
+      setCargando(false); // si ya se ejecutó en esta sesión, mostramos resultados vacíos
+    }
   }, []);
 
   return (
     <div style={{ padding: 20 }}>
       <h1>Test automático de Firebase Functions</h1>
-      {resultados.length === 0 ? (
+      {cargando ? (
         <p>Ejecutando tests...</p>
+      ) : resultados.length === 0 ? (
+        <p>No hay tests ejecutados en esta sesión aún.</p>
       ) : (
         resultados.map((r, index) => (
           <div
@@ -37,7 +49,9 @@ function App() {
             {r.error && (
               <span style={{ color: "red" }}>
                 ❌ Error:{" "}
-                {typeof r.error === "string" ? r.error : JSON.stringify(r.error)}
+                {typeof r.error === "string"
+                  ? r.error
+                  : JSON.stringify(r.error)}
               </span>
             )}
           </div>

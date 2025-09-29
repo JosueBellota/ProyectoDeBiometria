@@ -1,5 +1,8 @@
 // test.js
 export async function pruebaAutomatica() {
+
+// Valores a Testear
+
   const tests = [
     { sensor: "CO2", valor: 100 }
   ];
