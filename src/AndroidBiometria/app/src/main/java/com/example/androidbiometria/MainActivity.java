@@ -77,11 +77,7 @@ public class MainActivity extends AppCompatActivity {
         //enviarDatosDeIBeacon = new EnviarDatosDeIBeacon();
 
         // Test inicial de Firebase: solo verifica que el objeto no sea null
-        //Testeos.testFirebase(enviarDatosDeIBeacon);
-
-
-        EnviarDatosDeIBeacon enviarDatos = new EnviarDatosDeIBeacon();
-        enviarDatos.enviarDatosAFuncion("sensor_test", 1234);
+        Testeos.testFirebase(enviarDatosDeIBeacon);
 
         Log.d(ETIQUETA_LOG, "onCreate(): termina");
     } // onCreate()
