@@ -17,9 +17,9 @@ function App() {
       };
 
       ejecutarTest();
-      testEjecutado = true; // marcar como ejecutado en esta sesión
+      testEjecutado = true; 
     } else {
-      setCargando(false); // si ya se ejecutó en esta sesión, mostramos resultados vacíos
+      setCargando(false); 
     }
   }, []);
 
@@ -40,7 +40,12 @@ function App() {
               border: "1px solid #ccc",
             }}
           >
-            <strong>Test:</strong> {JSON.stringify(r.test)} <br />
+            <strong>Paso:</strong> {r.paso} <br />
+            {r.test && (
+              <>
+                <strong>Test:</strong> {JSON.stringify(r.test)} <br />
+              </>
+            )}
             {r.resultado && (
               <span style={{ color: "green" }}>
                 ✅ Resultado: {JSON.stringify(r.resultado)}

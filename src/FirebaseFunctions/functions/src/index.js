@@ -5,8 +5,10 @@ const admin = require("firebase-admin");
 admin.initializeApp();
 const db = admin.firestore();
 
-// Importamos la API pasando las dependencias necesarias
-const { guardarMedidas } = require("./Api/guardarMedidas")(functions, admin, db);
+// Importamos las APIs pasando dependencias
+const { guardarMedida } = require("./Api/guardarMedida")(functions, admin, db);
+const { recibirMedida } = require("./Api/recibirMedida")(functions, admin, db);
 
-// Exportamos la función para Firebase
-exports.guardarMedidas = guardarMedidas;
+// Exportamos las funciones para Firebase
+exports.guardarMedida = guardarMedida;
+exports.recibirMedida = recibirMedida;

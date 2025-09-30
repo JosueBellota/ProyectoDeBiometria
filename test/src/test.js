@@ -1,37 +1,62 @@
 // test.js
+
+// 🔹 Test para guardarMedida (POST)
+export async function pruebaGuardarMedida(test) {
+  try {
+    const res = await fetch("https://us-central1-proyectodebiometria.cloudfunctions.net/guardarMedida", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(test),
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      return { test, paso: "POST", error: data.error || "Error desconocido en POST" };
+    }
+
+    return { test, paso: "POST", resultado: data };
+  } catch (err) {
+    return { test, paso: "POST", error: err.message };
+  }
+}
+
+// 🔹 Test para recibirMedida (GET)
+export async function pruebaRecibirMedida() {
+  try {
+    const res = await fetch("https://us-central1-proyectodebiometria.cloudfunctions.net/recibirMedida");
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      return { paso: "GET", error: data.error || "Error desconocido en GET" };
+    }
+
+    return { paso: "GET", resultado: data };
+  } catch (err) {
+    return { paso: "GET", error: err.message };
+  }
+}
+
+
+//-----------------------------------------------
+//-----------------------------------------------
+
+// 🔹 Función que ejecuta ambos tests secuenciales
 export async function pruebaAutomatica() {
-
-// Valores a Testear
-
-  const tests = [
-    { sensor: "CO2", valor: 100 }
-  ];
-
+  const tests = [{ sensor: "CO2", valor: 1234 }];
   const resultados = [];
 
   for (const test of tests) {
-    try {
-      // Hacemos POST al endpoint HTTP
-      const res = await fetch(
-        "https://guardarmedidas-k4jphiswsa-uc.a.run.app",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(test),
-        }
-      );
+    const resultadoPost = await pruebaGuardarMedida(test);
+    resultados.push(resultadoPost);
 
-      const data = await res.json();
-
-      if (!res.ok) {
-        resultados.push({ test, error: data.error || "Error desconocido" });
-      } else {
-        resultados.push({ test, resultado: data });
-      }
-    } catch (err) {
-      resultados.push({ test, error: err.message });
+    // Solo probamos GET si el POST tuvo éxito
+    if (resultadoPost.resultado) {
+      const resultadoGet = await pruebaRecibirMedida();
+      resultados.push(resultadoGet);
     }
   }
 

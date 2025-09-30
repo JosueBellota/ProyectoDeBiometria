@@ -1,19 +1,28 @@
 // -----------------------------------------------------------------------------------
+//    
+//   sensor: texto,
+//   valor: numero N    
+//     
+// -->
 // guardarMedidasInterno()
-//   • Construye el documento con los campos recibidos
-//   • Guarda en la colección "emisoras_f" de Firestore
+//  
+// -->
+// JSON:
+//     { exito: booleano, mensaje: texto }
+//
 // -----------------------------------------------------------------------------------
 
 module.exports = async function guardarMedidasInterno(db, admin, sensor, valor) {
 
-
     const doc = {
+
         nombre: sensor,
         valor: valor,
         timestamp: admin.firestore.FieldValue.serverTimestamp(),
+
     };
 
-    await db.collection("emisoras_f").add(doc);
+    await db.collection("medidas").add(doc);
 
     return { exito: true, mensaje: "Guardado correctamente en Firestore" };
 

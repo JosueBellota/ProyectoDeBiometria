@@ -1,11 +1,13 @@
 const cors = require("cors")({ origin: true });
 
 // Importamos la lógica de negocio
-const guardarMedidasInterno = require("../LogicaDelNegocio/guardarMedidasInterno");
+const guardarMedidaInterno = require("../LogicaDelNegocio/guardarMedidaInterno");
 
 
 // -----------------------------------------------------------------------------------
 // req: {
+//
+//     metodo: POST,
 //     body:{
 //         sensor: texto,
 //         valor: numero N
@@ -27,7 +29,7 @@ module.exports = (functions, admin, db) => {
   return {
 
 
-    guardarMedidas: functions.https.onRequest((req, res) => {
+    guardarMedida: functions.https.onRequest((req, res) => {
 
       cors(req, res, async () => {
 
@@ -53,13 +55,13 @@ module.exports = (functions, admin, db) => {
             }
 
 
-            const resultado = await guardarMedidasInterno(db, admin, sensor, valorNum);
+            const resultado = await guardarMedidaInterno(db, admin, sensor, valorNum);
 
             return res.status(200).json(resultado);
 
 
         } catch (error) {
-          console.error("❌ Error en guardarMedidas:", error);
+          console.error("❌ Error en guardarMedida:", error);
           return res.status(500).json({ error: error.message });
         }
       });
