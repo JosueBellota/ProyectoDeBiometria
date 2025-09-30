@@ -47,8 +47,6 @@ public class MainActivity extends AppCompatActivity {
     // CODIGO_PETICION_PERMISOS: número N
     private static final int CODIGO_PETICION_PERMISOS = 11223344;
 
-    // firebaseManager: objeto
-    private EnviarDatosDeIBeacon enviarDatosDeIBeacon;
 
     // elEscanner: objeto
     private BluetoothLeScanner elEscanner;
@@ -57,8 +55,6 @@ public class MainActivity extends AppCompatActivity {
     private ScanCallback callbackDelEscaneo = null;
 
     private boolean testeado = false;
-
-    private boolean enviadoAFirebase = false;
 
     // ---------------------------------------------------------------------------
     // Ciclo de vida
@@ -72,12 +68,6 @@ public class MainActivity extends AppCompatActivity {
 
         // Inicializar Bluetooth y obtener el escáner
         inicializarBlueTooth();
-
-        // Crear el objeto que enviará datos a Firebase
-        //enviarDatosDeIBeacon = new EnviarDatosDeIBeacon();
-
-        // Test inicial de Firebase: solo verifica que el objeto no sea null
-        Testeos.testFirebase(enviarDatosDeIBeacon);
 
         Log.d(ETIQUETA_LOG, "onCreate(): termina");
     } // onCreate()
@@ -220,11 +210,10 @@ public class MainActivity extends AppCompatActivity {
 
         this.callbackDelEscaneo = new ScanCallback() {
             @Override
-            public void onScanResult( int callbackType, ScanResult resultado ) {
+            public void onScanResult(int callbackType, ScanResult resultado) {
                 super.onScanResult(callbackType, resultado);
-                Log.d(ETIQUETA_LOG, "  buscarEsteDispositivoBTLE(): onScanResult() ");
 
-                mostrarInformacionDispositivoBTLE( resultado );
+
 
 
                 if (ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.BLUETOOTH_CONNECT)
@@ -234,18 +223,17 @@ public class MainActivity extends AppCompatActivity {
 
                     if (nombreDetectado != null && !testeado) {
                         testeado = true;
+                        mostrarInformacionDispositivoBTLE(resultado);
+                        // 🔹 Convertir a objeto estructurado
+                        TramaIBeaconConvertido TramaConvertido = convertirScanResult(resultado);
+                        Log.d(ETIQUETA_LOG, "  buscarEsteDispositivoBTLE(): onScanResult() ");
+                        // Mostrar información del dispositivo
 
-                        // 🔹 Solo test de filtro
-                        boolean filtroOk = Testeos.testFiltrarDispositivo(nombreDetectado);
 
-                        // 🔹 Solo si pasó el test, enviamos a Firebase
-                        if (filtroOk && !enviadoAFirebase) {
-                            enviadoAFirebase = true;
-                            Testeos.testEnviarAFirebase(nombreDetectado, enviarDatosDeIBeacon);
-                        }
+                        // 🔹 Enviar medida a Firebase usando el objeto convertido
+                        TramaConvertido.guardarMedida();
                     }
                 }
-
             }
 
             @Override
@@ -454,6 +442,44 @@ public class MainActivity extends AppCompatActivity {
         // Other 'case' lines to check for other
         // permissions this app might request.
     } // ()
+
+
+    private TramaIBeaconConvertido convertirScanResult(ScanResult resultado) {
+        BluetoothDevice bluetoothDevice = resultado.getDevice();
+        byte[] bytes = resultado.getScanRecord().getBytes();
+        int rssi = resultado.getRssi();
+
+        TramaIBeacon tib = new TramaIBeacon(bytes);
+
+        String nombre = (ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED)
+                ? bluetoothDevice.getName()
+                : "[Sin permiso BLUETOOTH_CONNECT]";
+
+        String direccion = (ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED)
+                ? bluetoothDevice.getAddress()
+                : "[Sin permiso BLUETOOTH_CONNECT]";
+
+        return new TramaIBeaconConvertido(
+                nombre,
+                direccion,
+                rssi,
+                Utilidades.bytesToHexString(bytes),
+                Utilidades.bytesToHexString(tib.getPrefijo()),
+                Utilidades.bytesToHexString(tib.getAdvFlags()),
+                Utilidades.bytesToHexString(tib.getAdvHeader()),
+                Utilidades.bytesToHexString(tib.getCompanyID()),
+                tib.getiBeaconType(),
+                tib.getiBeaconLength(),
+                Utilidades.bytesToHexString(tib.getUUID()),
+                Utilidades.bytesToString(tib.getUUID()),
+                Utilidades.bytesToInt(tib.getMajor()),
+                Utilidades.bytesToInt(tib.getMinor()),
+                tib.getTxPower()
+        );
+    }
+
+
+
 
 } // class
 // --------------------------------------------------------------
