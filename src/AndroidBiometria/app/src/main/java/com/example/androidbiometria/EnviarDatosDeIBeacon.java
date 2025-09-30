@@ -5,9 +5,14 @@ import com.google.firebase.firestore.FirebaseFirestore;
 import java.util.HashMap;
 import java.util.Map;
 
+import com.google.firebase.functions.FirebaseFunctions;
+import com.google.firebase.functions.HttpsCallableResult;
+
 public class EnviarDatosDeIBeacon {
 
     private static final String TAG = ">>>>>";
+
+    private FirebaseFunctions functions;
 
     private FirebaseFirestore db;
     private final String DOCUMENTO_EMISORA = "emisora_unica"; // Documento fijo
@@ -15,6 +20,8 @@ public class EnviarDatosDeIBeacon {
     public EnviarDatosDeIBeacon() {
         // Inicializar Firebase Firestore
         db = FirebaseFirestore.getInstance();
+
+
     }
 
     /**
@@ -40,4 +47,5 @@ public class EnviarDatosDeIBeacon {
                 .addOnSuccessListener(aVoid -> Log.d(TAG, "Nombre de emisora actualizado en Firebase"))
                 .addOnFailureListener(e -> Log.e(TAG, "Error enviando nombre de emisora: " + e.getMessage()));
     }
+
 }

@@ -61,8 +61,8 @@ public class MainActivity extends AppCompatActivity {
     private boolean enviadoAFirebase = false;
 
     // ---------------------------------------------------------------------------
-// Ciclo de vida
-// ---------------------------------------------------------------------------
+    // Ciclo de vida
+    // ---------------------------------------------------------------------------
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -74,7 +74,7 @@ public class MainActivity extends AppCompatActivity {
         inicializarBlueTooth();
 
         // Crear el objeto que enviará datos a Firebase
-        enviarDatosDeIBeacon = new EnviarDatosDeIBeacon();
+        //enviarDatosDeIBeacon = new EnviarDatosDeIBeacon();
 
         // Test inicial de Firebase: solo verifica que el objeto no sea null
         Testeos.testFirebase(enviarDatosDeIBeacon);
