@@ -1,3 +1,14 @@
+
+// ---------------------------------------------------------
+//
+// Fichero:App.js
+// Responsable: Josue Bellota Ichaso
+//
+// ----------------------------------------------------------
+
+
+
+
 import React, { useEffect, useState } from "react";
 import { main } from "./API/api";
 

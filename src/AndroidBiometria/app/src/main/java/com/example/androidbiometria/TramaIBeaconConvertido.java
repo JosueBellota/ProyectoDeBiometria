@@ -6,25 +6,60 @@ import okhttp3.*;
 import org.json.JSONObject;
 import java.io.IOException;
 
-public class TramaIBeaconConvertido {
-    private String nombre;
-    private String direccion;
-    private int rssi;
-    private String bytesHex;
-    private String prefijo;
-    private String advFlags;
-    private String advHeader;
-    private String companyID;
-    private int iBeaconType;
-    private int iBeaconLength;
-    private String uuidHex;
-    private String uuidString;
-    private int major;
-    private int minor;
-    private int txPower;
-    private static final String URL_GUARDAR_MEDICION = "https://us-central1-proyectodebiometria.cloudfunctions.net/guardarMedida";
 
+// -----------------------------------------------------------------------------------
+//
+// Fichero:TramaIBea.java
+// Responsable: Josue Bellota Ichaso
+//
+// ----------------------------------------------------------
+// Clase TramaIBeaconConvertido
+// ----------------------------------------------------------
+// Esta clase representa la información convertida de una trama
+// publicitaria iBeacon detectada por un dispositivo Android.
+//
+// Contiene los campos que describen el beacon (nombre, dirección,
+// UUID, major, minor, etc.), así como un método para enviar
+// medidas a un servicio en Firebase.
+// ----------------------------------------------------------
+public class TramaIBeaconConvertido {
+
+    // ----------------------------------------------------------
+    // Atributos principales
+    // ----------------------------------------------------------
+    private String nombre;        // texto (nombre del dispositivo)
+    private String direccion;     // texto (dirección MAC del beacon)
+    private int rssi;             // número entero (intensidad de señal recibida)
+    private String bytesHex;      // texto (datos brutos en formato hexadecimal)
+    private String prefijo;       // texto (parte inicial de la trama)
+    private String advFlags;      // texto (flags de la trama publicitaria)
+    private String advHeader;     // texto (cabecera de la trama)
+    private String companyID;     // texto (identificador de la compañía emisora)
+    private int iBeaconType;      // número entero (tipo de iBeacon)
+    private int iBeaconLength;    // número entero (longitud de los datos)
+    private String uuidHex;       // texto (UUID en hexadecimal)
+    private String uuidString;    // texto (UUID en formato estándar con guiones)
+    private int major;            // número entero (campo Major del iBeacon)
+    private int minor;            // número entero (campo Minor del iBeacon)
+    private int txPower;          // número entero (potencia de transmisión)
+
+    // URL del servicio en Firebase (constante)
+    private static final String URL_GUARDAR_MEDICION =
+            "https://us-central1-proyectodebiometria.cloudfunctions.net/guardarMedida";
+
+    // ----------------------------------------------------------
     // Constructor
+    // ----------------------------------------------------------
+    // Parámetros de entrada:
+    //   - nombre, direccion, rssi, bytesHex, prefijo, advFlags,
+    //     advHeader, companyID, iBeaconType, iBeaconLength,
+    //     uuidHex, uuidString, major, minor, txPower
+    // -->
+    // TramaIBeaconConvertido() --> inicializa todos los atributos
+    // de la clase con los valores recibidos
+    // -->
+    // objeto TramaIBeaconConvertido
+    // ----------------------------------------------------------
     public TramaIBeaconConvertido(String nombre, String direccion, int rssi, String bytesHex,
                                   String prefijo, String advFlags, String advHeader,
                                   String companyID, int iBeaconType, int iBeaconLength,
@@ -46,6 +81,16 @@ public class TramaIBeaconConvertido {
         this.txPower = txPower;
     }
 
+    // ----------------------------------------------------------
+    // Método toString()
+    // ----------------------------------------------------------
+    // sin parámetros (de entrada)
+    // -->
+    // toString() --> devuelve una cadena de texto con todos los
+    // campos de la clase formateados
+    // -->
+    // String (texto)
+    // ----------------------------------------------------------
     @Override
     public String toString() {
         return "TramaIBeaconConvertido{" +
@@ -67,7 +112,22 @@ public class TramaIBeaconConvertido {
                 '}';
     }
 
-    // 🔹 Método para enviar la medida a Firebase usando el minor de la clase y sensor fijo "CO2"
+    // ----------------------------------------------------------
+    // Método guardarMedida()
+    // ----------------------------------------------------------
+    // sin parámetros (de entrada)
+    // -->
+    // guardarMedida() --> construye un objeto JSON con:
+    //      "valor": minor  (se usa el campo minor como dato medido)
+    //      "sensor": "CO2" (sensor fijo)
+    //   y lo envía mediante POST a la URL de Firebase.
+    //   Usa la librería OkHttpClient de forma asíncrona.
+    //
+    // En caso de éxito -> log "Medida enviada correctamente"
+    // En caso de error -> log con mensaje de error
+    // -->
+    // void
+    // ----------------------------------------------------------
     public void guardarMedida() {
 
         OkHttpClient client = new OkHttpClient();
@@ -110,6 +170,4 @@ public class TramaIBeaconConvertido {
             Log.e(">>>>>>", "Excepción al construir/enviar medida: " + e.getMessage(), e);
         }
     }
-
-
 }
