@@ -28,5 +28,6 @@ module.exports = async function recibirMedidaInterno(db) {
   return {
     sensor: doc.nombre,
     valor: doc.valor,
+    tiempo: doc.timestamp,
   };
 };
