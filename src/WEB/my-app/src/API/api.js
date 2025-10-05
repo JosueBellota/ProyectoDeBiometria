@@ -1,6 +1,23 @@
-// 🔹 API para pruebas de Firebase Functions
+// ---------------------------------------------------------
+//
+// Fichero:api.js
+// Responsable: Josue Bellota Ichaso
+//
+// ----------------------------------------------------------
 
-// Función GET para recibir medida
+// ----------------------------------------------------------
+// RecibirMedida()
+// ----------------------------------------------------------
+// • Realiza una petición GET a la función Firebase "recibirMedida".
+// • Si la respuesta es correcta, devuelve el JSON recibido
+//   en la propiedad "resultado".
+// • Si ocurre error, devuelve un objeto con la descripción del error.
+//
+// Formato devuelto:
+//   { paso: "GET", resultado: objeto }
+//   ó
+//   { paso: "GET", error: texto }
+// ----------------------------------------------------------
 export async function RecibirMedida() {
   try {
     const res = await fetch(
@@ -18,17 +35,23 @@ export async function RecibirMedida() {
   }
 }
 
-
-
-// Función principal de tests
+// ----------------------------------------------------------
+// main()
+// ----------------------------------------------------------
+// • Función de entrada principal para la App.
+// • Llama directamente a RecibirMedida() y devuelve sus resultados
+//   en un array (para mantener la misma estructura que antes).
+//
+// Formato devuelto:
+//   [ { paso, resultado } ]   ó   [ { paso, error } ]
+// ----------------------------------------------------------
 export async function main() {
-  const tests = [{ sensor: "CO2", valor: 1234 }];
   const resultados = [];
 
-  for (const test of tests) {
-    const resultadoGet = await RecibirMedida();
-    resultados.push({ ...resultadoGet, test });
-  }
+  // petición real al endpoint
+  const resultadoGet = await RecibirMedida();
+
+  resultados.push(resultadoGet);
 
   return resultados;
 }

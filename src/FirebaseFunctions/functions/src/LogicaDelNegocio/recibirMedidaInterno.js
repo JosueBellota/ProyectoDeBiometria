@@ -8,7 +8,7 @@
 //     • Devuelve sus campos básicos
 // -->
 // JSON:
-//     { sensor: texto, valor: numero }
+//     { sensor: texto, valor: numero, tiempo: texto }
 // -----------------------------------------------------------------------------------
 
 module.exports = async function recibirMedidaInterno(db) {
@@ -28,5 +28,6 @@ module.exports = async function recibirMedidaInterno(db) {
   return {
     sensor: doc.nombre,
     valor: doc.valor,
+    tiempo: doc.timestamp,
   };
 };
