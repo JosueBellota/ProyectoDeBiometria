@@ -4,6 +4,13 @@
 
 Ubicación: `doc/`
 
+**Descripción:**
+
+Los diseños del proyecto describen la arquitectura general del sistema formado por los distintos módulos (Arduino, Android, Web y Firebase), y los flujos de datos entre los sensores y la base de datos. Estos diagramas están disponibles en tres formatos para facilitar su consulta y edición:
+* SVG — formato vectorial ideal para visualización web.
+* PDF — versión lista para impresión o revisión offline.
+* DRAWIO — editable con la herramienta diagrams.net para modificaciones o ampliaciones.
+
 ## Prueba Automática
 
 Ubicación: `test/`
