@@ -18,7 +18,7 @@
 //   ó
 //   { paso: "GET", error: texto }
 // ----------------------------------------------------------
-export async function RecibirMedida() {
+export async function obtenerMedida() {
   try {
     const res = await fetch(
       "https://us-central1-proyectodebiometria.cloudfunctions.net/recibirMedida"
@@ -49,7 +49,7 @@ export async function main() {
   const resultados = [];
 
   // petición real al endpoint
-  const resultadoGet = await RecibirMedida();
+  const resultadoGet = await obtenerMedida();
 
   resultados.push(resultadoGet);
 

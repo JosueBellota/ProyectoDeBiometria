@@ -23,7 +23,7 @@ module.exports = async function recibirMedidaInterno(db) {
     throw new Error("No hay medidas guardadas en la colección");
   }
 
-  const doc = snapshot.docs[0].data();
+  const doc = snapshot.docs[0].data(); // select ... 
 
   return {
     sensor: doc.nombre,

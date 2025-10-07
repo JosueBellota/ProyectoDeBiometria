@@ -22,7 +22,7 @@ import java.io.IOException;
 // UUID, major, minor, etc.), así como un método para enviar
 // medidas a un servicio en Firebase.
 // ----------------------------------------------------------
-public class TramaIBeaconConvertido {
+public class LogicaFake {
 
     // ----------------------------------------------------------
     // Atributos principales
@@ -60,10 +60,10 @@ public class TramaIBeaconConvertido {
     // -->
     // objeto TramaIBeaconConvertido
     // ----------------------------------------------------------
-    public TramaIBeaconConvertido(String nombre, String direccion, int rssi, String bytesHex,
-                                  String prefijo, String advFlags, String advHeader,
-                                  String companyID, int iBeaconType, int iBeaconLength,
-                                  String uuidHex, String uuidString, int major, int minor, int txPower) {
+    public LogicaFake(String nombre, String direccion, int rssi, String bytesHex,
+                      String prefijo, String advFlags, String advHeader,
+                      String companyID, int iBeaconType, int iBeaconLength,
+                      String uuidHex, String uuidString, int major, int minor, int txPower) {
         this.nombre = nombre;
         this.direccion = direccion;
         this.rssi = rssi;

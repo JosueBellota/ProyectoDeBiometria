@@ -1,7 +1,7 @@
 const cors = require("cors")({ origin: true });
 
 // Importamos la lógica de negocio
-const recibirMedidaInterno = require("../LogicaDelNegocio/recibirMedidaInterno");
+const recibirMedidaInterno = require("../LogicaDeNegocio/recibirMedidaInterno");
 
 // -----------------------------------------------------------------------------------
 // req: { método GET }
