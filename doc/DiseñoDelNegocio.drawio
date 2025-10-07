@@ -1,6 +1,6 @@
 <mxfile host="Electron" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/28.1.2 Chrome/138.0.7204.243 Electron/37.4.0 Safari/537.36" version="28.1.2">
   <diagram name="Página-1" id="Eiuw2RqAJWja2RpXwZeM">
-    <mxGraphModel dx="5055" dy="2436" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+    <mxGraphModel dx="3639" dy="1873" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
@@ -1551,10 +1551,10 @@
           <mxGeometry x="3470" y="4830" width="270" height="180" as="geometry" />
         </mxCell>
         <mxCell id="Zoaxqur5XHM5UnL22pkf-84" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" parent="1" vertex="1">
-          <mxGeometry x="-2600" y="6520" width="1450" height="1630" as="geometry" />
+          <mxGeometry x="-1840" y="6515.14" width="1450" height="1630" as="geometry" />
         </mxCell>
         <mxCell id="Zoaxqur5XHM5UnL22pkf-100" value="Api Firebase" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=80;fontStyle=1;fontColor=default;labelBackgroundColor=none;" parent="1" vertex="1">
-          <mxGeometry x="-2588.75" y="6520" width="1347.5" height="220" as="geometry" />
+          <mxGeometry x="-1828.75" y="6515.14" width="1347.5" height="220" as="geometry" />
         </mxCell>
         <mxCell id="Zoaxqur5XHM5UnL22pkf-266" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;exitX=1;exitY=0.5;exitDx=0;exitDy=0;" parent="1" source="Zoaxqur5XHM5UnL22pkf-258" target="Zoaxqur5XHM5UnL22pkf-252" edge="1">
           <mxGeometry relative="1" as="geometry" />
@@ -1563,22 +1563,22 @@
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
         <mxCell id="Zoaxqur5XHM5UnL22pkf-252" value="manejarPOST()" style="rounded=0;whiteSpace=wrap;html=1;fontSize=20;fontStyle=1" parent="1" vertex="1">
-          <mxGeometry x="-2093.75" y="7130.14" width="200" height="110" as="geometry" />
+          <mxGeometry x="-1333.75" y="7125.280000000001" width="200" height="110" as="geometry" />
         </mxCell>
         <mxCell id="Zoaxqur5XHM5UnL22pkf-256" value="&lt;div style=&quot;line-height: 19px; white-space: pre;&quot;&gt;&lt;b&gt;URL: &lt;/b&gt;texto&lt;/div&gt;" style="rounded=0;whiteSpace=wrap;html=1;fontSize=16;fontColor=default;fontFamily=Helvetica;" parent="1" vertex="1">
-          <mxGeometry x="-2487.75" y="7011.07" width="270" height="52.5" as="geometry" />
+          <mxGeometry x="-1727.75" y="7006.21" width="270" height="52.5" as="geometry" />
         </mxCell>
         <mxCell id="Zoaxqur5XHM5UnL22pkf-257" value="&lt;div style=&quot;line-height: 19px; white-space: pre;&quot;&gt;&lt;b&gt;Method: &lt;/b&gt;POST&lt;/div&gt;" style="rounded=0;whiteSpace=wrap;html=1;fontSize=16;fontColor=default;fontFamily=Helvetica;" parent="1" vertex="1">
-          <mxGeometry x="-2487.75" y="7063.57" width="270" height="52.5" as="geometry" />
+          <mxGeometry x="-1727.75" y="7058.71" width="270" height="52.5" as="geometry" />
         </mxCell>
         <mxCell id="Zoaxqur5XHM5UnL22pkf-258" value="&lt;div style=&quot;line-height: 19px; white-space: pre;&quot;&gt;&lt;b&gt;Headers: &lt;/b&gt;&lt;/div&gt;&lt;div style=&quot;line-height: 19px; white-space: pre;&quot;&gt;&lt;b&gt;&lt;br&gt;&lt;/b&gt;&lt;/div&gt;&lt;div style=&quot;line-height: 19px; white-space: pre;&quot;&gt;&lt;b&gt;Content-Type: &lt;/b&gt;&quot; application/json;&lt;/div&gt;&lt;div style=&quot;line-height: 19px; white-space: pre;&quot;&gt;&lt;br&gt;&lt;/div&gt;&lt;div style=&quot;line-height: 19px; white-space: pre;&quot;&gt;charset = utf-8 &quot; &lt;/div&gt;" style="rounded=0;whiteSpace=wrap;html=1;fontSize=16;fontColor=default;fontFamily=Helvetica;" parent="1" vertex="1">
-          <mxGeometry x="-2487.75" y="7116.07" width="270" height="138.13" as="geometry" />
+          <mxGeometry x="-1727.75" y="7111.21" width="270" height="138.13" as="geometry" />
         </mxCell>
         <mxCell id="Zoaxqur5XHM5UnL22pkf-259" value="&lt;div style=&quot;line-height: 19px; white-space: pre;&quot;&gt;&lt;span&gt;&lt;b style=&quot;&quot;&gt;Body: &lt;/b&gt;&lt;/span&gt;&lt;/div&gt;&lt;div style=&quot;line-height: 19px; white-space: pre;&quot;&gt;&lt;span&gt;&lt;b style=&quot;&quot;&gt;&lt;br&gt;&lt;/b&gt;&lt;/span&gt;&lt;/div&gt;&lt;div style=&quot;line-height: 19px; white-space: pre;&quot;&gt;&lt;span&gt;{&lt;/span&gt;&lt;/div&gt;&lt;div style=&quot;line-height: 19px; white-space: pre;&quot;&gt;&lt;span&gt;&lt;span style=&quot;white-space: pre;&quot;&gt;&#x9;&lt;span style=&quot;white-space: pre;&quot;&gt;&#x9;&lt;span style=&quot;white-space: pre;&quot;&gt;&#x9;&lt;/span&gt;        &lt;/span&gt;v&lt;/span&gt;alor: numero Z&lt;br&gt;&lt;/span&gt;&lt;/div&gt;&lt;div style=&quot;line-height: 19px; white-space: pre;&quot;&gt;&lt;span&gt;&lt;span style=&quot;white-space: pre;&quot;&gt;&#x9;&lt;/span&gt;&lt;span style=&quot;white-space: pre;&quot;&gt;&#x9;&lt;/span&gt;&lt;span style=&quot;white-space: pre;&quot;&gt;&#x9;&lt;/span&gt;    sensor: texto&lt;/span&gt;&lt;/div&gt;&lt;div style=&quot;line-height: 19px; white-space: pre;&quot;&gt;&lt;span style=&quot;background-color: transparent; color: light-dark(rgb(0, 0, 0), rgb(255, 255, 255));&quot;&gt;}&lt;/span&gt;&lt;/div&gt;" style="rounded=0;whiteSpace=wrap;html=1;fontSize=16;fontColor=default;fontFamily=Helvetica;align=center;" parent="1" vertex="1">
-          <mxGeometry x="-2487.75" y="7254.2" width="270" height="180" as="geometry" />
+          <mxGeometry x="-1727.75" y="7249.34" width="270" height="180" as="geometry" />
         </mxCell>
         <mxCell id="Zoaxqur5XHM5UnL22pkf-267" value="&lt;div style=&quot;line-height: 19px; white-space: pre;&quot;&gt;&lt;b&gt;{ &quot;exito/error&quot;: booleano, &quot;mensaje&quot;: texto} o &lt;/b&gt;&lt;b style=&quot;background-color: transparent; color: light-dark(rgb(0, 0, 0), rgb(255, 255, 255));&quot;&gt;{ error : texto }&lt;/b&gt;&lt;/div&gt;" style="rounded=0;whiteSpace=wrap;html=1;fontSize=16;fontColor=default;fontFamily=Helvetica;align=center;" parent="1" vertex="1">
-          <mxGeometry x="-1810" y="7095.14" width="540" height="180" as="geometry" />
+          <mxGeometry x="-1050" y="7090.280000000001" width="540" height="180" as="geometry" />
         </mxCell>
         <mxCell id="Zoaxqur5XHM5UnL22pkf-270" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;exitX=1;exitY=0.5;exitDx=0;exitDy=0;" parent="1" source="Zoaxqur5XHM5UnL22pkf-275" target="Zoaxqur5XHM5UnL22pkf-272" edge="1">
           <mxGeometry relative="1" as="geometry" />
@@ -1587,22 +1587,22 @@
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
         <mxCell id="Zoaxqur5XHM5UnL22pkf-272" value="manejarGET()" style="rounded=0;whiteSpace=wrap;html=1;fontSize=20;fontStyle=1" parent="1" vertex="1">
-          <mxGeometry x="-2093.75" y="7719.070000000001" width="200" height="110" as="geometry" />
+          <mxGeometry x="-1333.75" y="7714.210000000001" width="200" height="110" as="geometry" />
         </mxCell>
         <mxCell id="Zoaxqur5XHM5UnL22pkf-273" value="&lt;div style=&quot;line-height: 19px; white-space: pre;&quot;&gt;&lt;b&gt;URL: &lt;/b&gt;texto&lt;/div&gt;" style="rounded=0;whiteSpace=wrap;html=1;fontSize=16;fontColor=default;fontFamily=Helvetica;" parent="1" vertex="1">
-          <mxGeometry x="-2487.75" y="7600" width="270" height="52.5" as="geometry" />
+          <mxGeometry x="-1727.75" y="7595.14" width="270" height="52.5" as="geometry" />
         </mxCell>
         <mxCell id="Zoaxqur5XHM5UnL22pkf-274" value="&lt;div style=&quot;line-height: 19px; white-space: pre;&quot;&gt;&lt;b&gt;Method: &lt;/b&gt;GET&lt;/div&gt;" style="rounded=0;whiteSpace=wrap;html=1;fontSize=16;fontColor=default;fontFamily=Helvetica;" parent="1" vertex="1">
-          <mxGeometry x="-2487.75" y="7652.5" width="270" height="52.5" as="geometry" />
+          <mxGeometry x="-1727.75" y="7647.64" width="270" height="52.5" as="geometry" />
         </mxCell>
         <mxCell id="Zoaxqur5XHM5UnL22pkf-275" value="&lt;div style=&quot;line-height: 19px; white-space: pre;&quot;&gt;&lt;b&gt;Headers: &lt;/b&gt;&lt;/div&gt;&lt;div style=&quot;line-height: 19px; white-space: pre;&quot;&gt;&lt;b&gt;&lt;br&gt;&lt;/b&gt;&lt;/div&gt;&lt;div style=&quot;line-height: 19px; white-space: pre;&quot;&gt;&lt;b&gt;Content-Type: &lt;/b&gt;&quot; application/json;&lt;/div&gt;&lt;div style=&quot;line-height: 19px; white-space: pre;&quot;&gt;&lt;br&gt;&lt;/div&gt;&lt;div style=&quot;line-height: 19px; white-space: pre;&quot;&gt;charset = utf-8 &quot; &lt;/div&gt;" style="rounded=0;whiteSpace=wrap;html=1;fontSize=16;fontColor=default;fontFamily=Helvetica;" parent="1" vertex="1">
-          <mxGeometry x="-2487.75" y="7705" width="270" height="138.13" as="geometry" />
+          <mxGeometry x="-1727.75" y="7700.14" width="270" height="138.13" as="geometry" />
         </mxCell>
         <mxCell id="Zoaxqur5XHM5UnL22pkf-276" value="&lt;div style=&quot;line-height: 19px; white-space: pre;&quot;&gt;&lt;span&gt;&lt;b style=&quot;&quot;&gt;Body: &lt;/b&gt;&lt;/span&gt;&lt;/div&gt;&lt;div style=&quot;line-height: 19px; white-space: pre;&quot;&gt;&lt;span&gt;&lt;b style=&quot;&quot;&gt;&lt;br&gt;&lt;/b&gt;&lt;/span&gt;&lt;/div&gt;&lt;div style=&quot;line-height: 19px; white-space: pre;&quot;&gt;&lt;div style=&quot;line-height: 19px;&quot;&gt;{&lt;/div&gt;&lt;div style=&quot;line-height: 19px;&quot;&gt;&#x9;&#x9;&#x9;       valor: numero Z&lt;br&gt;&lt;/div&gt;&lt;div style=&quot;line-height: 19px;&quot;&gt;&#x9;&#x9;&#x9;  sensor: texto&lt;/div&gt;&lt;div style=&quot;line-height: 19px;&quot;&gt;&lt;span style=&quot;background-color: transparent; color: light-dark(rgb(0, 0, 0), rgb(255, 255, 255));&quot;&gt;}&lt;/span&gt;&lt;/div&gt;&lt;/div&gt;" style="rounded=0;whiteSpace=wrap;html=1;fontSize=16;fontColor=default;fontFamily=Helvetica;align=center;" parent="1" vertex="1">
-          <mxGeometry x="-2487.75" y="7843.13" width="270" height="180" as="geometry" />
+          <mxGeometry x="-1727.75" y="7838.27" width="270" height="180" as="geometry" />
         </mxCell>
         <mxCell id="Zoaxqur5XHM5UnL22pkf-277" value="&lt;div style=&quot;line-height: 19px; white-space: pre;&quot;&gt;&lt;b&gt;{ &quot;sensor&quot;: texto, &quot;valor&quot;: numero Z, &quot;tiempo&quot;: texto}&lt;/b&gt;&lt;/div&gt;&lt;div style=&quot;line-height: 19px; white-space: pre;&quot;&gt;&lt;b&gt;&lt;br&gt;&lt;/b&gt;&lt;/div&gt;&lt;div style=&quot;line-height: 19px; white-space: pre;&quot;&gt;&lt;b&gt;o&lt;/b&gt;&lt;/div&gt;&lt;div style=&quot;line-height: 19px; white-space: pre;&quot;&gt;&lt;b&gt;&lt;br&gt;&lt;/b&gt;&lt;/div&gt;&lt;div style=&quot;line-height: 19px; white-space: pre;&quot;&gt;&lt;b&gt;{ error : texto }&lt;/b&gt;&lt;/div&gt;" style="rounded=0;whiteSpace=wrap;html=1;fontSize=16;fontColor=default;fontFamily=Helvetica;align=center;" parent="1" vertex="1">
-          <mxGeometry x="-1810" y="7684.070000000001" width="540" height="180" as="geometry" />
+          <mxGeometry x="-1050" y="7679.210000000001" width="540" height="180" as="geometry" />
         </mxCell>
         <mxCell id="Zoaxqur5XHM5UnL22pkf-279" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" parent="1" vertex="1">
           <mxGeometry x="373.75" y="6570" width="1562.5" height="1600.8" as="geometry" />
