@@ -225,7 +225,7 @@ public class MainActivity extends AppCompatActivity {
                         testeado = true;
                         mostrarInformacionDispositivoBTLE(resultado);
                         // 🔹 Convertir a objeto estructurado
-                        TramaIBeaconConvertido TramaConvertido = convertirScanResult(resultado);
+                        LogicaFake TramaConvertido = convertirScanResult(resultado);
                         Log.d(ETIQUETA_LOG, "  buscarEsteDispositivoBTLE(): onScanResult() ");
                         // Mostrar información del dispositivo
 
@@ -444,7 +444,7 @@ public class MainActivity extends AppCompatActivity {
     } // ()
 
 
-    private TramaIBeaconConvertido convertirScanResult(ScanResult resultado) {
+    private LogicaFake convertirScanResult(ScanResult resultado) {
         BluetoothDevice bluetoothDevice = resultado.getDevice();
         byte[] bytes = resultado.getScanRecord().getBytes();
         int rssi = resultado.getRssi();
@@ -459,7 +459,7 @@ public class MainActivity extends AppCompatActivity {
                 ? bluetoothDevice.getAddress()
                 : "[Sin permiso BLUETOOTH_CONNECT]";
 
-        return new TramaIBeaconConvertido(
+        return new LogicaFake(
                 nombre,
                 direccion,
                 rssi,

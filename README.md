@@ -26,8 +26,8 @@ Ubicación: `test/`
 **Descripción:**
 La prueba automática valida las funciones de **Firebase Functions**:
 
-* Envía una medida de sensor con un **POST** a la función `guardarMedida`.
-* Recupera las medidas almacenadas con un **GET** a la función `recibirMedida`.
+* Envía una medida de sensor con un **POST** a la función `ManejarPOST`.
+* Recupera las medidas almacenadas con un **GET** a la función `ManejarGET`.
 * Muestra los resultados en pantalla indicando si el test fue exitoso (✅) o si ocurrió algún error (❌).
 
 ## Programas
@@ -87,24 +87,24 @@ Ruta: `src/FirebaseFunctions/functions/src`
 
 **Descripción:**
 
-* guardarMedida (POST)
+* ManejarPOST (POST)
+
 
 Recibe un JSON con los datos { sensor: string, valor: number }.
-Valida los campos de entrada.
-Llama a guardarMedidaInterno, que almacena la información en la colección medidas de Firestore junto con una marca de tiempo generada por el servidor.
-Devuelve una respuesta JSON con el resultado del proceso:
-{ "exito": true, "mensaje": "Guardado correctamente en Firestore" }
+Valida los campos y llama a LogicaDeNegocio para guardarlos en la colección 'medidas' de Firestore.
+Devuelve un JSON con el resultado del proceso o registra errores en Firebase Functions.
+
 
 
 * recibirMedida (GET)
 
-No requiere parámetros de entrada.
-Llama a recibirMedidaInterno, que recupera la última medida registrada en la colección medidas.
-Devuelve un JSON con los campos { sensor, valor, tiempo }.
-En caso de no existir registros, devuelve un error informativo.
+Recupera la última medición registrada desde Firestore a través de LogicaDeNegocio.
+Devuelve { sensor, valor, tiempo } o registra errores en los logs de Firebase.
 
 
-La arquitectura separa claramente la lógica de negocio (en LogicaDelNegocio/) del código HTTP de interfaz, mejorando la mantenibilidad, escalabilidad y reutilización del código en otros módulos.
+Arquitectura:
+El sistema separa claramente la interfaz HTTP (Funciones Cloud) de la lógica de negocio (LogicaDeNegocio.js),
+mejorando mantenibilidad, escalabilidad y reutilización del código.
 
 ## Firebase
 

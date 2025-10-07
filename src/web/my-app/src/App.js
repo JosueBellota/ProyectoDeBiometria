@@ -6,7 +6,7 @@
 // ----------------------------------------------------------
 
 import React, { useEffect, useState } from "react";
-import { main } from "./API/api";
+import { main } from "./logicaFake/obtenerMedida";
 
 // ---------------------------------------------------------
 // Variable global para controlar si ya se ejecutó la petición
