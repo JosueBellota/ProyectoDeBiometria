@@ -1,15 +1,18 @@
 // test.js
 
-// 🔹 Test para guardarMedida (POST)
+// 🔹 Test para ManejarPOST (POST)
 export async function pruebaGuardarMedida(test) {
   try {
-    const res = await fetch("https://us-central1-proyectodebiometria.cloudfunctions.net/guardarMedida", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(test),
-    });
+    const res = await fetch(
+      "https://us-central1-proyectodebiometria.cloudfunctions.net/ManejarPOST",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(test),
+      }
+    );
 
     const data = await res.json();
 
@@ -23,10 +26,12 @@ export async function pruebaGuardarMedida(test) {
   }
 }
 
-// 🔹 Test para recibirMedida (GET)
+// 🔹 Test para ManejarGET (GET)
 export async function pruebaRecibirMedida() {
   try {
-    const res = await fetch("https://us-central1-proyectodebiometria.cloudfunctions.net/recibirMedida");
+    const res = await fetch(
+      "https://us-central1-proyectodebiometria.cloudfunctions.net/ManejarGET"
+    );
 
     const data = await res.json();
 
@@ -40,11 +45,9 @@ export async function pruebaRecibirMedida() {
   }
 }
 
-
-//-----------------------------------------------
-//-----------------------------------------------
-
+// -----------------------------------------------
 // 🔹 Función que ejecuta ambos tests secuenciales
+// -----------------------------------------------
 export async function pruebaAutomatica() {
   const tests = [{ sensor: "CO2", valor: 1234 }];
   const resultados = [];
