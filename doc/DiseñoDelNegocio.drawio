@@ -1,6 +1,6 @@
 <mxfile host="Electron" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/28.1.2 Chrome/138.0.7204.243 Electron/37.4.0 Safari/537.36" version="28.1.2">
   <diagram name="Página-1" id="Eiuw2RqAJWja2RpXwZeM">
-    <mxGraphModel dx="3639" dy="1873" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+    <mxGraphModel dx="4376" dy="2322" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
@@ -1605,17 +1605,17 @@
           <mxGeometry x="-1050" y="7679.210000000001" width="540" height="180" as="geometry" />
         </mxCell>
         <mxCell id="Zoaxqur5XHM5UnL22pkf-279" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" parent="1" vertex="1">
-          <mxGeometry x="373.75" y="6570" width="1562.5" height="1600.8" as="geometry" />
+          <mxGeometry x="373.75" y="6570" width="1276.25" height="1410" as="geometry" />
         </mxCell>
         <mxCell id="Zoaxqur5XHM5UnL22pkf-280" value="LogicaDeNegocio" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=80;fontStyle=1;fontColor=default;labelBackgroundColor=none;fontFamily=Helvetica;" parent="1" vertex="1">
-          <mxGeometry x="385" y="6570" width="1441.25" height="220" as="geometry" />
+          <mxGeometry x="256.25" y="6570" width="1441.25" height="220" as="geometry" />
         </mxCell>
         <mxCell id="Zoaxqur5XHM5UnL22pkf-281" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;exitX=1;exitY=0.5;exitDx=0;exitDy=0;" parent="1" target="Zoaxqur5XHM5UnL22pkf-283" edge="1">
           <mxGeometry relative="1" as="geometry">
             <mxPoint x="61.25" y="7330.135000000001" as="sourcePoint" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="Zoaxqur5XHM5UnL22pkf-282" style="edgeStyle=orthogonalEdgeStyle;shape=connector;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=default;strokeWidth=2;align=center;verticalAlign=middle;fontFamily=Helvetica;fontSize=11;fontColor=default;labelBackgroundColor=default;endArrow=classic;" parent="1" target="Zoaxqur5XHM5UnL22pkf-283" edge="1">
+        <mxCell id="Zoaxqur5XHM5UnL22pkf-282" value="c" style="edgeStyle=orthogonalEdgeStyle;shape=connector;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=default;strokeWidth=2;align=center;verticalAlign=middle;fontFamily=Helvetica;fontSize=11;fontColor=default;labelBackgroundColor=default;endArrow=classic;" parent="1" target="Zoaxqur5XHM5UnL22pkf-283" edge="1">
           <mxGeometry relative="1" as="geometry">
             <mxPoint x="641.5" y="7330.139999999999" as="sourcePoint" />
           </mxGeometry>
@@ -1748,6 +1748,12 @@
         </mxCell>
         <mxCell id="bl-7DmStRJng2AZFHfqL-3" value="db: objeto&lt;div&gt;&lt;br&gt;&lt;/div&gt;&lt;div&gt;admin: objeto&lt;/div&gt;" style="rounded=0;whiteSpace=wrap;html=1;fontSize=20;fontStyle=1" vertex="1" parent="1">
           <mxGeometry x="933.75" y="6952.5" width="376.25" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="bl-7DmStRJng2AZFHfqL-4" value="" style="edgeStyle=orthogonalEdgeStyle;shape=connector;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=default;strokeWidth=2;align=center;verticalAlign=middle;fontFamily=Helvetica;fontSize=11;fontColor=default;labelBackgroundColor=default;endArrow=classic;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="550" y="6954.58" as="sourcePoint" />
+            <mxPoint x="659.5" y="6954.719999999999" as="targetPoint" />
+          </mxGeometry>
         </mxCell>
       </root>
     </mxGraphModel>
