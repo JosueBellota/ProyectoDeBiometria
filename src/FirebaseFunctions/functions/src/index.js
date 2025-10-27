@@ -1,8 +1,17 @@
-// Importamos las funciones del servidor REST
+// -----------------------------------------------------------------------------------
+// Fichero: index.js
+// Responsable: Josue Bellota Ichaso
+//
+// -----------------------------------------------------------------------------------
+//
+// Descripción general:
+// -----------------------------------------------------------------------------------
+// Punto de entrada principal de las Cloud Functions de Firebase.
+// Aquí se importan y exponen las funciones HTTPS definidas en el módulo ServidorREST.
+// -----------------------------------------------------------------------------------
 
-const { ManejarGET } = require("./servidorREST/ManejarGET");
-const { ManejarPOST } = require("./servidorREST/ManejarPOST");
+// Importamos la función del servidor REST unificado
+const { ServidorREST } = require("./servidorREST/ServidorRest");
 
-// Exportamos las funciones para Firebase
-exports.ManejarPOST = ManejarPOST;
-exports.ManejarGET = ManejarGET;
+// Exportamos la función para Firebase
+exports.ServidorREST = ServidorREST;

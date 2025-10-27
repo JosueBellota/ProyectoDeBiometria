@@ -1,0 +1,28 @@
+
+usuarios/
+  usuario_abc123/
+    nombre: "Juan Pérez"
+    correo: "juan@example.com"
+    rol: "ciudadano"
+    nodos: ["nodo_001"]
+    creadoEn: Timestamp
+
+nodos/
+  nodo_001/
+    propietarioId: "usuario_abc123"
+    nombre: "Caja de Juan"
+    ubicacion: "Madrid"
+    sensores: {
+      temperatura: 23.4,
+      co2: 510
+    }
+
+datosSensores/ 
+  nodo_001/
+    medicion_20251026T210000/
+      temperatura: 23.4
+      co2: 510
+      fechaHora: 2025-10-26T21:00:00Z
+    medicion_20251026T211000/
+      ...
+```
