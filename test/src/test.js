@@ -23,18 +23,19 @@ async function callAPI(metodo, ruta, body = null) {
 /* -------------------------------------------------------------------------- */
 async function testUsuarios() {
   const resultados = [];
+  const timestamp = Date.now(); // para generar correos únicos
 
   // Crear usuario de prueba (permanece)
-  const usuario1 = { nombre: "UsuarioTest1", correo: `usuario1@test.com`, rol: "admin", password: "Test1234!" };
+  const usuario1 = { nombre: "UsuarioTest1", correo: `usuario1_${timestamp}@test.com`, rol: "admin", password: "Test1234!" };
   const resUsuario1 = await callAPI("POST", "/usuarios", usuario1);
   resultados.push(resUsuario1);
-  const idUsuario1 = resUsuario1.resultado?.idUsuario || "u1";
+  const idUsuario1 = resUsuario1.resultado?.idUsuario || null;
 
   // Crear usuario temporal (se eliminará)
-  const usuario2 = { nombre: "UsuarioTest2", correo: `usuario2@test.com`, rol: "admin", password: "Test1234!" };
+  const usuario2 = { nombre: "UsuarioTest2", correo: `usuario2_${timestamp}@test.com`, rol: "admin", password: "Test1234!" };
   const resUsuario2 = await callAPI("POST", "/usuarios", usuario2);
   resultados.push(resUsuario2);
-  const idUsuario2 = resUsuario2.resultado?.idUsuario || "u2";
+  const idUsuario2 = resUsuario2.resultado?.idUsuario || null;
 
   // Actualizar primer usuario
   if (idUsuario1) {
@@ -50,30 +51,31 @@ async function testUsuarios() {
 }
 
 /* -------------------------------------------------------------------------- */
-/* 🔹 NODOS, SENSORES Y MEDICIONES                                             */
+/* 🔹 NODOS, SENSORES Y MEDICIONES                                            */
 /* -------------------------------------------------------------------------- */
 async function testNodos(idUsuario1) {
   const resultados = [];
+  let idNodo1 = null;
+
+  if (!idUsuario1) {
+    resultados.push({ paso: "❌ Creación de nodo cancelada porque idUsuario1 es null", error: "Usuario no creado" });
+    return { resultados, idNodo1 };
+  }
 
   // Crear primer nodo (permanece)
   const nodo1 = { nombre: "NodoTest1", ubicacion: { lat: 10, lng: 20 }, propietarioId: idUsuario1 };
   const resNodo1 = await callAPI("POST", "/nodos", nodo1);
   resultados.push(resNodo1);
-  const idNodo1 = resNodo1.resultado?.idNodo || "n1";
+  idNodo1 = resNodo1.resultado?.idNodo || null;
 
   // Crear mediciones en primer nodo
   if (idNodo1) {
-    resultados.push(await callAPI("POST", "/mediciones", { idNodo: idNodo1, tipoSensor: "temperatura", valor: 22.5 }));
-    resultados.push(await callAPI("POST", "/mediciones", { idNodo: idNodo1, tipoSensor: "co2", valor: 400 }));
+    resultados.push(await callAPI("POST", "/mediciones", {
+      idNodo: idNodo1,
+      medidas: { temperatura: 22.5, co2: 400, humedad: 55 },
+    }));
 
-    const ultimaTemp = await callAPI("GET", `/mediciones/${idNodo1}/temperatura`);
-    resultados.push(ultimaTemp);
-
-    if (ultimaTemp.resultado?.id) {
-      resultados.push(await callAPI("PUT", `/mediciones/${idNodo1}/temperatura/${ultimaTemp.resultado.id}`, { valor: 23 }));
-      resultados.push(await callAPI("DELETE", `/mediciones/${idNodo1}/temperatura/${ultimaTemp.resultado.id}`));
-    }
-
+    resultados.push(await callAPI("GET", `/mediciones/${idNodo1}`));
     resultados.push(await callAPI("POST", `/usuarios/${idUsuario1}/vincularNodo`, { idNodo: idNodo1 }));
     resultados.push(await callAPI("POST", `/usuarios/${idUsuario1}/desvincularNodo`, { idNodo: idNodo1 }));
   }
@@ -82,11 +84,14 @@ async function testNodos(idUsuario1) {
   const nodo2 = { nombre: "NodoTest2", ubicacion: { lat: 15, lng: 25 }, propietarioId: idUsuario1 };
   const resNodo2 = await callAPI("POST", "/nodos", nodo2);
   resultados.push(resNodo2);
-  const idNodo2 = resNodo2.resultado?.idNodo || "n2";
+  const idNodo2 = resNodo2.resultado?.idNodo || null;
 
   if (idNodo2) {
-    resultados.push(await callAPI("POST", "/mediciones", { idNodo: idNodo2, tipoSensor: "temperatura", valor: 23 }));
-    resultados.push(await callAPI("POST", "/mediciones", { idNodo: idNodo2, tipoSensor: "co2", valor: 410 }));
+    resultados.push(await callAPI("POST", "/mediciones", {
+      idNodo: idNodo2,
+      medidas: { temperatura: 23, co2: 410, humedad: 60 },
+    }));
+    resultados.push(await callAPI("GET", `/mediciones/${idNodo2}`));
     resultados.push(await callAPI("DELETE", `/nodos/${idNodo2}`));
   }
 
@@ -111,7 +116,7 @@ export async function pruebaAutomatica() {
   resultados.push(...resUsuarios);
 
   resultados.push({ paso: "🧪 Iniciando test de NODOS, SENSORES y MEDICIONES" });
-  const { resultados: resNodos, idNodo1 } = await testNodos(idUsuario1);
+  const { resultados: resNodos } = await testNodos(idUsuario1);
   resultados.push(...resNodos);
 
   resultados.push({ paso: "🧪 Probando NOTIFICACIÓN" });

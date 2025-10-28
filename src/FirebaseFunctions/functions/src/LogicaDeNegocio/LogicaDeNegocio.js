@@ -235,9 +235,7 @@ class LogicaDeNegocio {
   //------------------------------------------------------------------------------------
   // idUsuario (entrada)
   // -->
-  // eliminarUsuario() --> (elimina usuario y sus nodos)
-  // -->
-  // void
+  // eliminarUsuario() --> elimina usuario, sus nodos y su cuenta de Authentication
   //------------------------------------------------------------------------------------
   async eliminarUsuario(idUsuario) {
     try {
@@ -249,6 +247,7 @@ class LogicaDeNegocio {
         return;
       }
 
+      // Eliminar todos los nodos del usuario
       const nodosSnapshot = await this.#db.collection("nodos")
         .where("propietarioId", "==", idUsuario)
         .get();
@@ -257,7 +256,14 @@ class LogicaDeNegocio {
         await this.eliminarNodo(nodoDoc.id);
       }
 
-      await this.#admin.auth().deleteUser(idUsuario);
+      // Intentar eliminar usuario de Authentication
+      try {
+        await this.#admin.auth().deleteUser(idUsuario);
+      } catch (authError) {
+        functions.logger.warn(`⚠️ Usuario ${idUsuario} no encontrado en Authentication`);
+      }
+
+      // Finalmente eliminar documento en Firestore
       await usuarioRef.delete();
       functions.logger.info(`🗑️ Usuario ${idUsuario} eliminado correctamente`);
     } catch (error) {
@@ -338,21 +344,38 @@ class LogicaDeNegocio {
     }
   }
 
-  //------------------------------------------------------------------------------------
-  // idNodo (entrada)
-  // -->
-  // eliminarNodo() --> (elimina el nodo de Firestore)
-  // -->
-  // void
-  //------------------------------------------------------------------------------------
-  async eliminarNodo(idNodo) {
-    try {
-      await this.#db.collection("nodos").doc(idNodo).delete();
-      functions.logger.info(`🗑️ Nodo eliminado correctamente: ${idNodo}`);
-    } catch (error) {
-      functions.logger.error("❌ Error en eliminarNodo:", error);
+//------------------------------------------------------------------------------------
+// idNodo (entrada)
+// -->
+// eliminarNodo() --> elimina el nodo de Firestore y lo desvincula de todos los usuarios
+//------------------------------------------------------------------------------------
+async eliminarNodo(idNodo) {
+  try {
+    const nodoRef = this.#db.collection("nodos").doc(idNodo);
+    const nodoDoc = await nodoRef.get();
+
+    if (!nodoDoc.exists) {
+      functions.logger.warn(`⚠️ Nodo no encontrado: ${idNodo}`);
+      return;
     }
+
+    const propietarioId = nodoDoc.data().propietarioId;
+
+    // Desvincular nodo de todos los usuarios que lo tengan
+    const usuariosSnapshot = await this.#db.collection("usuarios")
+      .where("nodos", "array-contains", idNodo)
+      .get();
+
+    for (const usuarioDoc of usuariosSnapshot.docs) {
+      await this.desvincularNodoDeUsuario(usuarioDoc.id, idNodo);
+    }
+
+    await nodoRef.delete();
+    functions.logger.info(`🗑️ Nodo eliminado correctamente: ${idNodo}`);
+  } catch (error) {
+    functions.logger.error("❌ Error en eliminarNodo:", error);
   }
+}
 
   // ===================================================================================
   // ============================== MÉTODO DE NOTIFICACIONES ===========================
