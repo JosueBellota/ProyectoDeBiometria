@@ -3,7 +3,6 @@
 // Responsable: Josue Bellota Ichaso
 //
 // -----------------------------------------------------------------------------------
-//
 // Descripción general:
 // -----------------------------------------------------------------------------------
 // Este módulo define y exporta una única función HTTPS de Firebase que actúa como
@@ -12,7 +11,7 @@
 // Expone endpoints para:
 //  - Gestión de usuarios
 //  - Gestión de nodos
-//  - Registro, actualización y eliminación de mediciones
+//  - Registro y obtención de mediciones
 //  - Vinculación y desvinculación de nodos con usuarios
 //  - Envío de notificaciones
 //
@@ -38,52 +37,40 @@ const logica = new LogicaDeNegocio();
 exports.ServidorREST = functions.https.onRequest((req, res) => {
   cors(req, res, async () => {
     try {
-      // Reemplazado console.log por logger para trazabilidad en Firebase
       functions.logger.info(`🌐 Petición recibida: ${req.method} ${req.path}`);
 
-      const ruta = req.path.toLowerCase();
+      // ✅ Mantener mayúsculas originales (importante para IDs)
+      const ruta = req.path;
+      // Usar versión en minúsculas solo para comparar rutas fijas
+      const rutaLower = ruta.toLowerCase();
 
       // ===================================================================================
       // ============================== RUTAS DE MEDICIONES ================================
       // ===================================================================================
 
-      // GET /mediciones/:idNodo/:tipoSensor
-      if (req.method === "GET" && ruta.startsWith("/mediciones/")) {
-        const [_, __, idNodo, tipoSensor] = ruta.split("/");
-        if (!idNodo || !tipoSensor)
-          return res.status(400).json({ error: "Falta idNodo o tipoSensor" });
-        const resultado = await logica.obtenerMedida(idNodo, tipoSensor);
+      // GET /mediciones/:idNodo
+      if (req.method === "GET" && rutaLower.startsWith("/mediciones/")) {
+        const idNodo = ruta.split("/")[2]; // conserva mayúsculas reales
+        if (!idNodo) {
+          return res.status(400).json({ error: "Falta parámetro idNodo" });
+        }
+        const resultado = await logica.obtenerMedidas(idNodo);
+        if (!resultado) {
+          return res.status(404).json({ error: `No se encontraron medidas para nodo ${idNodo}` });
+        }
         return res.status(200).json(resultado);
       }
 
       // POST /mediciones
-      if (req.method === "POST" && ruta === "/mediciones") {
-        const { idNodo, tipoSensor, valor } = req.body;
-        if (!idNodo || !tipoSensor || valor === undefined) {
+      if (req.method === "POST" && rutaLower === "/mediciones") {
+        const { idNodo, medidas } = req.body;
+        if (!idNodo || !medidas || typeof medidas !== "object") {
           return res.status(400).json({
-            error: "Datos inválidos: se esperaba { idNodo, tipoSensor, valor }",
+            error: "Datos inválidos: se esperaba { idNodo, medidas: { co2?, temperatura?, humedad? } }",
           });
         }
-        await logica.guardarMedida(idNodo, tipoSensor, valor);
-        return res.status(200).json({ mensaje: "✅ Medición guardada correctamente" });
-      }
-
-      // PUT /mediciones/:idNodo/:tipoSensor/:idMedicion
-      if (req.method === "PUT" && ruta.startsWith("/mediciones/")) {
-        const [_, __, idNodo, tipoSensor, idMedicion] = ruta.split("/");
-        if (!idNodo || !tipoSensor || !idMedicion)
-          return res.status(400).json({ error: "Ruta inválida" });
-        await logica.actualizarMedida(idNodo, tipoSensor, idMedicion, req.body);
-        return res.status(200).json({ mensaje: "✅ Medición actualizada correctamente" });
-      }
-
-      // DELETE /mediciones/:idNodo/:tipoSensor/:idMedicion
-      if (req.method === "DELETE" && ruta.startsWith("/mediciones/")) {
-        const [_, __, idNodo, tipoSensor, idMedicion] = ruta.split("/");
-        if (!idNodo || !tipoSensor || !idMedicion)
-          return res.status(400).json({ error: "Ruta inválida" });
-        await logica.eliminarMedida(idNodo, tipoSensor, idMedicion);
-        return res.status(200).json({ mensaje: "🗑️ Medición eliminada correctamente" });
+        await logica.guardarMedida(idNodo, medidas);
+        return res.status(200).json({ mensaje: "✅ Medidas registradas correctamente" });
       }
 
       // ===================================================================================
@@ -91,15 +78,15 @@ exports.ServidorREST = functions.https.onRequest((req, res) => {
       // ===================================================================================
 
       // GET /usuarios/:id
-      if (req.method === "GET" && ruta.startsWith("/usuarios/")) {
+      if (req.method === "GET" && rutaLower.startsWith("/usuarios/")) {
         const idUsuario = ruta.split("/")[2];
         const usuario = await logica.obtenerUsuario(idUsuario);
+        if (!usuario) return res.status(404).json({ error: "Usuario no encontrado" });
         return res.status(200).json(usuario);
       }
 
       // POST /usuarios
-      // Crea usuario con correo y password en Authentication y Firestore
-      if (req.method === "POST" && ruta === "/usuarios") {
+      if (req.method === "POST" && rutaLower === "/usuarios") {
         const { nombre, correo, rol, password } = req.body;
         if (!nombre || !correo || !rol || !password) {
           return res.status(400).json({
@@ -107,19 +94,21 @@ exports.ServidorREST = functions.https.onRequest((req, res) => {
           });
         }
         const idUsuario = await logica.crearUsuario(nombre, correo, rol, password);
+        if (!idUsuario) {
+          return res.status(500).json({ error: "Error al crear usuario" });
+        }
         return res.status(200).json({ mensaje: "✅ Usuario creado correctamente", idUsuario });
       }
 
       // PUT /usuarios/:id
-      // Actualiza datos de usuario, incluyendo correo y password
-      if (req.method === "PUT" && ruta.startsWith("/usuarios/")) {
+      if (req.method === "PUT" && rutaLower.startsWith("/usuarios/")) {
         const idUsuario = ruta.split("/")[2];
         await logica.actualizarUsuario(idUsuario, req.body);
         return res.status(200).json({ mensaje: "✅ Usuario actualizado" });
       }
 
       // DELETE /usuarios/:id
-      if (req.method === "DELETE" && ruta.startsWith("/usuarios/")) {
+      if (req.method === "DELETE" && rutaLower.startsWith("/usuarios/")) {
         const idUsuario = ruta.split("/")[2];
         await logica.eliminarUsuario(idUsuario);
         return res.status(200).json({ mensaje: "🗑️ Usuario eliminado" });
@@ -130,14 +119,15 @@ exports.ServidorREST = functions.https.onRequest((req, res) => {
       // ===================================================================================
 
       // GET /nodos/:id
-      if (req.method === "GET" && ruta.startsWith("/nodos/")) {
+      if (req.method === "GET" && rutaLower.startsWith("/nodos/")) {
         const idNodo = ruta.split("/")[2];
         const nodo = await logica.obtenerNodo(idNodo);
+        if (!nodo) return res.status(404).json({ error: "Nodo no encontrado" });
         return res.status(200).json(nodo);
       }
 
       // POST /nodos
-      if (req.method === "POST" && ruta === "/nodos") {
+      if (req.method === "POST" && rutaLower === "/nodos") {
         const { nombre, ubicacion, propietarioId } = req.body;
         if (!nombre || !ubicacion?.lat || !ubicacion?.lng || !propietarioId) {
           return res.status(400).json({
@@ -149,14 +139,14 @@ exports.ServidorREST = functions.https.onRequest((req, res) => {
       }
 
       // PUT /nodos/:id
-      if (req.method === "PUT" && ruta.startsWith("/nodos/")) {
+      if (req.method === "PUT" && rutaLower.startsWith("/nodos/")) {
         const idNodo = ruta.split("/")[2];
         await logica.actualizarNodo(idNodo, req.body);
         return res.status(200).json({ mensaje: "✅ Nodo actualizado" });
       }
 
       // DELETE /nodos/:id
-      if (req.method === "DELETE" && ruta.startsWith("/nodos/")) {
+      if (req.method === "DELETE" && rutaLower.startsWith("/nodos/")) {
         const idNodo = ruta.split("/")[2];
         await logica.eliminarNodo(idNodo);
         return res.status(200).json({ mensaje: "🗑️ Nodo eliminado" });
@@ -166,18 +156,18 @@ exports.ServidorREST = functions.https.onRequest((req, res) => {
       // ============================== VINCULACIÓN DE NODOS ===============================
       // ===================================================================================
 
-      // POST /usuarios/:idUsuario/vincularNodo
-      if (req.method === "POST" && ruta.endsWith("/vincularnodo")) {
+      if (req.method === "POST" && rutaLower.endsWith("/vincularnodo")) {
         const idUsuario = ruta.split("/")[2];
         const { idNodo } = req.body;
+        if (!idNodo) return res.status(400).json({ error: "Falta idNodo" });
         await logica.vincularNodoAUsuario(idUsuario, idNodo);
         return res.status(200).json({ mensaje: "✅ Nodo vinculado correctamente" });
       }
 
-      // POST /usuarios/:idUsuario/desvincularNodo
-      if (req.method === "POST" && ruta.endsWith("/desvincularnodo")) {
+      if (req.method === "POST" && rutaLower.endsWith("/desvincularnodo")) {
         const idUsuario = ruta.split("/")[2];
         const { idNodo } = req.body;
+        if (!idNodo) return res.status(400).json({ error: "Falta idNodo" });
         await logica.desvincularNodoDeUsuario(idUsuario, idNodo);
         return res.status(200).json({ mensaje: "✅ Nodo desvinculado correctamente" });
       }
@@ -186,9 +176,9 @@ exports.ServidorREST = functions.https.onRequest((req, res) => {
       // ================================ NOTIFICACIONES ===================================
       // ===================================================================================
 
-      // POST /notificar
-      if (req.method === "POST" && ruta === "/notificar") {
+      if (req.method === "POST" && rutaLower === "/notificar") {
         const { mensaje } = req.body;
+        if (!mensaje) return res.status(400).json({ error: "Falta el mensaje" });
         await logica.enviarNotificacion(mensaje);
         return res.status(200).json({ mensaje: "🔔 Notificación enviada correctamente" });
       }
@@ -201,6 +191,7 @@ exports.ServidorREST = functions.https.onRequest((req, res) => {
         ruta: req.path,
         metodo: req.method,
       });
+
     } catch (error) {
       functions.logger.error("❌ Error en ServidorREST:", error);
       return res.status(500).json({
