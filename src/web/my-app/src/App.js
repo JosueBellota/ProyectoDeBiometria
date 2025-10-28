@@ -60,9 +60,15 @@ function App() {
             ) : r.resultado ? (
               <>
                 <strong>Nodo:</strong> {r.resultado.nodo || "Desconocido"} <br />
-                <strong>Sensor:</strong> {r.resultado.sensor || "Desconocido"} <br />
-                <strong>Valor:</strong> {r.resultado.valor ?? "-"} <br />
-                <strong>Tiempo:</strong> {formatearTiempo(r.resultado.tiempo)}
+                <strong>Tiempo:</strong> {formatearTiempo(r.resultado.tiempo)} <br />
+                <strong>Sensores:</strong>
+                <ul>
+                  {Object.entries(r.resultado.sensores).map(([sensor, valor]) => (
+                    <li key={sensor}>
+                      {sensor}: {valor ?? "-"}
+                    </li>
+                  ))}
+                </ul>
               </>
             ) : (
               <pre>{JSON.stringify(r, null, 2)}</pre>
