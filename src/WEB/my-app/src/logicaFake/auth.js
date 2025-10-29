@@ -1,6 +1,6 @@
 import { API_BASE, firebaseConfig } from "./config";
 import { initializeApp } from "firebase/app";
-import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword } from "firebase/auth";
+import { getAuth, signInWithEmailAndPassword} from "firebase/auth";
 
 // ---------------------------------------------------------
 // Inicialización de Firebase
@@ -9,30 +9,32 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 
 // ---------------------------------------------------------
-// Registro de usuario (crea cuenta en Firebase Auth)
+// Registro de usuario (solo backend)
 // ---------------------------------------------------------
 export async function registrarCiudadano(nombre, correo, password) {
   try {
-    const userCredential = await createUserWithEmailAndPassword(auth, correo, password);
-    const user = userCredential.user;
-
-    // Guardar también en tu backend
     const res = await fetch(`${API_BASE}/usuarios`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ nombre, correo, rol: "ciudadano", uid: user.uid }),
+      body: JSON.stringify({
+        nombre,
+        correo,
+        rol: "ciudadano",
+        password
+      }),
     });
 
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || "Error al registrar en backend");
 
-    console.log("✅ Usuario registrado:", user.uid);
-    return user.uid;
+    console.log("✅ Usuario registrado correctamente en backend:", data.idUsuario);
+    return data.idUsuario; // Devuelve el ID del usuario creado en backend (uid)
   } catch (error) {
     console.error("❌ Error en registrarCiudadano:", error);
     return null;
   }
 }
+
 
 // ---------------------------------------------------------
 // Login directo con Firebase Auth

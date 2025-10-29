@@ -11,10 +11,16 @@ function Registro() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const uid = await registrarCiudadano(nombre, correo, password);
-    if (uid) navigate("/intranet");
-    else setError("Error al registrar usuario");
+    const resultado = await registrarCiudadano(nombre, correo, password);
+
+    if (resultado && resultado.uidFirebase) {
+      console.log("IDs:", resultado); 
+      navigate("/intranet");
+    } else {
+      setError("Error al registrar usuario");
+    }
   };
+
 
   return (
     <div className="container">

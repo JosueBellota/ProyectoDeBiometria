@@ -10,14 +10,19 @@ import android.bluetooth.le.ScanCallback;
 import android.bluetooth.le.ScanFilter;
 import android.bluetooth.le.ScanResult;
 import android.bluetooth.le.ScanSettings;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
+import android.widget.Button;
+import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
+
+import com.google.firebase.auth.FirebaseAuth;
 
 import java.util.Arrays;
 import java.util.List;
@@ -56,6 +61,9 @@ public class MainActivity extends AppCompatActivity {
 
     private boolean testeado = false;
 
+    private Button logoutButton;
+    private FirebaseAuth auth;
+
     // ---------------------------------------------------------------------------
     // Ciclo de vida
     // ---------------------------------------------------------------------------
@@ -70,6 +78,17 @@ public class MainActivity extends AppCompatActivity {
         inicializarBlueTooth();
 
         Log.d(ETIQUETA_LOG, "onCreate(): termina");
+
+
+        auth = FirebaseAuth.getInstance();
+        logoutButton = findViewById(R.id.logoutButton);
+
+        logoutButton.setOnClickListener(v -> {
+            auth.signOut();
+            Toast.makeText(this, "Sesión cerrada", Toast.LENGTH_SHORT).show();
+            startActivity(new Intent(this, Login.class));
+            finish();
+        });
     } // onCreate()
 
     // --------------------------------------------------------------------------------

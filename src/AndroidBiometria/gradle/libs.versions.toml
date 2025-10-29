@@ -1,6 +1,7 @@
 [versions]
 agp = "8.13.0"
 firebaseAnalytics = "23.0.0"
+firebaseAuthVersion = "23.0.0"
 firebaseBom = "34.3.0"
 firebaseFirestore = "26.0.1"
 junit = "4.13.2"
@@ -20,7 +21,9 @@ okhttp = "5.1.0"
 
 [libraries]
 firebase-analytics = { module = "com.google.firebase:firebase-analytics", version.ref = "firebaseAnalytics" }
+firebase-auth-v2300 = { module = "com.google.firebase:firebase-auth", version.ref = "firebaseAuthVersion" }
 firebase-bom = { module = "com.google.firebase:firebase-bom", version.ref = "firebaseBom" }
+firebase-database = { module = "com.google.firebase:firebase-database", version.ref = "firebaseFunctions" }
 firebase-firestore = { module = "com.google.firebase:firebase-firestore", version.ref = "firebaseFirestore" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 ext-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }

@@ -48,6 +48,10 @@ dependencies {
     implementation libs.firebase.bom
     implementation libs.firebase.firestore
     implementation libs.firebase.analytics
-
     implementation(libs.okhttp)
+    implementation libs.firebase.auth.v2300
+    implementation libs.firebase.database
+
+    
+
 }
