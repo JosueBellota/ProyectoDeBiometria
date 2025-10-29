@@ -1,6 +1,4 @@
 import { API_BASE, firebaseConfig } from "./config";
-
-
 import { initializeApp } from "firebase/app";
 import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword } from "firebase/auth";
 
@@ -66,6 +64,32 @@ export async function loginUsuario(correo, password) {
 export function obtenerUsuarioLogueado() {
   const user = localStorage.getItem("usuario");
   return user ? JSON.parse(user) : null;
+}
+
+// ---------------------------------------------------------
+// Actualizar datos de usuario
+// ---------------------------------------------------------
+export async function actualizarUsuario(idUsuario, nuevosDatos) {
+  try {
+    const res = await fetch(`${API_BASE}/usuarios/${idUsuario}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(nuevosDatos),
+    });
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Error al actualizar usuario");
+
+    // Si se actualiza correctamente, también actualizamos localStorage
+    const usuarioActualizado = { ...obtenerUsuarioLogueado(), ...nuevosDatos };
+    localStorage.setItem("usuario", JSON.stringify(usuarioActualizado));
+
+    console.log("✅ Usuario actualizado correctamente:", usuarioActualizado);
+    return usuarioActualizado;
+  } catch (error) {
+    console.error("❌ Error en actualizarUsuario:", error);
+    throw error;
+  }
 }
 
 // ---------------------------------------------------------
