@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { obtenerUsuarioLogueado, cerrarSesion } from "./../logicaFake/auth";
+import { obtenerUsuarioLogueado } from "./../logicaFake/auth";
 import { main } from "./../logicaFake/logicaFake";
+import Menu from "./templates/Menu"; // 👈 Importar el menú
 
 let testEjecutado = false;
 
@@ -10,7 +11,6 @@ function Intranet() {
   const [resultados, setResultados] = useState([]);
   const [cargando, setCargando] = useState(true);
 
-  // --- Comprobar acceso ---
   useEffect(() => {
     const user = obtenerUsuarioLogueado();
     if (!user) navigate("/login");
@@ -47,8 +47,8 @@ function Intranet() {
 
   return (
     <div className="container">
+      <Menu /> {/* 👈 Menú compartido */}
       <h1>Intranet - Mediciones de Sensores</h1>
-      <button onClick={() => { cerrarSesion(); navigate("/login"); }}>Cerrar sesión</button>
       {cargando ? (
         <p>Ejecutando petición...</p>
       ) : resultados.length === 0 ? (
