@@ -649,13 +649,15 @@
             Log.d(ETIQUETA_LOG, "🔍 Buscando dispositivo leído del QR: " + nombreDispositivoQR);
             this.buscarEsteDispositivoBTLE(nombreDispositivoQR);
 
+            FirebaseAuth.getInstance().signOut();
 
             // ✅ Nueva URL hacia tu intranet
-            String url = "https://proyectodebiometria.web.app/intranet/" + nombreDispositivoQR;
+            String url = "https://proyectodebiometria.web.app/";
 
             Intent intent = new Intent(MainActivity.this, WebNodoActivity.class);
             intent.putExtra("url", url);
             startActivity(intent);
+            
         }
 
 

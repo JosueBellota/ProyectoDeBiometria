@@ -2,6 +2,7 @@ package com.example.androidbiometria;
 
 import androidx.appcompat.app.AppCompatActivity;
 import android.os.Bundle;
+import android.webkit.CookieManager;
 import android.webkit.WebView;
 import android.webkit.WebSettings;
 
@@ -12,11 +13,24 @@ public class WebNodoActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_web_nodo);
 
-        String url = getIntent().getStringExtra("url"); // URL enviada desde MainActivity
+        String url = getIntent().getStringExtra("url");
 
         WebView webView = findViewById(R.id.webNodo);
         WebSettings webSettings = webView.getSettings();
-        webSettings.setJavaScriptEnabled(true); // Si tu web usa JS, actívalo
+
+        // 🔹 Habilitar JavaScript y almacenamiento
+        webSettings.setJavaScriptEnabled(true);
+        webSettings.setDomStorageEnabled(true);
+        webSettings.setDatabaseEnabled(true);
+        webSettings.setCacheMode(WebSettings.LOAD_DEFAULT);
+
+        // 🔹 Permitir cookies
+        CookieManager cookieManager = CookieManager.getInstance();
+        cookieManager.setAcceptCookie(true);
+        cookieManager.setAcceptThirdPartyCookies(webView, true);
+
+        // 🔹 Habilitar depuración (opcional, para probar)
+        WebView.setWebContentsDebuggingEnabled(true);
 
         webView.loadUrl(url);
     }
