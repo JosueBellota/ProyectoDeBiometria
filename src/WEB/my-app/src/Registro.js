@@ -13,7 +13,8 @@ function Registro() {
     e.preventDefault();
     const resultado = await registrarCiudadano(nombre, correo, password);
 
-    if (resultado && resultado.uidFirebase) {
+    if(resultado) {
+    
       console.log("IDs:", resultado); 
       navigate("/intranet");
     } else {

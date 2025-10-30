@@ -28,7 +28,7 @@ export async function registrarCiudadano(nombre, correo, password) {
     if (!res.ok) throw new Error(data.error || "Error al registrar en backend");
 
     console.log("✅ Usuario registrado correctamente en backend:", data.idUsuario);
-    return data.idUsuario; // Devuelve el ID del usuario creado en backend (uid)
+    return data.idUsuario;
   } catch (error) {
     console.error("❌ Error en registrarCiudadano:", error);
     return null;
