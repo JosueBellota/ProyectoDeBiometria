@@ -61,34 +61,48 @@ class LogicaDeNegocio {
   // void
   //------------------------------------------------------------------------------------
   async guardarMedida(idNodo, medidas) {
-    try {
-      const nodoRef = this.#db.collection("nodos").doc(idNodo);
-      const nodoDoc = await nodoRef.get();
+  try {
+    const nodoRef = this.#db.collection("nodos").doc(idNodo);
+    const nodoDoc = await nodoRef.get();
 
-      if (!nodoDoc.exists) {
-        throw new Error(`Nodo no encontrado: ${idNodo}`);
-      }
-
-      // Validar estructura de medidas
-      const sensores = nodoDoc.data().sensores || {};
-      const nuevasMedidas = { ...sensores };
-
-      // Actualizar solo los valores no nulos
-      for (const [clave, valor] of Object.entries(medidas)) {
-        nuevasMedidas[clave] = valor !== undefined ? valor : sensores[clave] ?? null;
-      }
-
-      // Actualizar el nodo completo
-      await nodoRef.update({
-        sensores: nuevasMedidas,
-        tiempo: this.#admin.firestore.Timestamp.now(),
-      });
-
-      functions.logger.info(`✅ Medidas actualizadas para nodo ${idNodo}:`, medidas);
-    } catch (error) {
-      functions.logger.error("❌ Error en guardarMedida:", error);
+    if (!nodoDoc.exists) {
+      throw new Error(`Nodo no encontrado: ${idNodo}`);
     }
+
+    const nodoData = nodoDoc.data();
+    const propietarioId = nodoData.propietarioId;
+    const nombreNodo = nodoData.nombre;
+
+    const sensores = nodoData.sensores || {};
+    const nuevasMedidas = { ...sensores };
+
+    for (const [clave, valor] of Object.entries(medidas)) {
+      nuevasMedidas[clave] = valor !== undefined ? valor : sensores[clave] ?? null;
+    }
+
+    await nodoRef.update({
+      sensores: nuevasMedidas,
+      tiempo: this.#admin.firestore.Timestamp.now(),
+    });
+
+    functions.logger.info(`✅ Medidas actualizadas para nodo ${idNodo}:`, medidas);
+
+    // =========================================================
+    // 🚨 Lógica de alerta por CO₂
+    // =========================================================
+    if (nuevasMedidas.co2 !== null && nuevasMedidas.co2 >= 100) {
+      const mensaje = `⚠️ En el nodo "${nombreNodo}" la medida de CO₂ ha excedido el límite. Valor: ${nuevasMedidas.co2}`;
+      const color = "rojo";
+
+      // Enviar solo al propietario (topic = propietarioId)
+      await this.enviarNotificacion(mensaje, color, propietarioId);
+    }
+
+  } catch (error) {
+    functions.logger.error("❌ Error en guardarMedida:", error);
   }
+}
+
 
   //------------------------------------------------------------------------------------
   // idNodo (entrada)
@@ -380,13 +394,30 @@ async eliminarNodo(idNodo) {
   // ===================================================================================
   // ============================== MÉTODO DE NOTIFICACIONES ===========================
   // ===================================================================================
-  async enviarNotificacion(mensaje) {
+  async enviarNotificacion(mensaje, color, topic) {
     try {
-      functions.logger.info("🔔 Notificación enviada:", mensaje);
+      functions.logger.info("🔔 Enviando notificación:", { mensaje, color, topic });
+
+      const payload = {
+        notification: {
+          title: "Alerta de CO₂",
+          body: mensaje,
+        },
+        data: {
+          mensaje,
+          color,
+        },
+        topic: topic, // <-- Ahora el topic se recibe dinámico
+      };
+
+      await admin.messaging().send(payload);
+      functions.logger.info("✅ Notificación enviada al topic:", topic);
     } catch (error) {
       functions.logger.error("❌ Error en enviarNotificacion:", error);
     }
   }
+
+
 }
 
 module.exports = LogicaDeNegocio;

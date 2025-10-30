@@ -172,16 +172,21 @@ exports.ServidorREST = functions.https.onRequest((req, res) => {
         return res.status(200).json({ mensaje: "✅ Nodo desvinculado correctamente" });
       }
 
-      // ===================================================================================
-      // ================================ NOTIFICACIONES ===================================
-      // ===================================================================================
+    // ===================================================================================
+    // ================================ NOTIFICACIONES ===================================
+    // ===================================================================================
 
-      if (req.method === "POST" && rutaLower === "/notificar") {
-        const { mensaje } = req.body;
-        if (!mensaje) return res.status(400).json({ error: "Falta el mensaje" });
-        await logica.enviarNotificacion(mensaje);
-        return res.status(200).json({ mensaje: "🔔 Notificación enviada correctamente" });
-      }
+    if (req.method === "POST" && rutaLower === "/notificar") {
+      const { mensaje, color, topic } = req.body;
+
+      if (!mensaje || !color || !topic)
+        return res.status(400).json({ error: "Faltan parámetros: mensaje, color, topic" });
+
+      await logica.enviarNotificacion(mensaje, color, topic);
+      return res.status(200).json({ mensaje: "🔔 Notificación enviada correctamente al topic " + topic });
+    }
+
+
 
       // -----------------------------------------------------------------------------------
       // Ruta no encontrada

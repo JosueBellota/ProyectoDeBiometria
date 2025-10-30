@@ -31,4 +31,25 @@
         android:layout_height="wrap_content"
         />
 
+
+    <Button
+        android:id="@+id/botonLeerQR"
+        android:text="📷 Escanear QR"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content" />
+
+    <Button
+        android:id="@+id/botonBuscarQRBTLE"
+        android:text="Buscar dispositivo desde QR"
+        android:onClick="botonBuscarDispositivoQR"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content" />
+
+    <Button
+        android:id="@+id/logoutButton"
+        android:text="Cerrar sesión"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content" />
+
+
 </android.widget.LinearLayout>
