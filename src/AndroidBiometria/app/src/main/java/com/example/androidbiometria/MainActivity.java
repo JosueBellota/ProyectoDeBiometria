@@ -10,22 +10,28 @@ import android.bluetooth.le.ScanCallback;
 import android.bluetooth.le.ScanFilter;
 import android.bluetooth.le.ScanResult;
 import android.bluetooth.le.ScanSettings;
-import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
-import android.widget.Button;
-import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
-import com.google.firebase.auth.FirebaseAuth;
-
 import java.util.Arrays;
 import java.util.List;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
+import android.graphics.Color;
+import android.media.AudioManager;
+import android.media.ToneGenerator;
+import android.os.Build;
+
+import androidx.core.app.NotificationCompat;
+import androidx.core.app.NotificationManagerCompat;
+
 
 // -----------------------------------------------------------------------------------
 //
@@ -61,9 +67,6 @@ public class MainActivity extends AppCompatActivity {
 
     private boolean testeado = false;
 
-    private Button logoutButton;
-    private FirebaseAuth auth;
-
     // ---------------------------------------------------------------------------
     // Ciclo de vida
     // ---------------------------------------------------------------------------
@@ -72,23 +75,23 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        // Permiso de notificaciones para Android 13+
+        if (Build.VERSION.SDK_INT >= 33 &&
+                checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)
+                        != PackageManager.PERMISSION_GRANTED) {
+            requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS}, 2001);
+        }
+
+
         Log.d(ETIQUETA_LOG, "onCreate(): empieza");
 
         // Inicializar Bluetooth y obtener el escáner
         inicializarBlueTooth();
 
+        generarNotificacion("CO₂ alto", "#27F531");
+
+
         Log.d(ETIQUETA_LOG, "onCreate(): termina");
-
-
-        auth = FirebaseAuth.getInstance();
-        logoutButton = findViewById(R.id.logoutButton);
-
-        logoutButton.setOnClickListener(v -> {
-            auth.signOut();
-            Toast.makeText(this, "Sesión cerrada", Toast.LENGTH_SHORT).show();
-            startActivity(new Intent(this, Login.class));
-            finish();
-        });
     } // onCreate()
 
     // --------------------------------------------------------------------------------
@@ -496,6 +499,63 @@ public class MainActivity extends AppCompatActivity {
                 tib.getTxPower()
         );
     }
+
+    // ===========================================================
+// METODO PARA GENERAR UNA NOTIFICACIÓN LOCAL
+// ===========================================================
+    private void generarNotificacion(String mensaje, String colorTexto) {
+
+        int color = Color.RED;
+
+        // Crear el canal (solo una vez) para Android 8.0+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            NotificationChannel canal = new NotificationChannel(
+                    "canal_alertas",            // ID del canal
+                    "Alertas",                  // Nombre visible del canal
+                    NotificationManager.IMPORTANCE_HIGH
+            );
+            canal.setDescription("Canal de notificaciones de alertas");
+            canal.enableLights(true);
+            canal.setLightColor(color);
+            canal.enableVibration(true);
+            NotificationManager gestor = getSystemService(NotificationManager.class);
+            if (gestor != null) gestor.createNotificationChannel(canal);
+        }
+
+        // Construir la notificación
+        NotificationCompat.Builder noti = new NotificationCompat.Builder(this, "canal_alertas")
+                .setSmallIcon(android.R.drawable.stat_sys_warning)
+                .setContentTitle("Alerta")
+                .setContentText(mensaje)
+                .setStyle(new NotificationCompat.BigTextStyle().bigText(mensaje))
+                .setPriority(NotificationCompat.PRIORITY_HIGH)
+                .setColor(color)       // colorea el acento de la notificación
+                .setColorized(true)
+                .setAutoCancel(true);
+
+        // Android 13+: comprobar permiso antes de notificar
+        if (Build.VERSION.SDK_INT >= 33 &&
+                checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)
+                        != PackageManager.PERMISSION_GRANTED) {
+            Log.w("generarNotificacion", "Sin permiso POST_NOTIFICATIONS en Android 13+");
+            return;
+        }
+
+        NotificationManagerCompat.from(this).notify(123, noti.build());
+
+        // Sonido al aparecer la notificación
+        new Thread(() -> {
+            ToneGenerator tg = new ToneGenerator(AudioManager.STREAM_ALARM, 100);
+            for (int i = 0; i < 3; i++) {
+                tg.startTone(ToneGenerator.TONE_PROP_BEEP, 200);
+                try { Thread.sleep(250); } catch (InterruptedException ignored) {}
+            }
+            tg.release();
+        }).start();
+
+        Log.d(">>>>>>", "Notificación generada: " + mensaje);
+    }
+
 
 
 
