@@ -39,7 +39,7 @@ async function obtenerMediciones(idNodo) {
 // main()
 // ----------------------------------------------------------
 export async function main() {
-  const idNodo = "lZv2QcjXZWOKeNX5DaXO";
+  const idNodo = "N1TMMOvp3JYcBYcfuqCp";
 
   // 1️⃣ Obtener información del nodo
   const nodo = await obtenerNodo(idNodo);
