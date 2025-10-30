@@ -172,18 +172,20 @@ exports.ServidorREST = functions.https.onRequest((req, res) => {
         return res.status(200).json({ mensaje: "✅ Nodo desvinculado correctamente" });
       }
 
-      // ===================================================================================
-      // ================================ NOTIFICACIONES ===================================
-      // ===================================================================================
+    // ===================================================================================
+    // ================================ NOTIFICACIONES ===================================
+    // ===================================================================================
 
-      if (req.method === "POST" && rutaLower === "/notificar") {
-        const { mensaje, color } = req.body;
-        if (!mensaje || !color)
-          return res.status(400).json({ error: "Faltan parámetros: mensaje y color" });
+    if (req.method === "POST" && rutaLower === "/notificar") {
+      const { mensaje, color, topic } = req.body;
 
-        await logica.enviarNotificacion(mensaje, color);
-        return res.status(200).json({ mensaje: "🔔 Notificación enviada correctamente" });
-      }
+      if (!mensaje || !color || !topic)
+        return res.status(400).json({ error: "Faltan parámetros: mensaje, color, topic" });
+
+      await logica.enviarNotificacion(mensaje, color, topic);
+      return res.status(200).json({ mensaje: "🔔 Notificación enviada correctamente al topic " + topic });
+    }
+
 
 
       // -----------------------------------------------------------------------------------
