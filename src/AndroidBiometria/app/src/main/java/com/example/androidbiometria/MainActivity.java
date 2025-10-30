@@ -32,6 +32,8 @@
     import androidx.core.app.NotificationCompat;
     import androidx.core.app.NotificationManagerCompat;
     import android.content.Intent;
+    import android.widget.Button;
+    import android.widget.Toast;
 
     import com.google.firebase.auth.FirebaseAuth;
     import com.google.firebase.messaging.FirebaseMessaging;
@@ -69,6 +71,9 @@
         private ScanCallback callbackDelEscaneo = null;
 
         private boolean testeado = false;
+
+        private String nombreDispositivoQR = null;
+
 
         // ---------------------------------------------------------------------------
         // Ciclo de vida
@@ -129,6 +134,21 @@
             } else {
                 Log.w(">>>>", "⚠️ No hay usuario logueado, NO se puede suscribir a topic.");
             }
+
+
+            findViewById(R.id.botonLeerQR).setOnClickListener(v -> {
+                Intent intent = new Intent("com.google.zxing.client.android.SCAN");
+                intent.putExtra("SCAN_MODE", "QR_CODE_MODE");
+                try {
+                    startActivityForResult(intent, 1234);
+                } catch (Exception e) {
+                    // Si no está instalada la app de escaneo → llevar a Play Store
+                    Intent marketIntent = new Intent(Intent.ACTION_VIEW);
+                    marketIntent.setData(android.net.Uri.parse("https://play.google.com/store/apps/details?id=com.google.zxing.client.android"));
+                    startActivity(marketIntent);
+                }
+            });
+
 
         } // onCreate()
 
@@ -602,6 +622,32 @@
                 String color = intent.getStringExtra("color");
                 generarNotificacion(mensaje, color);
             }
+        }
+
+
+        @Override
+        protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+            super.onActivityResult(requestCode, resultCode, data);
+
+            if (requestCode == 1234 && resultCode == RESULT_OK) {
+                nombreDispositivoQR = data.getStringExtra("SCAN_RESULT");
+                Log.d(ETIQUETA_LOG, "📌 QR leído = " + nombreDispositivoQR);
+
+                // ✅ Cambiar texto del botón automáticamente
+                Button botonQR = findViewById(R.id.botonBuscarQRBTLE);
+                botonQR.setText(nombreDispositivoQR);
+            }
+        }
+
+
+        public void botonBuscarDispositivoQR(View v) {
+            if (nombreDispositivoQR == null) {
+                Toast.makeText(this, "⚠ Primero debes escanear un QR", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            Log.d(ETIQUETA_LOG, "🔍 Buscando dispositivo leído del QR: " + nombreDispositivoQR);
+            this.buscarEsteDispositivoBTLE(nombreDispositivoQR);
         }
 
 
