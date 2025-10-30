@@ -177,11 +177,14 @@ exports.ServidorREST = functions.https.onRequest((req, res) => {
       // ===================================================================================
 
       if (req.method === "POST" && rutaLower === "/notificar") {
-        const { mensaje } = req.body;
-        if (!mensaje) return res.status(400).json({ error: "Falta el mensaje" });
-        await logica.enviarNotificacion(mensaje);
+        const { mensaje, color } = req.body;
+        if (!mensaje || !color)
+          return res.status(400).json({ error: "Faltan parámetros: mensaje y color" });
+
+        await logica.enviarNotificacion(mensaje, color);
         return res.status(200).json({ mensaje: "🔔 Notificación enviada correctamente" });
       }
+
 
       // -----------------------------------------------------------------------------------
       // Ruta no encontrada

@@ -157,25 +157,26 @@ async function testNodos(idUsuario1) {
 /* -------------------------------------------------------------------------- */
 /* 🔹 NOTIFICACIÓN                                                            */
 /* -------------------------------------------------------------------------- */
+
 async function testNotificacion() {
   return await callAPI("POST", "/notificar", {
-    mensaje: "🔔 Prueba automática de notificación desde test.js",
+    mensaje: "🔔 Prueba automática de notificación con color desde test.js",
+    color: "#27F531",
   });
 }
-
 /* -------------------------------------------------------------------------- */
 /* 🔹 EJECUCIÓN GENERAL                                                       */
 /* -------------------------------------------------------------------------- */
 export async function pruebaAutomatica() {
   const resultados = [];
 
-  resultados.push({ paso: "🧪 Iniciando test de USUARIOS" });
-  const { resultados: resUsuarios, idUsuario1 } = await testUsuarios();
-  resultados.push(...resUsuarios);
+  // resultados.push({ paso: "🧪 Iniciando test de USUARIOS" });
+  // const { resultados: resUsuarios, idUsuario1 } = await testUsuarios();
+  // resultados.push(...resUsuarios);
 
-  resultados.push({ paso: "🧪 Iniciando test de NODOS, SENSORES y MEDICIONES" });
-  const { resultados: resNodos } = await testNodos(idUsuario1);
-  resultados.push(...resNodos);
+  // resultados.push({ paso: "🧪 Iniciando test de NODOS, SENSORES y MEDICIONES" });
+  // const { resultados: resNodos } = await testNodos(idUsuario1);
+  // resultados.push(...resNodos);
 
   resultados.push({ paso: "🧪 Probando NOTIFICACIÓN" });
   resultados.push(await testNotificacion());

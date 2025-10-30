@@ -380,9 +380,27 @@ async eliminarNodo(idNodo) {
   // ===================================================================================
   // ============================== MÉTODO DE NOTIFICACIONES ===========================
   // ===================================================================================
-  async enviarNotificacion(mensaje) {
+async enviarNotificacion(mensaje, color) {
     try {
-      functions.logger.info("🔔 Notificación enviada:", mensaje);
+      functions.logger.info("🔔 Enviando notificación:", { mensaje, color });
+
+      // Crear el payload de la notificación
+      const payload = {
+        notification: {
+          title: "Alerta",
+          body: mensaje,
+        },
+        data: {
+          mensaje: mensaje,
+          color: color,
+        },
+        topic: "alertas", // para enviar a todos los dispositivos suscritos
+      };
+
+      // Enviar la notificación a todos los dispositivos suscritos al tema "alertas"
+      await admin.messaging().send(payload);
+
+      functions.logger.info("✅ Notificación enviada correctamente");
     } catch (error) {
       functions.logger.error("❌ Error en enviarNotificacion:", error);
     }

@@ -31,7 +31,9 @@ import android.os.Build;
 
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
+import android.content.Intent;
 
+import com.google.firebase.messaging.FirebaseMessaging;
 
 // -----------------------------------------------------------------------------------
 //
@@ -88,10 +90,18 @@ public class MainActivity extends AppCompatActivity {
         // Inicializar Bluetooth y obtener el escáner
         inicializarBlueTooth();
 
-        generarNotificacion("CO₂ alto", "#27F531");
-
+        //generarNotificacion("CO₂ alto", "#27F531");
 
         Log.d(ETIQUETA_LOG, "onCreate(): termina");
+
+        FirebaseMessaging.getInstance().subscribeToTopic("alertas")
+                .addOnCompleteListener(task -> {
+                    if (task.isSuccessful()) {
+                        Log.d(">>>>", "Suscrito correctamente al topic 'alertas'");
+                    } else {
+                        Log.w(">>>>", "Error al suscribirse al topic 'alertas'", task.getException());
+                    }
+                });
     } // onCreate()
 
     // --------------------------------------------------------------------------------
@@ -557,7 +567,14 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
-
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        if (intent.hasExtra("mensaje")) {
+            String mensaje = intent.getStringExtra("mensaje");
+            String color = intent.getStringExtra("color");
+            generarNotificacion(mensaje, color);
+        }
+    }
 
 
 } // class
