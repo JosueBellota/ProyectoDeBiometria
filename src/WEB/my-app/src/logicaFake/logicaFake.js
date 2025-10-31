@@ -3,19 +3,21 @@
 // Responsable: Josue Bellota Ichaso
 // ---------------------------------------------------------
 
+import { obtenerUsuarioLogueado } from "./auth";
+
 const API_BASE = "https://us-central1-proyectodebiometria.cloudfunctions.net/ServidorREST";
 
 // ----------------------------------------------------------
-// obtenerNodo()
+// obtenerNodosPorPropietario()
 // ----------------------------------------------------------
-async function obtenerNodo(idNodo) {
+async function obtenerNodosPorPropietario(idUsuario) {
   try {
-    const res = await fetch(`${API_BASE}/nodos/${idNodo}`);
+    const res = await fetch(`${API_BASE}/nodos/propietario/${idUsuario}`);
     const data = await res.json();
-    if (!res.ok) throw new Error(data.error || "Error al obtener nodo");
+    if (!res.ok) throw new Error(data.error || "Error al obtener nodos del usuario");
     return data;
   } catch (error) {
-    console.error("❌ Error al obtener nodo:", error);
+    console.error("❌ Error al obtener nodos:", error);
     return { error: error.message };
   }
 }
@@ -36,32 +38,67 @@ async function obtenerMediciones(idNodo) {
 }
 
 // ----------------------------------------------------------
-// main()
+// main() → obtiene los nodos del usuario y sus mediciones
 // ----------------------------------------------------------
 export async function main() {
-  const idNodo = "N1TMMOvp3JYcBYcfuqCp";
+  try {
+    const usuario = obtenerUsuarioLogueado();
 
-  // 1️⃣ Obtener información del nodo
-  const nodo = await obtenerNodo(idNodo);
-  if (nodo.error) {
-    return [{ paso: "GET /nodos/:idNodo", error: nodo.error }];
+    // 🔍 Detectar id del usuario, sea cual sea el formato
+    const idUsuario = usuario?.id || usuario?.uid || usuario?.idUsuario;
+    if (!idUsuario) {
+      return [{ paso: "AUTENTICACIÓN", error: "No hay usuario logueado o falta su ID" }];
+    }
+
+    console.log("🧑 Usuario logueado:", usuario.nombre, "→", idUsuario);
+
+    // 1️⃣ Obtener nodos del usuario
+    const nodos = await obtenerNodosPorPropietario(idUsuario);
+    if (nodos.error) {
+      return [{ paso: "GET /nodos/propietario/:idPropietario", error: nodos.error }];
+    }
+
+    if (!Array.isArray(nodos) || nodos.length === 0) {
+      return [
+        {
+          paso: "GET /nodos/propietario/:idPropietario",
+          resultado: "⚠️ El usuario no tiene nodos registrados.",
+        },
+      ];
+    }
+
+    // 2️⃣ Para cada nodo, obtener sus mediciones
+    const resultados = [];
+    for (const nodo of nodos) {
+      const idNodo = nodo.idNodo || nodo.id || null;
+      if (!idNodo) continue;
+
+      const mediciones = await obtenerMediciones(idNodo);
+      if (mediciones.error) {
+        resultados.push({ paso: `GET /mediciones/${idNodo}`, error: mediciones.error });
+        continue;
+      }
+
+      resultados.push({
+        paso: "GET",
+        resultado: {
+          nodo: nodo.nombre || "Nodo sin nombre",
+          sensores: mediciones.sensores || mediciones || {},
+          tiempo: mediciones.tiempo || mediciones.fecha || null,
+        },
+      });
+    }
+
+    return resultados.length > 0
+      ? resultados
+      : [
+          {
+            paso: "GET /mediciones",
+            resultado: "Sin mediciones registradas para los nodos del usuario.",
+          },
+        ];
+  } catch (error) {
+    console.error("❌ Error general en logicaFake.main():", error);
+    return [{ paso: "main()", error: error.message }];
   }
-
-  // 2️⃣ Obtener mediciones
-  const mediciones = await obtenerMediciones(idNodo);
-  if (mediciones.error) {
-    return [{ paso: "GET /mediciones/:idNodo", error: mediciones.error }];
-  }
-
-  // 3️⃣ Construir resultado único por nodo
-  return [
-    {
-      paso: "GET",
-      resultado: {
-        nodo: nodo.nombre || "Nodo desconocido",
-        sensores: mediciones.sensores || {},
-        tiempo: mediciones.tiempo || nodo.tiempo || null,
-      },
-    },
-  ];
 }

@@ -41,7 +41,6 @@ exports.ServidorREST = functions.https.onRequest((req, res) => {
 
       // ✅ Mantener mayúsculas originales (importante para IDs)
       const ruta = req.path;
-      // Usar versión en minúsculas solo para comparar rutas fijas
       const rutaLower = ruta.toLowerCase();
 
       // ===================================================================================
@@ -50,7 +49,7 @@ exports.ServidorREST = functions.https.onRequest((req, res) => {
 
       // GET /mediciones/:idNodo
       if (req.method === "GET" && rutaLower.startsWith("/mediciones/")) {
-        const idNodo = ruta.split("/")[2]; // conserva mayúsculas reales
+        const idNodo = ruta.split("/")[2];
         if (!idNodo) {
           return res.status(400).json({ error: "Falta parámetro idNodo" });
         }
@@ -78,11 +77,21 @@ exports.ServidorREST = functions.https.onRequest((req, res) => {
       // ===================================================================================
 
       // GET /usuarios/:id
-      if (req.method === "GET" && rutaLower.startsWith("/usuarios/")) {
+      if (req.method === "GET" && rutaLower.startsWith("/usuarios/") && !rutaLower.startsWith("/usuarios/admin/")) {
         const idUsuario = ruta.split("/")[2];
         const usuario = await logica.obtenerUsuario(idUsuario);
         if (!usuario) return res.status(404).json({ error: "Usuario no encontrado" });
         return res.status(200).json(usuario);
+      }
+
+      // ✅ NUEVA RUTA: GET /usuarios/admin/:idAdmin
+      if (req.method === "GET" && rutaLower.startsWith("/usuarios/admin/")) {
+        const idAdmin = ruta.split("/")[3];
+        const usuarios = await logica.obtenerUsuariosDesdeAdmin(idAdmin);
+        if (!usuarios) {
+          return res.status(403).json({ error: "No autorizado o error al obtener usuarios" });
+        }
+        return res.status(200).json(usuarios);
       }
 
       // POST /usuarios
@@ -118,8 +127,15 @@ exports.ServidorREST = functions.https.onRequest((req, res) => {
       // ================================= RUTAS DE NODOS =================================
       // ===================================================================================
 
+      // ✅ NUEVA RUTA: GET /nodos/propietario/:idPropietario
+      if (req.method === "GET" && rutaLower.startsWith("/nodos/propietario/")) {
+        const idPropietario = ruta.split("/")[3];
+        const nodos = await logica.obtenerNodo(idPropietario);
+        return res.status(200).json(nodos);
+      }
+
       // GET /nodos/:id
-      if (req.method === "GET" && rutaLower.startsWith("/nodos/")) {
+      if (req.method === "GET" && rutaLower.startsWith("/nodos/") && !rutaLower.startsWith("/nodos/propietario/")) {
         const idNodo = ruta.split("/")[2];
         const nodo = await logica.obtenerNodo(idNodo);
         if (!nodo) return res.status(404).json({ error: "Nodo no encontrado" });
@@ -172,21 +188,19 @@ exports.ServidorREST = functions.https.onRequest((req, res) => {
         return res.status(200).json({ mensaje: "✅ Nodo desvinculado correctamente" });
       }
 
-    // ===================================================================================
-    // ================================ NOTIFICACIONES ===================================
-    // ===================================================================================
+      // ===================================================================================
+      // ================================ NOTIFICACIONES ===================================
+      // ===================================================================================
 
-    if (req.method === "POST" && rutaLower === "/notificar") {
-      const { mensaje, color, topic } = req.body;
+      if (req.method === "POST" && rutaLower === "/notificar") {
+        const { mensaje, color, topic } = req.body;
 
-      if (!mensaje || !color || !topic)
-        return res.status(400).json({ error: "Faltan parámetros: mensaje, color, topic" });
+        if (!mensaje || !color || !topic)
+          return res.status(400).json({ error: "Faltan parámetros: mensaje, color, topic" });
 
-      await logica.enviarNotificacion(mensaje, color, topic);
-      return res.status(200).json({ mensaje: "🔔 Notificación enviada correctamente al topic " + topic });
-    }
-
-
+        await logica.enviarNotificacion(mensaje, color, topic);
+        return res.status(200).json({ mensaje: "🔔 Notificación enviada correctamente al topic " + topic });
+      }
 
       // -----------------------------------------------------------------------------------
       // Ruta no encontrada

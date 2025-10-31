@@ -285,6 +285,38 @@ class LogicaDeNegocio {
     }
   }
 
+  // ------------------------------------------------------------------------------------
+  // obtenerUsuariosDesdeAdmin(idAdmin)
+  // -->
+  // Si el usuario indicado es admin, devuelve todos los usuarios del sistema
+  // ------------------------------------------------------------------------------------
+  async obtenerUsuariosDesdeAdmin(idAdmin) {
+    try {
+      const adminDoc = await this.#db.collection("usuarios").doc(idAdmin).get();
+
+      if (!adminDoc.exists) {
+        throw new Error(`Usuario admin no encontrado (${idAdmin})`);
+      }
+
+      const adminData = adminDoc.data();
+      if (adminData.rol !== "admin") {
+        throw new Error(`El usuario ${idAdmin} no tiene permisos de administrador`);
+      }
+
+      const snapshot = await this.#db.collection("usuarios").get();
+      const usuarios = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+
+      functions.logger.info(`✅ Usuario admin ${idAdmin} obtuvo lista de ${usuarios.length} usuarios`);
+      return usuarios;
+    } catch (error) {
+      functions.logger.error("❌ Error en obtenerUsuariosDesdeAdmin:", error);
+      return null;
+    }
+  }
+
   // ===================================================================================
   // ================================ MÉTODOS DE NODOS =================================
   // ===================================================================================
@@ -325,22 +357,35 @@ class LogicaDeNegocio {
     }
   }
 
-  //------------------------------------------------------------------------------------
-  // idNodo (entrada)
-  // -->
-  // obtenerNodo() --> (devuelve los datos de un nodo)
-  // -->
-  // objeto con datos del nodo o null
-  //------------------------------------------------------------------------------------
-  async obtenerNodo(idNodo) {
-    try {
-      const doc = await this.#db.collection("nodos").doc(idNodo).get();
-      return doc.exists ? doc.data() : null;
-    } catch (error) {
-      functions.logger.error("❌ Error en obtenerNodo:", error);
-      return null;
+// ------------------------------------------------------------------------------------
+// obtenerNodoPorPropietario(idPropietario)
+// -->
+// Devuelve todos los nodos cuyo propietarioId coincida con el id del usuario
+// ------------------------------------------------------------------------------------
+async obtenerNodo(idPropietario) {
+  try {
+    const snapshot = await this.#db
+      .collection("nodos")
+      .where("propietarioId", "==", idPropietario)
+      .get();
+
+    if (snapshot.empty) {
+      functions.logger.warn(`⚠️ No se encontraron nodos para propietario ${idPropietario}`);
+      return [];
     }
+
+    const nodos = snapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    }));
+
+    functions.logger.info(`✅ Se encontraron ${nodos.length} nodo(s) para propietario ${idPropietario}`);
+    return nodos;
+  } catch (error) {
+    functions.logger.error("❌ Error en obtenerNodo (por propietario):", error);
+    return [];
   }
+}
 
   //------------------------------------------------------------------------------------
   // idNodo, datos (entrada)
