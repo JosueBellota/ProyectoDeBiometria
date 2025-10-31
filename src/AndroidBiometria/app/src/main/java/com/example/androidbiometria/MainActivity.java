@@ -304,14 +304,20 @@
                         if (nombreDetectado != null && !testeado) {
                             testeado = true;
                             mostrarInformacionDispositivoBTLE(resultado);
+
+
                             // 🔹 Convertir a objeto estructurado
                             LogicaFake TramaConvertido = convertirScanResult(resultado);
+
                             Log.d(ETIQUETA_LOG, "  buscarEsteDispositivoBTLE(): onScanResult() ");
                             // Mostrar información del dispositivo
 
 
                             // 🔹 Enviar medida a Firebase usando el objeto convertido
                             TramaConvertido.guardarMedida();
+
+                            // Verificar o crear nodo automáticamente
+                            TramaConvertido.crearNodoSiNoExiste();
                         }
                     }
                 }
@@ -539,6 +545,10 @@
                     ? bluetoothDevice.getAddress()
                     : "[Sin permiso BLUETOOTH_CONNECT]";
 
+            String uid = FirebaseAuth.getInstance().getCurrentUser() != null
+                    ? FirebaseAuth.getInstance().getCurrentUser().getUid()
+                    : null;
+
             return new LogicaFake(
                     nombre,
                     direccion,
@@ -554,7 +564,8 @@
                     Utilidades.bytesToString(tib.getUUID()),
                     Utilidades.bytesToInt(tib.getMajor()),
                     Utilidades.bytesToInt(tib.getMinor()),
-                    tib.getTxPower()
+                    tib.getTxPower(),
+                    uid
             );
         }
 

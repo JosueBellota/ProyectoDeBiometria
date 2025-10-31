@@ -2,23 +2,20 @@ package com.example.androidbiometria;
 
 import android.util.Log;
 import okhttp3.*;
+import org.json.JSONArray;
 import org.json.JSONObject;
 import java.io.IOException;
 
 /**
  * -----------------------------------------------------------------------------
- * Fichero: LogicaFake.java
+ * Clase LogicaFake
  * Responsable: Josue Bellota Ichaso
  * -----------------------------------------------------------------------------
- * Clase para construir y enviar mediciones a Firebase Functions.
- * Ahora usa la nueva función: ManejarPOST
+ * Envía mediciones y maneja la creación automática de nodos si el usuario no tiene uno.
  * -----------------------------------------------------------------------------
  */
 public class LogicaFake {
 
-    // ----------------------------------------------------------
-    // Atributos principales
-    // ----------------------------------------------------------
     private String nombre;
     private String direccion;
     private int rssi;
@@ -35,20 +32,26 @@ public class LogicaFake {
     private int minor;
     private int txPower;
 
-    // ----------------------------------------------------------
-    // URL actualizada del servicio en Firebase
-    // ----------------------------------------------------------
-    // 🔹 Cambia "proyectodebiometria" por tu ID real si es distinto.
+    // Firebase Functions
     private static final String URL_MANEJAR_POST =
             "https://us-central1-proyectodebiometria.cloudfunctions.net/ManejarPOST";
 
-    // ----------------------------------------------------------
-    // Constructor
-    // ----------------------------------------------------------
+    // Servidor REST base
+    private static final String BASE_URL =
+            "https://us-central1-proyectodebiometria.cloudfunctions.net/ServidorREST";
+
+    private OkHttpClient client = new OkHttpClient();
+
+    // ID de usuario y nodo actual (para evitar crear múltiples)
+    private String idUsuario;
+    private String idNodo;
+
     public LogicaFake(String nombre, String direccion, int rssi, String bytesHex,
                       String prefijo, String advFlags, String advHeader,
                       String companyID, int iBeaconType, int iBeaconLength,
-                      String uuidHex, String uuidString, int major, int minor, int txPower) {
+                      String uuidHex, String uuidString, int major, int minor, int txPower,
+                      String idUsuario) {
+
         this.nombre = nombre;
         this.direccion = direccion;
         this.rssi = rssi;
@@ -64,43 +67,112 @@ public class LogicaFake {
         this.major = major;
         this.minor = minor;
         this.txPower = txPower;
+        this.idUsuario = idUsuario;
     }
 
     // ----------------------------------------------------------
-    // Método toString()
+    // 🧱 Método crearNodoSiNoExiste()
     // ----------------------------------------------------------
-    @Override
-    public String toString() {
-        return "TramaIBeaconConvertido{" +
-                "nombre='" + nombre + '\'' +
-                ", direccion='" + direccion + '\'' +
-                ", rssi=" + rssi +
-                ", bytesHex='" + bytesHex + '\'' +
-                ", prefijo='" + prefijo + '\'' +
-                ", advFlags='" + advFlags + '\'' +
-                ", advHeader='" + advHeader + '\'' +
-                ", companyID='" + companyID + '\'' +
-                ", iBeaconType=" + iBeaconType +
-                ", iBeaconLength=" + iBeaconLength +
-                ", uuidHex='" + uuidHex + '\'' +
-                ", uuidString='" + uuidString + '\'' +
-                ", major=" + major +
-                ", minor=" + minor +
-                ", txPower=" + txPower +
-                '}';
+    public void crearNodoSiNoExiste() {
+        if (idUsuario == null) {
+            Log.e(">>>>>>", "Error: idUsuario es nulo. No se puede crear/verificar nodo.");
+            return;
+        }
+
+        // 1️⃣ Verificar si el usuario ya tiene nodos
+        Request request = new Request.Builder()
+                .url(BASE_URL + "/nodos/propietario/" + idUsuario)
+                .get()
+                .build();
+
+        client.newCall(request).enqueue(new Callback() {
+            @Override
+            public void onFailure(Call call, IOException e) {
+                Log.e(">>>>>>", "Error al verificar nodos del usuario: " + e.getMessage(), e);
+            }
+
+            @Override
+            public void onResponse(Call call, Response response) throws IOException {
+                if (!response.isSuccessful()) {
+                    Log.e(">>>>>>", "Error al obtener nodos: " + response.body().string());
+                    return;
+                }
+
+                try {
+                    String body = response.body().string();
+                    JSONArray nodos = new JSONArray(body);
+
+                    if (nodos.length() > 0) {
+                        idNodo = nodos.getJSONObject(0).optString("idNodo");
+                        Log.d(">>>>>>", "Usuario ya tiene nodo: " + idNodo);
+                    } else {
+                        Log.d(">>>>>>", "Usuario sin nodo, creando uno nuevo...");
+                        crearNodo();
+                    }
+                } catch (Exception e) {
+                    Log.e(">>>>>>", "Error al procesar respuesta de nodos: " + e.getMessage(), e);
+                }
+            }
+        });
     }
 
     // ----------------------------------------------------------
-    // Método guardarMedida()
+    // 🧩 Método auxiliar para crear un nodo
     // ----------------------------------------------------------
-    // Envía un JSON:
-    //   { "sensor": "CO2", "valor": minor }
-    // a la función Firebase "ManejarPOST" (POST HTTP)
+    private void crearNodo() {
+        try {
+            JSONObject nuevoNodo = new JSONObject();
+            nuevoNodo.put("nombre", "NodoAuto");
+            nuevoNodo.put("propietarioId", idUsuario);
+
+            JSONObject ubicacion = new JSONObject();
+            ubicacion.put("lat", 0);
+            ubicacion.put("lng", 0);
+            nuevoNodo.put("ubicacion", ubicacion);
+
+            RequestBody body = RequestBody.create(
+                    nuevoNodo.toString(),
+                    MediaType.parse("application/json; charset=utf-8")
+            );
+
+            Request request = new Request.Builder()
+                    .url(BASE_URL + "/nodos")
+                    .post(body)
+                    .build();
+
+            client.newCall(request).enqueue(new Callback() {
+                @Override
+                public void onFailure(Call call, IOException e) {
+                    Log.e(">>>>>>", "Error al crear nodo: " + e.getMessage(), e);
+                }
+
+                @Override
+                public void onResponse(Call call, Response response) throws IOException {
+                    if (!response.isSuccessful()) {
+                        Log.e(">>>>>>", "Error al crear nodo: " + response.body().string());
+                    } else {
+                        try {
+                            JSONObject res = new JSONObject(response.body().string());
+                            idNodo = res.optString("idNodo");
+                            Log.d(">>>>>>", "Nodo creado exitosamente con id: " + idNodo);
+                        } catch (Exception e) {
+                            Log.e(">>>>>>", "Error procesando respuesta de creación: " + e.getMessage(), e);
+                        }
+                    }
+                }
+            });
+
+        } catch (Exception e) {
+            Log.e(">>>>>>", "Excepción al crear nodo: " + e.getMessage(), e);
+        }
+    }
+
+    // ----------------------------------------------------------
+    // 🚀 Método guardarMedida() (mantiene la lógica original)
     // ----------------------------------------------------------
     public void guardarMedida() {
-
         OkHttpClient client = new OkHttpClient();
-        String sensor = "CO2"; // sensor fijo
+        String sensor = "CO2";
 
         Log.d(">>>>>>", "Enviando medida con minor: " + this.minor);
 

@@ -66,11 +66,15 @@ function Intranet() {
                 <strong>Tiempo:</strong> {formatearTiempo(r.resultado.tiempo)} <br />
                 <strong>Sensores:</strong>
                 <ul>
-                  {Object.entries(r.resultado.sensores).map(([sensor, valor]) => (
-                    <li key={sensor}>
-                      {sensor}: {valor ?? "-"}
-                    </li>
-                  ))}
+                  {Object.entries(r.resultado?.sensores ?? {}).length > 0 ? (
+                    Object.entries(r.resultado.sensores ?? {}).map(([sensor, valor]) => (
+                      <li key={sensor}>
+                        {sensor}: {valor ?? "-"}
+                      </li>
+                    ))
+                  ) : (
+                    <li>Sin datos de sensores</li>
+                  )}
                 </ul>
               </>
             ) : (

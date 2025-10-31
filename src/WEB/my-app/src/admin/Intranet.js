@@ -12,9 +12,20 @@ function IntranetAdmin() {
   const [usuarios, setUsuarios] = useState([]);
   const [cargando, setCargando] = useState(true);
 
+  // ✅ Verificar si el usuario está logueado y es admin
   useEffect(() => {
     const user = obtenerUsuarioLogueado();
-    if (!user) navigate("/login");
+
+    if (!user) {
+      navigate("/login");
+      return;
+    }
+
+    if (user.rol !== "admin") {
+      alert("⚠️ Acceso denegado. Solo los administradores pueden ingresar.");
+      navigate("/login");
+      return;
+    }
   }, [navigate]);
 
   const formatearFecha = (fecha) => {
