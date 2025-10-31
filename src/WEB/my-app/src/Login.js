@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { loginUsuario } from "./logicaFake/auth";
+import { obtenerUsuarioCompleto } from "./logicaFake/logicaFake";
 
 function Login() {
   const navigate = useNavigate();
@@ -10,9 +11,41 @@ function Login() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const uid = await loginUsuario(correo, password);
-    if (uid) navigate("/intranet");
-    else setError("Correo o contraseña incorrectos");
+    setError(null);
+
+    try {
+      const uid = await loginUsuario(correo, password);
+
+      if (!uid) {
+        setError("Correo o contraseña incorrectos");
+        return;
+      }
+
+      // ✅ Obtener datos completos del usuario desde el backend
+      const usuarioCompleto = await obtenerUsuarioCompleto(uid);
+
+      if (usuarioCompleto.error) {
+        setError("Error al obtener los datos del usuario");
+        return;
+      }
+
+      // Guardar el usuario con su rol en localStorage
+      const usuarioFinal = {
+        ...usuarioCompleto,
+        uid,
+        correo: usuarioCompleto.correo || correo,
+      };
+      localStorage.setItem("usuario", JSON.stringify(usuarioFinal));
+
+      console.log("✅ Usuario logueado:", usuarioFinal.nombre, "→ Rol:", usuarioFinal.rol);
+
+      // ✅ Redirección según el rol
+      if (usuarioFinal.rol === "admin") navigate("/admin/intranet");
+      else navigate("/ciudadano/intranet");
+    } catch (error) {
+      console.error("❌ Error en login:", error);
+      setError("Error inesperado al iniciar sesión");
+    }
   };
 
   return (
@@ -21,11 +54,21 @@ function Login() {
       <form onSubmit={handleSubmit}>
         <div>
           <label>Correo:</label>
-          <input type="email" value={correo} onChange={e => setCorreo(e.target.value)} required />
+          <input
+            type="email"
+            value={correo}
+            onChange={(e) => setCorreo(e.target.value)}
+            required
+          />
         </div>
         <div>
           <label>Contraseña:</label>
-          <input type="password" value={password} onChange={e => setPassword(e.target.value)} required />
+          <input
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+          />
         </div>
         {error && <p style={{ color: "red" }}>{error}</p>}
         <button type="submit">Entrar</button>
