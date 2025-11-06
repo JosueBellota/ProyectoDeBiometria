@@ -17,3 +17,12 @@ nodos/
       humedad: null
     }
     tiempo: Timestamp
+
+
+
+ciudadano_1762455176991_2349@test.com
+
+123456
+
+
+
