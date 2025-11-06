@@ -50,75 +50,61 @@ class LogicaDeNegocio {
   // ===================================================================================
 
   //------------------------------------------------------------------------------------
-  // idNodo, medidas (entrada)
-  // medidas: objeto con los campos { co2, temperatura, humedad } (pueden ser null)
+  // nombreNodo: texto, propietarioId: texto,
+  // medidas: objeto { co2: número, temperatura: número, humedad: número }
   // -->
-  // guardarMedida() --> (actualiza los valores de sensores y la marca de tiempo)
-  // - Verifica existencia del nodo.
-  // - Actualiza los campos no nulos en nodos/{idNodo}/sensores.
-  // - Registra la hora de la última actualización en el campo 'tiempo'.
-  // -->
-  // void
+  // guardarMedidas() --> guarda mediciones en el nodo correspondiente
   //------------------------------------------------------------------------------------
-  async guardarMedida(idNodo, medidas) {
-  try {
-    const nodoRef = this.#db.collection("nodos").doc(idNodo);
-    const nodoDoc = await nodoRef.get();
-
-    if (!nodoDoc.exists) {
-      throw new Error(`Nodo no encontrado: ${idNodo}`);
-    }
-
-    const nodoData = nodoDoc.data();
-    const propietarioId = nodoData.propietarioId;
-    const nombreNodo = nodoData.nombre;
-
-    const sensores = nodoData.sensores || {};
-    const nuevasMedidas = { ...sensores };
-
-    for (const [clave, valor] of Object.entries(medidas)) {
-      nuevasMedidas[clave] = valor !== undefined ? valor : sensores[clave] ?? null;
-    }
-
-    await nodoRef.update({
-      sensores: nuevasMedidas,
-      tiempo: this.#admin.firestore.Timestamp.now(),
-    });
-
-    functions.logger.info(`✅ Medidas actualizadas para nodo ${idNodo}:`, medidas);
-
-    // =========================================================
-    // 🚨 Lógica de alerta por CO₂
-    // =========================================================
-    if (nuevasMedidas.co2 !== null && nuevasMedidas.co2 >= 100) {
-      const mensaje = `⚠️ En el nodo "${nombreNodo}" la medida de CO₂ ha excedido el límite. Valor: ${nuevasMedidas.co2}`;
-      const color = "rojo";
-
-      // Enviar solo al propietario (topic = propietarioId)
-      await this.enviarNotificacion(mensaje, color, propietarioId);
-    }
-
-  } catch (error) {
-    functions.logger.error("❌ Error en guardarMedida:", error);
-  }
-}
-
-
-  //------------------------------------------------------------------------------------
-  // idNodo (entrada)
-  // -->
-  // obtenerMedidas() --> (devuelve las medidas actuales de un nodo)
-  // - Devuelve el objeto sensores y la marca de tiempo
-  // -->
-  // objeto { sensores, tiempo } o null
-  //------------------------------------------------------------------------------------
-  async obtenerMedidas(idNodo) {
+  async guardarMedidas(nombreNodo, propietarioId, medidas) {
     try {
-      const doc = await this.#db.collection("nodos").doc(idNodo).get();
-      if (!doc.exists) return null;
+      const nodo = await this.obtenerNodo(nombreNodo, propietarioId);
+      if (!nodo) throw new Error(`Nodo "${nombreNodo}" no encontrado para el propietario ${propietarioId}`);
 
-      const data = doc.data();
-      return { sensores: data.sensores || {}, tiempo: data.tiempo || null };
+      const nodoRef = this.#db.collection("nodos").doc(nodo.id);
+      const sensores = nodo.sensores || {};
+      const nuevasMedidas = { ...sensores };
+
+      for (const [clave, valor] of Object.entries(medidas)) {
+        nuevasMedidas[clave] = valor !== undefined ? valor : sensores[clave] ?? null;
+      }
+
+      await nodoRef.update({
+        sensores: nuevasMedidas,
+        tiempo: this.#admin.firestore.Timestamp.now(),
+      });
+
+      functions.logger.info(`✅ Medidas actualizadas en nodo "${nombreNodo}":`, medidas);
+
+      if (nuevasMedidas.co2 !== null && nuevasMedidas.co2 >= 100) {
+        const mensaje = `⚠️ CO₂ elevado en nodo "${nombreNodo}". Valor: ${nuevasMedidas.co2}`;
+        await this.enviarNotificacion(mensaje, "rojo", propietarioId);
+      }
+
+    } catch (error) {
+      functions.logger.error("❌ Error en guardarMedidas:", error);
+    }
+  }
+
+  //------------------------------------------------------------------------------------
+  // nombreNodo: texto, propietarioId: texto
+  // -->
+  // obtenerMedidas() --> devuelve las medidas actuales del nodo correspondiente
+  // - Busca el nodo por nombre + propietario
+  // - Devuelve { sensores, tiempo } o null si no existe
+  //------------------------------------------------------------------------------------
+  async obtenerMedidas(nombreNodo, propietarioId) {
+    try {
+      const nodo = await this.obtenerNodo(nombreNodo, propietarioId);
+      if (!nodo) {
+        functions.logger.warn(`⚠️ Nodo "${nombreNodo}" no encontrado para el propietario ${propietarioId}`);
+        return null;
+      }
+
+      const sensores = nodo.sensores || {};
+      const tiempo = nodo.tiempo || null;
+
+      return { sensores, tiempo };
+
     } catch (error) {
       functions.logger.error("❌ Error en obtenerMedidas:", error);
       return null;
@@ -207,45 +193,6 @@ class LogicaDeNegocio {
       functions.logger.error("❌ Error en actualizarUsuario:", error);
     }
   }
-
-  //------------------------------------------------------------------------------------
-  // idUsuario, idNodo (entrada)
-  // -->
-  // vincularNodoAUsuario() --> (agrega un nodo al arreglo 'nodos' del usuario)
-  // -->
-  // void
-  //------------------------------------------------------------------------------------
-  async vincularNodoAUsuario(idUsuario, idNodo) {
-    try {
-      const usuarioRef = this.#db.collection("usuarios").doc(idUsuario);
-      await usuarioRef.update({
-        nodos: this.#admin.firestore.FieldValue.arrayUnion(idNodo),
-      });
-      functions.logger.info(`🔗 Nodo ${idNodo} vinculado a usuario ${idUsuario}`);
-    } catch (error) {
-      functions.logger.error("❌ Error en vincularNodoAUsuario:", error);
-    }
-  }
-
-  //------------------------------------------------------------------------------------
-  // idUsuario, idNodo (entrada)
-  // -->
-  // desvincularNodoDeUsuario() --> (elimina el idNodo del arreglo 'nodos')
-  // -->
-  // void
-  //------------------------------------------------------------------------------------
-  async desvincularNodoDeUsuario(idUsuario, idNodo) {
-    try {
-      const usuarioRef = this.#db.collection("usuarios").doc(idUsuario);
-      await usuarioRef.update({
-        nodos: this.#admin.firestore.FieldValue.arrayRemove(idNodo),
-      });
-      functions.logger.info(`🔓 Nodo ${idNodo} desvinculado de usuario ${idUsuario}`);
-    } catch (error) {
-      functions.logger.error("❌ Error en desvincularNodoDeUsuario:", error);
-    }
-  }
-
   //------------------------------------------------------------------------------------
   // idUsuario (entrada)
   // -->
@@ -322,119 +269,146 @@ class LogicaDeNegocio {
   // ===================================================================================
 
   //------------------------------------------------------------------------------------
-  // nombre, ubicacion, propietarioId (entrada)
+  // nombre: texto, ubicacion: texto, propietarioId: texto
   // -->
-  // crearNodo() --> (crea un nuevo nodo con sensores por defecto en null)
-  // -->
-  // id del nodo creado
+  // crearNodo() --> crea nuevo nodo, pero si el propietario ya tiene un nodo
+  // con ese nombre → ERROR
   //------------------------------------------------------------------------------------
   async crearNodo(nombre, ubicacion, propietarioId) {
     try {
-      const usuarioDoc = await this.#db.collection("usuarios").doc(propietarioId).get();
-      if (!usuarioDoc.exists) {
-        throw new Error(`Usuario no encontrado (${propietarioId})`);
+      const existente = await this.obtenerNodo(nombre, propietarioId);
+      if (existente) {
+        throw new Error(`El propietario ${propietarioId} ya tiene un nodo llamado "${nombre}".`);
       }
 
       const nuevoNodo = {
         propietarioId,
         nombre,
         ubicacion,
-        sensores: {
-          co2: null,
-          temperatura: null,
-          humedad: null,
-        },
+        sensores: { co2: null, temperatura: null, humedad: null }, // cada uno: número o null
         tiempo: this.#admin.firestore.Timestamp.now(),
       };
 
-      const ref = await this.#db.collection("nodos").add(nuevoNodo);
-      await this.vincularNodoAUsuario(propietarioId, ref.id);
-      functions.logger.info(`✅ Nodo creado correctamente: ${ref.id}`);
-      return ref.id;
+      await this.#db.collection("nodos").add(nuevoNodo);
+
+      functions.logger.info(`✅ Nodo creado: ${nombre} (${propietarioId})`);
+      return true;
+
     } catch (error) {
       functions.logger.error("❌ Error en crearNodo:", error);
+      throw error;
+    }
+  }
+
+  //------------------------------------------------------------------------------------
+  // nombre: texto, propietarioId: texto
+  // -->
+  // obtenerNodo() --> devuelve el nodo del propietario cuyo nombre coincida
+  // -->
+  // retorna: objeto { id:texto, ...datos } o null
+  //------------------------------------------------------------------------------------
+  async obtenerNodo(nombre, propietarioId) {
+    try {
+      const snapshot = await this.#db
+        .collection("nodos")
+        .where("nombre", "==", nombre)
+        .where("propietarioId", "==", propietarioId)
+        .limit(1)
+        .get();
+
+      if (snapshot.empty) return null;
+
+      const doc = snapshot.docs[0];
+      return { id: doc.id, ...doc.data() };
+
+    } catch (error) {
+      functions.logger.error("❌ Error en obtenerNodo:", error);
       return null;
     }
   }
 
-// ------------------------------------------------------------------------------------
-// obtenerNodoPorPropietario(idPropietario)
-// -->
-// Devuelve todos los nodos cuyo propietarioId coincida con el id del usuario
-// ------------------------------------------------------------------------------------
-async obtenerNodo(idPropietario) {
-  try {
-    const snapshot = await this.#db
-      .collection("nodos")
-      .where("propietarioId", "==", idPropietario)
-      .get();
+  // ------------------------------------------------------------------------------------
+  // obtenerNodos(idPropietario)
+  // -->
+  // Devuelve todos los nodos cuyo propietarioId coincida con el id del usuario
+  // ------------------------------------------------------------------------------------
+  async obtenerNodos(idPropietario) {
+    try {
+      const snapshot = await this.#db
+        .collection("nodos")
+        .where("propietarioId", "==", idPropietario)
+        .get();
 
-    if (snapshot.empty) {
-      functions.logger.warn(`⚠️ No se encontraron nodos para propietario ${idPropietario}`);
+      if (snapshot.empty) {
+        functions.logger.warn(`⚠️ No se encontraron nodos para propietario ${idPropietario}`);
+        return [];
+      }
+
+      const nodos = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+
+      functions.logger.info(`✅ Se encontraron ${nodos.length} nodo(s) para propietario ${idPropietario}`);
+      return nodos;
+    } catch (error) {
+      functions.logger.error("❌ Error en obtenerNodo (por propietario):", error);
       return [];
     }
-
-    const nodos = snapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
-    }));
-
-    functions.logger.info(`✅ Se encontraron ${nodos.length} nodo(s) para propietario ${idPropietario}`);
-    return nodos;
-  } catch (error) {
-    functions.logger.error("❌ Error en obtenerNodo (por propietario):", error);
-    return [];
   }
-}
 
   //------------------------------------------------------------------------------------
-  // idNodo, datos (entrada)
+  // nombreNodo: texto, propietarioId: texto, datos: objeto (campos a actualizar)
   // -->
-  // actualizarNodo() --> (modifica datos del nodo)
-  // -->
-  // void
+  // actualizarNodo() --> modifica datos del nodo buscándolo por nombre + propietario
   //------------------------------------------------------------------------------------
-  async actualizarNodo(idNodo, datos) {
+  async actualizarNodo(nombreNodo, propietarioId, datos) {
     try {
-      await this.#db.collection("nodos").doc(idNodo).update(datos);
-      functions.logger.info(`✅ Nodo actualizado: ${idNodo}`);
+      const nodo = await this.obtenerNodo(nombreNodo, propietarioId);
+      if (!nodo) throw new Error(`Nodo "${nombreNodo}" no encontrado para el propietario ${propietarioId}`);
+
+      await this.#db.collection("nodos").doc(nodo.id).update(datos);
+
+      functions.logger.info(`✅ Nodo actualizado: ${nombreNodo} (${propietarioId})`);
+
     } catch (error) {
       functions.logger.error("❌ Error en actualizarNodo:", error);
     }
   }
 
-//------------------------------------------------------------------------------------
-// idNodo (entrada)
-// -->
-// eliminarNodo() --> elimina el nodo de Firestore y lo desvincula de todos los usuarios
-//------------------------------------------------------------------------------------
-async eliminarNodo(idNodo) {
-  try {
-    const nodoRef = this.#db.collection("nodos").doc(idNodo);
-    const nodoDoc = await nodoRef.get();
+  //------------------------------------------------------------------------------------
+  // nombreNodo: texto, propietarioId: texto
+  // -->
+  // eliminarNodo() --> elimina el nodo de Firestore y lo desvincula de todos los usuarios
+  //------------------------------------------------------------------------------------
+  async eliminarNodo(nombreNodo, propietarioId) {
+    try {
+      const nodo = await this.obtenerNodo(nombreNodo, propietarioId);
+      if (!nodo) {
+        functions.logger.warn(`⚠️ Nodo "${nombreNodo}" no encontrado para el propietario ${propietarioId}`);
+        return;
+      }
 
-    if (!nodoDoc.exists) {
-      functions.logger.warn(`⚠️ Nodo no encontrado: ${idNodo}`);
-      return;
+      const idNodo = nodo.id;
+      const nodoRef = this.#db.collection("nodos").doc(idNodo);
+
+      // Desvincular nodo de todos los usuarios que lo tengan
+      const usuariosSnapshot = await this.#db.collection("usuarios")
+        .where("nodos", "array-contains", idNodo)
+        .get();
+
+      for (const usuarioDoc of usuariosSnapshot.docs) {
+        await this.desvincularNodoDeUsuario(usuarioDoc.id, idNodo);
+      }
+
+      await nodoRef.delete();
+      functions.logger.info(`🗑️ Nodo eliminado correctamente: "${nombreNodo}" (${idNodo})`);
+
+    } catch (error) {
+      functions.logger.error("❌ Error en eliminarNodo:", error);
     }
-
-    const propietarioId = nodoDoc.data().propietarioId;
-
-    // Desvincular nodo de todos los usuarios que lo tengan
-    const usuariosSnapshot = await this.#db.collection("usuarios")
-      .where("nodos", "array-contains", idNodo)
-      .get();
-
-    for (const usuarioDoc of usuariosSnapshot.docs) {
-      await this.desvincularNodoDeUsuario(usuarioDoc.id, idNodo);
-    }
-
-    await nodoRef.delete();
-    functions.logger.info(`🗑️ Nodo eliminado correctamente: ${idNodo}`);
-  } catch (error) {
-    functions.logger.error("❌ Error en eliminarNodo:", error);
   }
-}
+
 
   // ===================================================================================
   // ============================== MÉTODO DE NOTIFICACIONES ===========================

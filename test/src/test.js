@@ -3,9 +3,6 @@
 // --------------------------------------------------------------------------
 const BASE_URL = "https://us-central1-proyectodebiometria.cloudfunctions.net/ServidorREST";
 
-/* -------------------------------------------------------------------------- */
-/* 🔹 Función genérica para llamadas REST                                      */
-/* -------------------------------------------------------------------------- */
 async function callAPI(metodo, ruta, body = null) {
   try {
     const res = await fetch(`${BASE_URL}${ruta}`, {
@@ -15,163 +12,140 @@ async function callAPI(metodo, ruta, body = null) {
     });
 
     const data = await res.json().catch(() => ({}));
-    if (!res.ok) {
-      return { paso: `${metodo} ${ruta}`, error: data.error || data };
-    }
-    return { paso: `${metodo} ${ruta}`, resultado: data };
+    return res.ok
+      ? { paso: `${metodo} ${ruta}`, resultado: data }
+      : { paso: `${metodo} ${ruta}`, error: data.error || data };
   } catch (err) {
     return { paso: `${metodo} ${ruta}`, error: err.message };
   }
 }
 
 /* -------------------------------------------------------------------------- */
-/* 🔹 USUARIOS                                                                */
+/* ✅ USUARIOS                                                                */
 /* -------------------------------------------------------------------------- */
 async function testUsuarios() {
   const resultados = [];
-  const timestamp = Date.now();
 
-  // Crear un usuario ciudadano
-  const usuario1 = {
-    nombre: "UsuarioTest1",
-    correo: `ciudadano_${timestamp}@test.com`,
+  // Ciudadano principal
+  const ciudadano = {
+    nombre: "Ciudadano",
+    correo: "ciudadano@test.com",
     rol: "ciudadano",
     password: "123456",
   };
 
-  const resUsuario1 = await callAPI("POST", "/usuarios", usuario1);
-  resultados.push(resUsuario1);
-  const idUsuario1 = resUsuario1.resultado?.idUsuario || null;
+  const resCiudadano = await callAPI("POST", "/usuarios", ciudadano);
+  resultados.push(resCiudadano);
+  const idCiudadano = resCiudadano.resultado?.idUsuario;
 
-  // Crear un usuario admin
-  const usuarioAdmin = {
-    nombre: "AdminTest",
-    correo: `admin_${timestamp}@test.com`,
+  // Admin solo para consultar lista de usuarios
+  const admin = {
+    nombre: "Admin",
+    correo: "admin@test.com",
     rol: "admin",
-    password: "Admin123!",
+    password: "admin123",
   };
 
-  const resAdmin = await callAPI("POST", "/usuarios", usuarioAdmin);
+  const resAdmin = await callAPI("POST", "/usuarios", admin);
   resultados.push(resAdmin);
-  const idAdmin = resAdmin.resultado?.idUsuario || null;
+  const idAdmin = resAdmin.resultado?.idUsuario;
 
-  // Obtener usuario específico
-  if (idUsuario1) resultados.push(await callAPI("GET", `/usuarios/${idUsuario1}`));
+  // Ciudadano secundario para probar eliminar
+  const timestamp = Date.now();
+  const ciudadanoExtra = {
+    nombre: "CiudadanoExtra",
+    correo: `extra_${timestamp}@test.com`,
+    rol: "ciudadano",
+    password: "123456",
+  };
 
-  // Actualizar usuario
-  if (idUsuario1) resultados.push(await callAPI("PUT", `/usuarios/${idUsuario1}`, { nombre: "Usuario Actualizado" }));
+  const resCiudadanoExtra = await callAPI("POST", "/usuarios", ciudadanoExtra);
+  resultados.push(resCiudadanoExtra);
+  const idCiudadanoExtra = resCiudadanoExtra.resultado?.idUsuario;
 
-  // ✅ Nuevo test: Obtener todos los usuarios desde el admin
+  // Ver ciudadano principal
+  if (idCiudadano) resultados.push(await callAPI("GET", `/usuarios/${idCiudadano}`));
+
+  // Admin lista usuarios
   if (idAdmin) resultados.push(await callAPI("GET", `/usuarios/admin/${idAdmin}`));
 
-  // Eliminar usuario de prueba
-  if (idUsuario1) resultados.push(await callAPI("DELETE", `/usuarios/${idUsuario1}`));
+  // Eliminar ciudadano extra
+  if (idCiudadanoExtra) resultados.push(await callAPI("DELETE", `/usuarios/${idCiudadanoExtra}`));
 
-  return { resultados, idUsuario1: idAdmin }; // devolvemos idAdmin como usuario válido
+  return { resultados, idCiudadano };
 }
 
 /* -------------------------------------------------------------------------- */
-/* 🔹 NODOS + MEDICIONES                                                      */
+/* ✅ NODOS + MEDICIONES (solo ciudadano)                                     */
 /* -------------------------------------------------------------------------- */
-async function testNodos(idUsuario1) {
-  const resultados = [];
-  let idNodo1 = null;
-
-  const nodo1 = {
-    nombre: "NodoTest1",
-    ubicacion: { lat: 10, lng: 20 },
-    propietarioId: idUsuario1,
-  };
-
-  const resNodo1 = await callAPI("POST", "/nodos", nodo1);
-  resultados.push(resNodo1);
-  idNodo1 = resNodo1.resultado?.idNodo || null;
-
-  if (idNodo1) {
-    resultados.push(await callAPI("POST", "/mediciones", {
-      idNodo: idNodo1,
-      medidas: { temperatura: 22.5, co2: 400, humedad: 55 },
-    }));
-
-    resultados.push(await callAPI("GET", `/mediciones/${idNodo1}`));
-
-    resultados.push(await callAPI("POST", `/usuarios/${idUsuario1}/vincularNodo`, { idNodo: idNodo1 }));
-    resultados.push(await callAPI("POST", `/usuarios/${idUsuario1}/desvincularNodo`, { idNodo: idNodo1 }));
-
-    // ✅ Nuevo test: obtener nodos por propietario
-    resultados.push(await callAPI("GET", `/nodos/propietario/${idUsuario1}`));
-  }
-
-  return { resultados, idNodo1 };
-}
-
-/* -------------------------------------------------------------------------- */
-/* 🔹 TEST EXTRA: CAMBIAR CO₂ MANUALMENTE                                     */
-/* -------------------------------------------------------------------------- */
-async function testCambiarCO2Nodo(idUsuario1, nuevoValorCO2) {
+async function testNodos(idCiudadano) {
   const resultados = [];
 
-  // ✅ Nuevo endpoint para obtener nodos de un propietario
-  const resNodos = await callAPI("GET", `/nodos/propietario/${idUsuario1}`);
-  resultados.push(resNodos);
+  // Formato real esperado → { nombre, ubicacion, propietarioId }
+  resultados.push(
+    await callAPI("POST", "/nodos", {
+      nombre: "NodoTest1",
+      ubicacion: { lat: 10, lng: 20 },
+      propietarioId: idCiudadano,
+    })
+  );
 
-  const nodos = resNodos.resultado || [];
-  for (const nodo of nodos) {
-    const idNodo = nodo.idNodo || nodo.id;
-    if (!idNodo) continue;
+  resultados.push(
+    await callAPI("POST", "/mediciones", {
+      nombreNodo: "NodoTest1",
+      propietarioId: idCiudadano,
+      medidas: { temperatura: 22.5, co2: 40, humedad: 55 },
+    })
+  );
 
-    // Obtener mediciones del nodo
-    const resMediciones = await callAPI("GET", `/mediciones/${idNodo}`);
-    resultados.push(resMediciones);
+  resultados.push(await callAPI("GET", `/mediciones/${idCiudadano}/NodoTest1`));
+  resultados.push(await callAPI("GET", `/nodos/propietario/${idCiudadano}`));
 
-    const mediciones = resMediciones.resultado || [];
-    for (const m of mediciones) {
-      // ⚠️ Este endpoint es solo demostrativo — no existe PUT /mediciones/:idMedicion en el servidor real
-      resultados.push(
-        await callAPI("PUT", `/mediciones/${m.idMedicion}`, {
-          medidas: { ...m.medidas, co2: nuevoValorCO2 },
-        })
-      );
-    }
-  }
+  resultados.push(
+    await callAPI("PUT", "/nodos", {
+      nombreNodo: "NodoTest1",
+      propietarioId: idCiudadano,
+      datos: { ubicacion: { lat: 99, lng: 99 } },
+    })
+  );
+
+  resultados.push(
+    await callAPI("DELETE", "/nodos", {
+      nombreNodo: "NodoTest1",
+      propietarioId: idCiudadano,
+    })
+  );
 
   return resultados;
 }
 
 /* -------------------------------------------------------------------------- */
-/* 🔹 NOTIFICACIÓN                                                            */
+/* ✅ NOTIFICACIÓN (ciudadano puede recibir)                                  */
 /* -------------------------------------------------------------------------- */
-async function testNotificacion(idUsuario1) {
+async function testNotificacion(idCiudadano) {
   return await callAPI("POST", "/notificar", {
     mensaje: "Prueba automática de notificación",
     color: "#27F531",
-    topic: idUsuario1,
+    topic: idCiudadano,
   });
 }
 
 /* -------------------------------------------------------------------------- */
-/* 🔹 EJECUCIÓN GENERAL                                                       */
+/* ✅ EJECUCIÓN GENERAL                                                       */
 /* -------------------------------------------------------------------------- */
 export async function pruebaAutomatica() {
   const resultados = [];
 
   resultados.push({ paso: "🧪 Test USUARIOS" });
-  const { resultados: resUsuarios, idUsuario1 } = await testUsuarios();
+  const { resultados: resUsuarios, idCiudadano } = await testUsuarios();
   resultados.push(...resUsuarios);
 
-  resultados.push({ paso: "🧪 Test NODOS y MEDICIONES" });
-  const { resultados: resNodos } = await testNodos(idUsuario1);
-  resultados.push(...resNodos);
+  resultados.push({ paso: "🧪 Test NODOS y MEDICIONES (ciudadano)" });
+  resultados.push(...await testNodos(idCiudadano));
 
-  /* ⭐ OPCIONAL: CAMBIAR CO₂ MANUALMENTE DURANTE DEMO
-  resultados.push({ paso: "🛠 CAMBIANDO MANUALMENTE CO₂" });
-  const resCO2 = await testCambiarCO2Nodo(idUsuario1, 150);
-  resultados.push(...resCO2);
-  */
+  resultados.push({ paso: "🧪 Test NOTIFICACIONES" });
+  resultados.push(await testNotificacion(idCiudadano));
 
-  resultados.push({ paso: "🧪 Probando NOTIFICACIÓN" });
-  resultados.push(await testNotificacion(idUsuario1));
-
-  resultados.push({ paso: "✅ Prueba finalizada correctamente" });
+  resultados.push({ paso: "✅ Prueba completada correctamente" });
   return resultados;
 }

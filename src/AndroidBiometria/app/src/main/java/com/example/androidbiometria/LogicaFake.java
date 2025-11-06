@@ -32,6 +32,11 @@ public class LogicaFake {
     private int minor;
     private int txPower;
 
+    private static Integer valorCO2Pendiente = null;
+    private static Integer valorTempPendiente = null;
+    private static long tiempoInicioLectura = 0;
+    private static final long TIMEOUT_MS = 3000;
+
     // Firebase Functions
     private static final String URL_MANEJAR_POST =
             "https://us-central1-proyectodebiometria.cloudfunctions.net/ManejarPOST";
@@ -70,145 +75,86 @@ public class LogicaFake {
         this.idUsuario = idUsuario;
     }
 
-    // ----------------------------------------------------------
-    // 🧱 Método crearNodoSiNoExiste()
-    // ----------------------------------------------------------
-    public void crearNodoSiNoExiste() {
-        if (idUsuario == null) {
-            Log.e(">>>>>>", "Error: idUsuario es nulo. No se puede crear/verificar nodo.");
+    //obtenerNodo
+
+    
+
+    public void guardarMedida() {
+
+        if (idNodo == null) {
+            Log.e(">>>>>>", "No hay idNodo asociado. Se intenta crear o recuperar...");
             return;
         }
 
-        // 1️⃣ Verificar si el usuario ya tiene nodos
-        Request request = new Request.Builder()
-                .url(BASE_URL + "/nodos/propietario/" + idUsuario)
-                .get()
-                .build();
+        // 1) Determinar qué tipo de dato llegó según el Major
+        if (major >= 2800 && major <= 2899) { // CO2
+            valorCO2Pendiente = minor;
+            Log.d(">>>>>>", "Detectado CO2: " + minor);
 
-        client.newCall(request).enqueue(new Callback() {
-            @Override
-            public void onFailure(Call call, IOException e) {
-                Log.e(">>>>>>", "Error al verificar nodos del usuario: " + e.getMessage(), e);
-            }
+        } else if (major >= 3000 && major <= 3099) { // Temperatura
+            valorTempPendiente = minor;
+            Log.d(">>>>>>", "Detectada TEMP: " + minor);
+        } else {
+            Log.d(">>>>>>", "Beacon ignorado. Major no corresponde a CO2/Temp.");
+            return;
+        }
 
-            @Override
-            public void onResponse(Call call, Response response) throws IOException {
-                if (!response.isSuccessful()) {
-                    Log.e(">>>>>>", "Error al obtener nodos: " + response.body().string());
-                    return;
-                }
+        // 2) Si es la primera medida de la pareja, guardamos el tiempo
+        if (tiempoInicioLectura == 0) tiempoInicioLectura = System.currentTimeMillis();
 
-                try {
-                    String body = response.body().string();
-                    JSONArray nodos = new JSONArray(body);
+        long tiempoTranscurrido = System.currentTimeMillis() - tiempoInicioLectura;
 
-                    if (nodos.length() > 0) {
-                        idNodo = nodos.getJSONObject(0).optString("idNodo");
-                        Log.d(">>>>>>", "Usuario ya tiene nodo: " + idNodo);
-                    } else {
-                        Log.d(">>>>>>", "Usuario sin nodo, creando uno nuevo...");
-                        crearNodo();
+        // 3) Si ya tenemos ambas o venció el tiempo -> enviar
+        if (valorCO2Pendiente != null && valorTempPendiente != null || tiempoTranscurrido >= TIMEOUT_MS) {
+
+            Integer co2 = valorCO2Pendiente != null ? valorCO2Pendiente : -1;
+            Integer temp = valorTempPendiente != null ? valorTempPendiente : -1;
+
+            Log.d(">>>>>>", "Enviando medición al servidor → CO2=" + co2 + " Temp=" + temp);
+
+            try {
+                JSONObject json = new JSONObject();
+                json.put("idNodo", idNodo);
+
+                JSONObject medidas = new JSONObject();
+                medidas.put("co2", co2);
+                medidas.put("temperatura", temp);
+                json.put("medidas", medidas);
+
+                RequestBody body = RequestBody.create(
+                        json.toString(),
+                        MediaType.parse("application/json; charset=utf-8")
+                );
+
+                Request request = new Request.Builder()
+                        .url(BASE_URL + "/mediciones")
+                        .post(body)
+                        .build();
+
+                client.newCall(request).enqueue(new Callback() {
+                    @Override
+                    public void onFailure(Call call, IOException e) {
+                        Log.e(">>>>>>", "Error al enviar mediciones: " + e.getMessage(), e);
                     }
-                } catch (Exception e) {
-                    Log.e(">>>>>>", "Error al procesar respuesta de nodos: " + e.getMessage(), e);
-                }
-            }
-        });
-    }
 
-    // ----------------------------------------------------------
-    // 🧩 Método auxiliar para crear un nodo
-    // ----------------------------------------------------------
-    private void crearNodo() {
-        try {
-            JSONObject nuevoNodo = new JSONObject();
-            nuevoNodo.put("nombre", "NodoAuto");
-            nuevoNodo.put("propietarioId", idUsuario);
-
-            JSONObject ubicacion = new JSONObject();
-            ubicacion.put("lat", 0);
-            ubicacion.put("lng", 0);
-            nuevoNodo.put("ubicacion", ubicacion);
-
-            RequestBody body = RequestBody.create(
-                    nuevoNodo.toString(),
-                    MediaType.parse("application/json; charset=utf-8")
-            );
-
-            Request request = new Request.Builder()
-                    .url(BASE_URL + "/nodos")
-                    .post(body)
-                    .build();
-
-            client.newCall(request).enqueue(new Callback() {
-                @Override
-                public void onFailure(Call call, IOException e) {
-                    Log.e(">>>>>>", "Error al crear nodo: " + e.getMessage(), e);
-                }
-
-                @Override
-                public void onResponse(Call call, Response response) throws IOException {
-                    if (!response.isSuccessful()) {
-                        Log.e(">>>>>>", "Error al crear nodo: " + response.body().string());
-                    } else {
-                        try {
-                            JSONObject res = new JSONObject(response.body().string());
-                            idNodo = res.optString("idNodo");
-                            Log.d(">>>>>>", "Nodo creado exitosamente con id: " + idNodo);
-                        } catch (Exception e) {
-                            Log.e(">>>>>>", "Error procesando respuesta de creación: " + e.getMessage(), e);
+                    @Override
+                    public void onResponse(Call call, Response response) throws IOException {
+                        if (!response.isSuccessful()) {
+                            Log.e(">>>>>>", "Error servidor: " + response.body().string());
+                        } else {
+                            Log.d(">>>>>>", "Mediciones enviadas OK → " + response.body().string());
                         }
                     }
-                }
-            });
+                });
 
-        } catch (Exception e) {
-            Log.e(">>>>>>", "Excepción al crear nodo: " + e.getMessage(), e);
-        }
-    }
+            } catch (Exception e) {
+                Log.e(">>>>>>", "Error construyendo JSON: " + e.getMessage(), e);
+            }
 
-    // ----------------------------------------------------------
-    // 🚀 Método guardarMedida() (mantiene la lógica original)
-    // ----------------------------------------------------------
-    public void guardarMedida() {
-        OkHttpClient client = new OkHttpClient();
-        String sensor = "CO2";
-
-        Log.d(">>>>>>", "Enviando medida con minor: " + this.minor);
-
-        try {
-            JSONObject json = new JSONObject();
-            json.put("valor", this.minor);
-            json.put("sensor", sensor);
-
-            RequestBody body = RequestBody.create(
-                    json.toString(),
-                    MediaType.parse("application/json; charset=utf-8")
-            );
-
-            Request request = new Request.Builder()
-                    .url(URL_MANEJAR_POST)
-                    .post(body)
-                    .build();
-
-            client.newCall(request).enqueue(new Callback() {
-                @Override
-                public void onFailure(Call call, IOException e) {
-                    Log.e(">>>>>>", "Error al enviar medida: " + e.getMessage(), e);
-                }
-
-                @Override
-                public void onResponse(Call call, Response response) throws IOException {
-                    if (!response.isSuccessful()) {
-                        Log.e(">>>>>>", "Error al enviar medida: " + response.body().string());
-                    } else {
-                        Log.d(">>>>>>", "Medida enviada correctamente: " + response.body().string());
-                    }
-                }
-            });
-
-        } catch (Exception e) {
-            Log.e(">>>>>>", "Excepción al construir/enviar medida: " + e.getMessage(), e);
+            // 4) Limpiar buffer para la siguiente pareja
+            valorCO2Pendiente = null;
+            valorTempPendiente = null;
+            tiempoInicioLectura = 0;
         }
     }
 }

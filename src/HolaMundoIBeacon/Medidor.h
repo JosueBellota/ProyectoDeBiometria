@@ -59,7 +59,7 @@ public:
   // numeros
   //------------------------------------------------------------------------------------
   int medirTemperatura() {
-	return -12; // qué frío !
+	return 4321; // qué frío !
   } // ()
 	
 }; // class
