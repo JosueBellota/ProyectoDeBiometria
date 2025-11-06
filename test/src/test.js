@@ -25,11 +25,11 @@ async function callAPI(metodo, ruta, body = null) {
 /* -------------------------------------------------------------------------- */
 async function testUsuarios() {
   const resultados = [];
+  const unique = `${Date.now()}_${Math.floor(Math.random() * 10000)}`;
 
-  // Ciudadano principal
   const ciudadano = {
-    nombre: "Ciudadano",
-    correo: "ciudadano@test.com",
+    nombre: `Ciudadano_${unique}`,
+    correo: `ciudadano_${unique}@test.com`,
     rol: "ciudadano",
     password: "123456",
   };
@@ -38,10 +38,9 @@ async function testUsuarios() {
   resultados.push(resCiudadano);
   const idCiudadano = resCiudadano.resultado?.idUsuario;
 
-  // Admin solo para consultar lista de usuarios
   const admin = {
-    nombre: "Admin",
-    correo: "admin@test.com",
+    nombre: `Admin_${unique}`,
+    correo: `admin_${unique}@test.com`,
     rol: "admin",
     password: "admin123",
   };
@@ -50,11 +49,9 @@ async function testUsuarios() {
   resultados.push(resAdmin);
   const idAdmin = resAdmin.resultado?.idUsuario;
 
-  // Ciudadano secundario para probar eliminar
-  const timestamp = Date.now();
   const ciudadanoExtra = {
-    nombre: "CiudadanoExtra",
-    correo: `extra_${timestamp}@test.com`,
+    nombre: `CiudadanoExtra_${unique}`,
+    correo: `extra_${unique}@test.com`,
     rol: "ciudadano",
     password: "123456",
   };
@@ -63,55 +60,70 @@ async function testUsuarios() {
   resultados.push(resCiudadanoExtra);
   const idCiudadanoExtra = resCiudadanoExtra.resultado?.idUsuario;
 
-  // Ver ciudadano principal
   if (idCiudadano) resultados.push(await callAPI("GET", `/usuarios/${idCiudadano}`));
-
-  // Admin lista usuarios
   if (idAdmin) resultados.push(await callAPI("GET", `/usuarios/admin/${idAdmin}`));
-
-  // Eliminar ciudadano extra
   if (idCiudadanoExtra) resultados.push(await callAPI("DELETE", `/usuarios/${idCiudadanoExtra}`));
 
-  return { resultados, idCiudadano };
+  return { resultados, idCiudadano, unique };
 }
 
 /* -------------------------------------------------------------------------- */
 /* ✅ NODOS + MEDICIONES (solo ciudadano)                                     */
 /* -------------------------------------------------------------------------- */
-async function testNodos(idCiudadano) {
+async function testNodos(idCiudadano, unique) {
   const resultados = [];
 
-  // Formato real esperado → { nombre, ubicacion, propietarioId }
+  const nombreNodoPrincipal = `NodoPrincipal_${unique}`;
+  const nombreNodoEliminar = `NodoEliminar_${unique}`;
+
+  // Crear nodo principal
   resultados.push(
     await callAPI("POST", "/nodos", {
-      nombre: "NodoTest1",
+      nombre: nombreNodoPrincipal,
       ubicacion: { lat: 10, lng: 20 },
       propietarioId: idCiudadano,
     })
   );
 
+  // Crear nodo que luego se eliminará
+  resultados.push(
+    await callAPI("POST", "/nodos", {
+      nombre: nombreNodoEliminar,
+      ubicacion: { lat: 11, lng: 21 },
+      propietarioId: idCiudadano,
+    })
+  );
+
+  // Insertar mediciones en el nodo principal
   resultados.push(
     await callAPI("POST", "/mediciones", {
-      nombreNodo: "NodoTest1",
+      nombreNodo: nombreNodoPrincipal,
       propietarioId: idCiudadano,
       medidas: { temperatura: 22.5, co2: 40, humedad: 55 },
     })
   );
 
-  resultados.push(await callAPI("GET", `/mediciones/${idCiudadano}/NodoTest1`));
+  // Consultar medidas
+  resultados.push(
+    await callAPI("GET", `/mediciones/${idCiudadano}/${nombreNodoPrincipal}`)
+  );
+
+  // Obtener nodos que pertenecen al ciudadano
   resultados.push(await callAPI("GET", `/nodos/propietario/${idCiudadano}`));
 
+  // Actualizar nodo principal
   resultados.push(
     await callAPI("PUT", "/nodos", {
-      nombreNodo: "NodoTest1",
+      nombreNodo: nombreNodoPrincipal,
       propietarioId: idCiudadano,
       datos: { ubicacion: { lat: 99, lng: 99 } },
     })
   );
 
+  // Eliminar nodo secundario
   resultados.push(
     await callAPI("DELETE", "/nodos", {
-      nombreNodo: "NodoTest1",
+      nombreNodo: nombreNodoEliminar,
       propietarioId: idCiudadano,
     })
   );
@@ -120,7 +132,7 @@ async function testNodos(idCiudadano) {
 }
 
 /* -------------------------------------------------------------------------- */
-/* ✅ NOTIFICACIÓN (ciudadano puede recibir)                                  */
+/* ✅ NOTIFICACIÓN                                                            */
 /* -------------------------------------------------------------------------- */
 async function testNotificacion(idCiudadano) {
   return await callAPI("POST", "/notificar", {
@@ -137,11 +149,11 @@ export async function pruebaAutomatica() {
   const resultados = [];
 
   resultados.push({ paso: "🧪 Test USUARIOS" });
-  const { resultados: resUsuarios, idCiudadano } = await testUsuarios();
+  const { resultados: resUsuarios, idCiudadano, unique } = await testUsuarios();
   resultados.push(...resUsuarios);
 
   resultados.push({ paso: "🧪 Test NODOS y MEDICIONES (ciudadano)" });
-  resultados.push(...await testNodos(idCiudadano));
+  resultados.push(...await testNodos(idCiudadano, unique));
 
   resultados.push({ paso: "🧪 Test NOTIFICACIONES" });
   resultados.push(await testNotificacion(idCiudadano));

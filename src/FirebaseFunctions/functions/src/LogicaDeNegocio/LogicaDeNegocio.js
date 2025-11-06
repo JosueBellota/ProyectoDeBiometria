@@ -126,30 +126,31 @@ class LogicaDeNegocio {
   // id del usuario creado
   //------------------------------------------------------------------------------------
   async crearUsuario(nombre, correo, rol, password) {
-    try {
-      const userRecord = await this.#admin.auth().createUser({
-        email: correo,
-        password,
-        displayName: nombre,
-      });
+  try {
+    const userRecord = await this.#admin.auth().createUser({
+      email: correo,
+      password,
+      displayName: nombre,
+    });
 
-      const nuevoUsuario = {
-        uid: userRecord.uid,
-        nombre,
-        correo,
-        rol,
-        nodos: [],
-        creadoEn: this.#admin.firestore.Timestamp.now(),
-      };
+    const nuevoUsuario = {
+      uid: userRecord.uid,
+      nombre,
+      correo,
+      rol,
+      creadoEn: this.#admin.firestore.Timestamp.now(),
+    };
 
-      await this.#db.collection("usuarios").doc(userRecord.uid).set(nuevoUsuario);
-      functions.logger.info(`✅ Usuario creado correctamente: ${userRecord.uid}`);
-      return userRecord.uid;
-    } catch (error) {
-      functions.logger.error("❌ Error en crearUsuario:", error);
-      return null;
-    }
+    await this.#db.collection("usuarios").doc(userRecord.uid).set(nuevoUsuario);
+    functions.logger.info(`✅ Usuario creado correctamente: ${userRecord.uid}`);
+    return userRecord.uid;
+
+  } catch (error) {
+    functions.logger.error("❌ Error en crearUsuario:", error);
+    return null;
   }
+}
+
 
   //------------------------------------------------------------------------------------
   // idUsuario (entrada)
@@ -384,30 +385,16 @@ class LogicaDeNegocio {
   async eliminarNodo(nombreNodo, propietarioId) {
     try {
       const nodo = await this.obtenerNodo(nombreNodo, propietarioId);
-      if (!nodo) {
-        functions.logger.warn(`⚠️ Nodo "${nombreNodo}" no encontrado para el propietario ${propietarioId}`);
-        return;
-      }
+      if (!nodo) return;
 
-      const idNodo = nodo.id;
-      const nodoRef = this.#db.collection("nodos").doc(idNodo);
+      await this.#db.collection("nodos").doc(nodo.id).delete();
 
-      // Desvincular nodo de todos los usuarios que lo tengan
-      const usuariosSnapshot = await this.#db.collection("usuarios")
-        .where("nodos", "array-contains", idNodo)
-        .get();
-
-      for (const usuarioDoc of usuariosSnapshot.docs) {
-        await this.desvincularNodoDeUsuario(usuarioDoc.id, idNodo);
-      }
-
-      await nodoRef.delete();
-      functions.logger.info(`🗑️ Nodo eliminado correctamente: "${nombreNodo}" (${idNodo})`);
-
+      functions.logger.info(`🗑️ Nodo eliminado: "${nombreNodo}" (${nodo.id})`);
     } catch (error) {
       functions.logger.error("❌ Error en eliminarNodo:", error);
     }
   }
+
 
 
   // ===================================================================================
