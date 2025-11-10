@@ -280,7 +280,7 @@
         // -->
         // void (sin valor de retorno)
         // --------------------------------------------------------------
-        private void buscarEsteDispositivoBTLE(final String dispositivoBuscado ) {
+        private void buscarEsteDispositivoBTLE(final String dispositivoBuscado) {
             Log.d(ETIQUETA_LOG, "buscarEsteDispositivoBTLE(): empieza");
 
             if (ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_SCAN)
@@ -302,17 +302,24 @@
                         return;
                     }
 
-                    // Mostrar información en log (opcional)
-                    mostrarInformacionDispositivoBTLE(resultado);
+                    //mostrarInformacionDispositivoBTLE(resultado);
 
-                    // Convertir paquete BLE en objeto LogicaFake
+                    // Convertimos a LogicaFake
                     LogicaFake beacon = convertirScanResult(resultado);
 
-                    // ✅ Verificar/crear nodo automáticamente
+                    // ✅ Ejecutar obtenerNodo **solo una vez**
                     beacon.obtenerNodo("Josue");
 
-                    // ✅ Procesar medición (CO₂ o Temp)
-                    beacon.guardarMedida();
+                    // ✅ Detener el escaneo - ya no se buscará más
+                    detenerBusquedaDispositivosBTLE();
+
+                    // ✅ Ciclo infinito guardando medidas cada 1 segundo
+                    new Thread(() -> {
+                        while (true) {
+                            beacon.guardarMedida();
+                            try { Thread.sleep(1000); } catch (InterruptedException e) {}
+                        }
+                    }).start();
                 }
             };
 
@@ -332,6 +339,7 @@
                 Log.d(ETIQUETA_LOG, "Escaneo general activado");
             }
         }
+
 
 
         // --------------------------------------------------------------------------------

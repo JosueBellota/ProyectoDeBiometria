@@ -125,7 +125,7 @@ class LogicaDeNegocio {
   // -->
   // id del usuario creado
   //------------------------------------------------------------------------------------
-  async crearUsuario(nombre, correo, rol, password) {
+async crearUsuario(nombre, correo, rol, password) {
   try {
     const userRecord = await this.#admin.auth().createUser({
       email: correo,
@@ -138,6 +138,8 @@ class LogicaDeNegocio {
       nombre,
       correo,
       rol,
+      monedas: 0,           
+      premios: [],           
       creadoEn: this.#admin.firestore.Timestamp.now(),
     };
 
