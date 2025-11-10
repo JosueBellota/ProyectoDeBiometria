@@ -89,8 +89,18 @@ class LogicaDeNegocio {
   // nombreNodo: texto, propietarioId: texto
   // -->
   // obtenerMedidas() --> devuelve las medidas actuales del nodo correspondiente
+  // -->
   // - Busca el nodo por nombre + propietario
   // - Devuelve { sensores, tiempo } o null si no existe
+  // {
+  //   sensores:{                 
+  //       co2: número,                   
+  //       temperatura: número,           
+  //       humedad: número               
+  //   },
+  //   tiempo: timestamp                 
+  // }
+  //
   //------------------------------------------------------------------------------------
   async obtenerMedidas(nombreNodo, propietarioId) {
     try {
@@ -116,7 +126,7 @@ class LogicaDeNegocio {
   // ===================================================================================
 
   //------------------------------------------------------------------------------------
-  // nombre, correo, rol, password (entrada)
+  // nombre: texto, correo: texto, rol: texto, password: texto
   // -->
   // crearUsuario() --> (crea un nuevo usuario en Authentication y Firestore)
   // - Crea usuario en Authentication con correo y contraseña
@@ -238,7 +248,19 @@ async crearUsuario(nombre, correo, rol, password) {
   // ------------------------------------------------------------------------------------
   // obtenerUsuariosDesdeAdmin(idAdmin)
   // -->
-  // Si el usuario indicado es admin, devuelve todos los usuarios del sistema
+  // [
+  // {
+  //   id: texto,                        
+  //   uid: texto,                        
+  //   nombre: texto,                     
+  //   correo: texto,                    
+  //   rol: texto,                        
+  //   monedas: número,                   
+  //   premios: array de texto,           
+  //   creadoEn: timestamp,               
+  // },
+  // ...
+  // ]
   // ------------------------------------------------------------------------------------
   async obtenerUsuariosDesdeAdmin(idAdmin) {
     try {
@@ -308,8 +330,19 @@ async crearUsuario(nombre, correo, rol, password) {
   // -->
   // obtenerNodo() --> devuelve el nodo del propietario cuyo nombre coincida
   // -->
-  // retorna: objeto { id:texto, ...datos } o null
-  //------------------------------------------------------------------------------------
+  // {
+  //   id: texto,                          
+  //   propietarioId: texto,               
+  //   nombre: texto,                      
+  //   ubicacion: texto,                   
+  //   sensores: {                         
+  //       co2: número,                    
+  //       temperatura: número,            
+  //       humedad: número                 
+  //   },
+  //   tiempo: timestamp                   
+  // }
+  // ------------------------------------------------------------------------------------
   async obtenerNodo(nombre, propietarioId) {
     try {
       const snapshot = await this.#db
@@ -331,9 +364,25 @@ async crearUsuario(nombre, correo, rol, password) {
   }
 
   // ------------------------------------------------------------------------------------
+  // propietarioId: texto
+  // -->
   // obtenerNodos(idPropietario)
   // -->
-  // Devuelve todos los nodos cuyo propietarioId coincida con el id del usuario
+  // [
+  //   {
+  //     id: texto,                          
+  //     propietarioId: texto,               
+  //     nombre: texto,                      
+  //     ubicacion: texto,                   
+  //     sensores: {                         
+  //         co2: número,                    
+  //         temperatura: número,            
+  //         humedad: número                 
+  //     },
+  //     tiempo: timestamp                   
+  //   },
+  //   ...
+  // ]
   // ------------------------------------------------------------------------------------
   async obtenerNodos(idPropietario) {
     try {
@@ -360,11 +409,24 @@ async crearUsuario(nombre, correo, rol, password) {
     }
   }
 
-  //------------------------------------------------------------------------------------
+  // ------------------------------------------------------------------------------------
   // nombreNodo: texto, propietarioId: texto, datos: objeto (campos a actualizar)
   // -->
-  // actualizarNodo() --> modifica datos del nodo buscándolo por nombre + propietario
-  //------------------------------------------------------------------------------------
+  // actualizarNodo(nombreNodo, propietarioId, datos)
+  // -->
+  // {
+  //   id: texto,                          
+  //   propietarioId: texto,               
+  //   nombre: texto,                      
+  //   ubicacion: texto,                   
+  //   sensores: {                         
+  //       co2: número,                    
+  //       temperatura: número,            
+  //       humedad: número                 
+  //   },
+  //   tiempo: timestamp                   
+  // }
+  // ----------------------------------------------------------------------------------
   async actualizarNodo(nombreNodo, propietarioId, datos) {
     try {
       const nodo = await this.obtenerNodo(nombreNodo, propietarioId);
@@ -399,9 +461,24 @@ async crearUsuario(nombre, correo, rol, password) {
 
 
 
-  // ===================================================================================
-  // ============================== MÉTODO DE NOTIFICACIONES ===========================
-  // ===================================================================================
+  // ------------------------------------------------------------------------------------
+  // mensaje: texto, color: texto, topic: texto
+  // -->
+  // enviarNotificacion(mensaje, color, topic)
+  // -->
+  // {
+  //   notification: {
+  //     title: texto,
+  //     body: texto
+  //   },
+  //   data: {
+  //     mensaje: texto,
+  //     color: texto
+  //   },
+  //   topic: texto
+  // }
+  // ------------------------------------------------------------------------------------
+
   async enviarNotificacion(mensaje, color, topic) {
     try {
       functions.logger.info("🔔 Enviando notificación:", { mensaje, color, topic });
