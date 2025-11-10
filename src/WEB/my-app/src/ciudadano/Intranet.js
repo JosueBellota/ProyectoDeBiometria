@@ -63,11 +63,11 @@ function Intranet() {
             ) : r.resultado ? (
               <>
                 <strong>Nodo:</strong> {r.resultado.nodo || "Desconocido"} <br />
-                <strong>Tiempo:</strong> {formatearTiempo(r.resultado.tiempo)} <br />
+                <strong>Tiempo:</strong> {formatearTiempo(r.resultado.datos?.tiempo)} <br />
                 <strong>Sensores:</strong>
                 <ul>
-                  {Object.entries(r.resultado?.sensores ?? {}).length > 0 ? (
-                    Object.entries(r.resultado.sensores ?? {}).map(([sensor, valor]) => (
+                  {Object.entries(r.resultado.datos?.sensores ?? {}).length > 0 ? (
+                    Object.entries(r.resultado.datos.sensores).map(([sensor, valor]) => (
                       <li key={sensor}>
                         {sensor}: {valor ?? "-"}
                       </li>
@@ -76,6 +76,7 @@ function Intranet() {
                     <li>Sin datos de sensores</li>
                   )}
                 </ul>
+
               </>
             ) : (
               <pre>{JSON.stringify(r, null, 2)}</pre>
