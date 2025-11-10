@@ -140,7 +140,7 @@ void loop () {
   
   elPublicador.publicarCO2( valorCO2,
 							cont,
-							1000 // intervalo de emisión
+							500 // intervalo de emisión
 							);
   
   // 
@@ -150,7 +150,7 @@ void loop () {
   
   elPublicador.publicarTemperatura( valorTemperatura, 
 									cont,
-									1000 // intervalo de emisión
+									500 // intervalo de emisión
 									);
 
   // 
@@ -160,19 +160,9 @@ void loop () {
   // 
   // Al terminar la prueba hay que hacer Publicador::laEmisora privado
   // 
-  char datos[21] = {
-	'H', 'o', 'l', 'a',
-	'H', 'o', 'l', 'a',
-	'H', 'o', 'l', 'a',
-	'H', 'o', 'l', 'a',
-	'H', 'o', 'l', 'a',
-	'H'
-  };
-
   // elPublicador.laEmisora.emitirAnuncioIBeaconLibre ( &datos[0], 21 );
   // elPublicador.laEmisora.emitirAnuncioIBeaconLibre ( "HolaHolaHolaHola", 21 );
 
-  esperar(4000);
   elPublicador.laEmisora.detenerAnuncio();
   
   // 

@@ -74,6 +74,9 @@
 
         private String nombreDispositivoQR = null;
 
+        private static final String NOMBRE_NODO_CONSTANTE = "NODO_TEST";
+
+
 
         // ---------------------------------------------------------------------------
         // Ciclo de vida
@@ -277,88 +280,67 @@
         // -->
         // void (sin valor de retorno)
         // --------------------------------------------------------------
-        private void buscarEsteDispositivoBTLE(final String dispositivoBuscado ) {
-            Log.d(ETIQUETA_LOG, " buscarEsteDispositivoBTLE(): empieza ");
+        private void buscarEsteDispositivoBTLE(final String dispositivoBuscado) {
+            Log.d(ETIQUETA_LOG, "buscarEsteDispositivoBTLE(): empieza");
 
-            // AÑADIR: Verificación de permisos BLUETOOTH_SCAN
-            if (ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_SCAN) != PackageManager.PERMISSION_GRANTED) {
-                Log.d(ETIQUETA_LOG, " buscarEsteDispositivoBTLE(): Sin permiso BLUETOOTH_SCAN");
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_SCAN)
+                    != PackageManager.PERMISSION_GRANTED) {
                 return;
             }
-
-            Log.d(ETIQUETA_LOG, "  buscarEsteDispositivoBTLE(): instalamos scan callback ");
 
             this.callbackDelEscaneo = new ScanCallback() {
                 @Override
                 public void onScanResult(int callbackType, ScanResult resultado) {
                     super.onScanResult(callbackType, resultado);
 
+                    String nombreDetectado = (ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.BLUETOOTH_CONNECT)
+                            == PackageManager.PERMISSION_GRANTED)
+                            ? resultado.getDevice().getName()
+                            : null;
 
-
-
-                    if (ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.BLUETOOTH_CONNECT)
-                            == PackageManager.PERMISSION_GRANTED) {
-
-                        String nombreDetectado = resultado.getDevice().getName();
-
-                        if (nombreDetectado != null && !testeado) {
-                            testeado = true;
-                            mostrarInformacionDispositivoBTLE(resultado);
-
-
-                            // 🔹 Convertir a objeto estructurado
-                            LogicaFake TramaConvertido = convertirScanResult(resultado);
-
-                            Log.d(ETIQUETA_LOG, "  buscarEsteDispositivoBTLE(): onScanResult() ");
-                            // Mostrar información del dispositivo
-
-
-                            // 🔹 Enviar medida a Firebase usando el objeto convertido
-                            TramaConvertido.guardarMedida();
-
-                            // Verificar o crear nodo automáticamente
-                            TramaConvertido.crearNodoSiNoExiste();
-                        }
+                    if (nombreDetectado == null || !nombreDetectado.equals(dispositivoBuscado)) {
+                        return;
                     }
-                }
 
-                @Override
-                public void onBatchScanResults(List<ScanResult> results) {
-                    super.onBatchScanResults(results);
-                    Log.d(ETIQUETA_LOG, "  buscarEsteDispositivoBTLE(): onBatchScanResults() ");
+                    //mostrarInformacionDispositivoBTLE(resultado);
 
-                }
+                    // Convertimos a LogicaFake
+                    LogicaFake beacon = convertirScanResult(resultado);
 
-                @Override
-                public void onScanFailed(int errorCode) {
-                    super.onScanFailed(errorCode);
-                    Log.d(ETIQUETA_LOG, "  buscarEsteDispositivoBTLE(): onScanFailed() ");
+                    // ✅ Ejecutar obtenerNodo **solo una vez**
+                    beacon.obtenerNodo("Josue");
 
+                    // ✅ Detener el escaneo - ya no se buscará más
+                    detenerBusquedaDispositivosBTLE();
+
+                    // ✅ Ciclo infinito guardando medidas cada 1 segundo
+                    new Thread(() -> {
+                        while (true) {
+                            beacon.guardarMedida();
+                            try { Thread.sleep(1000); } catch (InterruptedException e) {}
+                        }
+                    }).start();
                 }
             };
 
-            // Crear el filtro (aunque Android a veces ignora los filtros de nombre)
-            ScanFilter sf = new ScanFilter.Builder()
+            ScanFilter filtro = new ScanFilter.Builder()
                     .setDeviceName(dispositivoBuscado)
                     .build();
-            // Configuración del escaneo
+
             ScanSettings settings = new ScanSettings.Builder()
                     .setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY)
                     .build();
 
-
             try {
-                // ✅ Aplicar el filtro CORRECTAMENTE
-                this.elEscanner.startScan(Arrays.asList(sf), settings, this.callbackDelEscaneo);
-                Log.d(ETIQUETA_LOG, "Escaneando específicamente para: " + dispositivoBuscado);
+                elEscanner.startScan(Arrays.asList(filtro), settings, callbackDelEscaneo);
+                Log.d(ETIQUETA_LOG, "Escaneando específicamente: " + dispositivoBuscado);
             } catch (Exception e) {
-                Log.e(ETIQUETA_LOG, "Error al iniciar escaneo filtrado: " + e.getMessage());
-
-                // Fallback: escanear todo y filtrar manualmente
-                this.elEscanner.startScan(this.callbackDelEscaneo);
-                Log.d(ETIQUETA_LOG, "Usando escaneo general con filtro manual");
+                elEscanner.startScan(callbackDelEscaneo);
+                Log.d(ETIQUETA_LOG, "Escaneo general activado");
             }
-        } // ()
+        }
+
+
 
         // --------------------------------------------------------------------------------
         // Sin parámetros de entrada
@@ -419,7 +401,7 @@
         // --------------------------------------------------------------
         public void botonBuscarNuestroDispositivoBTLEPulsado( View v ) {
             Log.d(ETIQUETA_LOG, " boton nuestro dispositivo BTLE Pulsado" );
-            this.buscarEsteDispositivoBTLE( "LE_WH-1000XM5" );
+            this.buscarEsteDispositivoBTLE( "Josue" );
 
         } // ()
 
@@ -549,6 +531,11 @@
                     ? FirebaseAuth.getInstance().getCurrentUser().getUid()
                     : null;
 
+            // ✅ Nombre del nodo:
+            //    Si se leyó un QR → usarlo
+            //    Si no → usar nombre BLE
+            String nombreNodoUsado = "Josue";
+
             return new LogicaFake(
                     nombre,
                     direccion,
@@ -565,9 +552,11 @@
                     Utilidades.bytesToInt(tib.getMajor()),
                     Utilidades.bytesToInt(tib.getMinor()),
                     tib.getTxPower(),
-                    uid
+                    uid,                // ✅ propietarioId
+                    nombreNodoUsado     // ✅ nombre del nodo
             );
         }
+
 
         // ===========================================================
     // METODO PARA GENERAR UNA NOTIFICACIÓN LOCAL

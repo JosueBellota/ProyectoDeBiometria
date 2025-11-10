@@ -9,19 +9,39 @@ function Registro() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState(null);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    const resultado = await registrarCiudadano(nombre, correo, password);
-
-    if(resultado) {
-    
-      console.log("IDs:", resultado); 
-      navigate("/intranet");
-    } else {
-      setError("Error al registrar usuario");
-    }
+  const validarCorreo = (correo) => {
+    const regexCorreo = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return regexCorreo.test(correo);
   };
 
+  const validarPassword = (password) => {
+    // mínimo 8 caracteres, 1 mayúscula, 1 minúscula y 1 número
+    const regexPassword = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/;
+    return regexPassword.test(password);
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError(null);
+
+    if (!validarCorreo(correo)) {
+      setError("El correo no tiene un formato válido.");
+      return;
+    }
+
+    if (!validarPassword(password)) {
+      setError("La contraseña debe tener al menos 8 caracteres, incluyendo una letra mayúscula, una letra minúscula y un número.");
+      return;
+    }
+
+    const resultado = await registrarCiudadano(nombre, correo, password);
+
+    if (resultado) {
+      navigate("/intranet");
+    } else {
+      setError("El correo ya está registrado o hubo un error en el registro.");
+    }
+  };
 
   return (
     <div className="container">

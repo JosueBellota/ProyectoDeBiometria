@@ -1,45 +1,17 @@
 // -----------------------------------------------------------------------------------
 // Fichero: ServidorREST.js
 // Responsable: Josue Bellota Ichaso
-//
-// -----------------------------------------------------------------------------------
-// Descripción general:
-// -----------------------------------------------------------------------------------
-// Este módulo define y exporta una única función HTTPS de Firebase que actúa como
-// servidor REST unificado.
-//
-// Expone endpoints para:
-//  - Gestión de usuarios
-//  - Gestión de nodos
-//  - Registro y obtención de mediciones
-//  - Vinculación y desvinculación de nodos con usuarios
-//  - Envío de notificaciones
-//
-// Incluye:
-//  - Manejo de CORS
-//  - Validación de métodos HTTP
-//  - Control de errores
-//  - Registro de actividad
 // -----------------------------------------------------------------------------------
 
 const cors = require("cors")({ origin: true });
 const functions = require("firebase-functions");
 const LogicaDeNegocio = require("../LogicaDeNegocio/LogicaDeNegocio");
 
-// -----------------------------------------------------------------------------------
-// Instancia de la lógica de negocio
-// -----------------------------------------------------------------------------------
 const logica = new LogicaDeNegocio();
 
-// -----------------------------------------------------------------------------------
-// Función principal del servidor REST
-// -----------------------------------------------------------------------------------
 exports.ServidorREST = functions.https.onRequest((req, res) => {
   cors(req, res, async () => {
     try {
-      functions.logger.info(`🌐 Petición recibida: ${req.method} ${req.path}`);
-
-      // ✅ Mantener mayúsculas originales (importante para IDs)
       const ruta = req.path;
       const rutaLower = ruta.toLowerCase();
 
@@ -47,76 +19,70 @@ exports.ServidorREST = functions.https.onRequest((req, res) => {
       // ============================== RUTAS DE MEDICIONES ================================
       // ===================================================================================
 
-      // GET /mediciones/:idNodo
+      // GET /mediciones/:propietarioId/:nombreNodo
       if (req.method === "GET" && rutaLower.startsWith("/mediciones/")) {
-        const idNodo = ruta.split("/")[2];
-        if (!idNodo) {
-          return res.status(400).json({ error: "Falta parámetro idNodo" });
+        const partes = ruta.split("/");
+        const propietarioId = partes[2];
+        const nombreNodo = partes[3];
+
+        if (!propietarioId || !nombreNodo) {
+          return res.status(400).json({ error: "Faltan parámetros propietarioId y nombreNodo" });
         }
-        const resultado = await logica.obtenerMedidas(idNodo);
-        if (!resultado) {
-          return res.status(404).json({ error: `No se encontraron medidas para nodo ${idNodo}` });
-        }
-        return res.status(200).json(resultado);
+
+        const resultado = await logica.obtenerMedidas(nombreNodo, propietarioId);
+        return resultado
+          ? res.status(200).json(resultado)
+          : res.status(404).json({ error: `No se encontraron medidas para nodo "${nombreNodo}"` });
       }
 
       // POST /mediciones
       if (req.method === "POST" && rutaLower === "/mediciones") {
-        const { idNodo, medidas } = req.body;
-        if (!idNodo || !medidas || typeof medidas !== "object") {
+        const { nombreNodo, propietarioId, medidas } = req.body;
+        if (!nombreNodo || !propietarioId || !medidas) {
           return res.status(400).json({
-            error: "Datos inválidos: se esperaba { idNodo, medidas: { co2?, temperatura?, humedad? } }",
+            error: "Se esperaba { nombreNodo, propietarioId, medidas: {...} }",
           });
         }
-        await logica.guardarMedida(idNodo, medidas);
-        return res.status(200).json({ mensaje: "✅ Medidas registradas correctamente" });
+
+        await logica.guardarMedidas(nombreNodo, propietarioId, medidas);
+        return res.status(200).json({ mensaje: "✅ Medidas guardadas correctamente" });
       }
 
       // ===================================================================================
       // ================================ RUTAS DE USUARIOS ================================
       // ===================================================================================
 
-      // GET /usuarios/:id
       if (req.method === "GET" && rutaLower.startsWith("/usuarios/") && !rutaLower.startsWith("/usuarios/admin/")) {
         const idUsuario = ruta.split("/")[2];
         const usuario = await logica.obtenerUsuario(idUsuario);
-        if (!usuario) return res.status(404).json({ error: "Usuario no encontrado" });
-        return res.status(200).json(usuario);
+        return usuario
+          ? res.status(200).json(usuario)
+          : res.status(404).json({ error: "Usuario no encontrado" });
       }
 
-      // ✅ NUEVA RUTA: GET /usuarios/admin/:idAdmin
       if (req.method === "GET" && rutaLower.startsWith("/usuarios/admin/")) {
         const idAdmin = ruta.split("/")[3];
         const usuarios = await logica.obtenerUsuariosDesdeAdmin(idAdmin);
-        if (!usuarios) {
-          return res.status(403).json({ error: "No autorizado o error al obtener usuarios" });
-        }
-        return res.status(200).json(usuarios);
+        return usuarios
+          ? res.status(200).json(usuarios)
+          : res.status(403).json({ error: "No autorizado" });
       }
 
-      // POST /usuarios
       if (req.method === "POST" && rutaLower === "/usuarios") {
         const { nombre, correo, rol, password } = req.body;
         if (!nombre || !correo || !rol || !password) {
-          return res.status(400).json({
-            error: "Datos incompletos: se esperaba { nombre, correo, rol, password }",
-          });
+          return res.status(400).json({ error: "Datos incompletos" });
         }
         const idUsuario = await logica.crearUsuario(nombre, correo, rol, password);
-        if (!idUsuario) {
-          return res.status(500).json({ error: "Error al crear usuario" });
-        }
-        return res.status(200).json({ mensaje: "✅ Usuario creado correctamente", idUsuario });
+        return res.status(200).json({ mensaje: "✅ Usuario creado", idUsuario });
       }
 
-      // PUT /usuarios/:id
       if (req.method === "PUT" && rutaLower.startsWith("/usuarios/")) {
         const idUsuario = ruta.split("/")[2];
         await logica.actualizarUsuario(idUsuario, req.body);
         return res.status(200).json({ mensaje: "✅ Usuario actualizado" });
       }
 
-      // DELETE /usuarios/:id
       if (req.method === "DELETE" && rutaLower.startsWith("/usuarios/")) {
         const idUsuario = ruta.split("/")[2];
         await logica.eliminarUsuario(idUsuario);
@@ -127,65 +93,35 @@ exports.ServidorREST = functions.https.onRequest((req, res) => {
       // ================================= RUTAS DE NODOS =================================
       // ===================================================================================
 
-      // ✅ NUEVA RUTA: GET /nodos/propietario/:idPropietario
+      // GET /nodos/propietario/:idPropietario
       if (req.method === "GET" && rutaLower.startsWith("/nodos/propietario/")) {
         const idPropietario = ruta.split("/")[3];
-        const nodos = await logica.obtenerNodo(idPropietario);
+        const nodos = await logica.obtenerNodos(idPropietario);
         return res.status(200).json(nodos);
       }
 
-      // GET /nodos/:id
-      if (req.method === "GET" && rutaLower.startsWith("/nodos/") && !rutaLower.startsWith("/nodos/propietario/")) {
-        const idNodo = ruta.split("/")[2];
-        const nodo = await logica.obtenerNodo(idNodo);
-        if (!nodo) return res.status(404).json({ error: "Nodo no encontrado" });
-        return res.status(200).json(nodo);
-      }
-
-      // POST /nodos
+      // POST /nodos   { nombreNodo, ubicacion, propietarioId }
       if (req.method === "POST" && rutaLower === "/nodos") {
         const { nombre, ubicacion, propietarioId } = req.body;
-        if (!nombre || !ubicacion?.lat || !ubicacion?.lng || !propietarioId) {
-          return res.status(400).json({
-            error: "Datos incompletos o inválidos: se esperaba { nombre, ubicacion:{lat,lng}, propietarioId }",
-          });
+        if (!nombre || !ubicacion || !propietarioId) {
+          return res.status(400).json({ error: "Datos incompletos" });
         }
-        const idNodo = await logica.crearNodo(nombre, ubicacion, propietarioId);
-        return res.status(200).json({ mensaje: "✅ Nodo creado", idNodo });
+        await logica.crearNodo(nombre, ubicacion, propietarioId);
+        return res.status(200).json({ mensaje: "✅ Nodo creado" });
       }
 
-      // PUT /nodos/:id
-      if (req.method === "PUT" && rutaLower.startsWith("/nodos/")) {
-        const idNodo = ruta.split("/")[2];
-        await logica.actualizarNodo(idNodo, req.body);
+      // PUT /nodos   { nombreNodo, propietarioId, datos }
+      if (req.method === "PUT" && rutaLower === "/nodos") {
+        const { nombreNodo, propietarioId, datos } = req.body;
+        await logica.actualizarNodo(nombreNodo, propietarioId, datos);
         return res.status(200).json({ mensaje: "✅ Nodo actualizado" });
       }
 
-      // DELETE /nodos/:id
-      if (req.method === "DELETE" && rutaLower.startsWith("/nodos/")) {
-        const idNodo = ruta.split("/")[2];
-        await logica.eliminarNodo(idNodo);
+      // DELETE /nodos   { nombreNodo, propietarioId }
+      if (req.method === "DELETE" && rutaLower === "/nodos") {
+        const { nombreNodo, propietarioId } = req.body;
+        await logica.eliminarNodo(nombreNodo, propietarioId);
         return res.status(200).json({ mensaje: "🗑️ Nodo eliminado" });
-      }
-
-      // ===================================================================================
-      // ============================== VINCULACIÓN DE NODOS ===============================
-      // ===================================================================================
-
-      if (req.method === "POST" && rutaLower.endsWith("/vincularnodo")) {
-        const idUsuario = ruta.split("/")[2];
-        const { idNodo } = req.body;
-        if (!idNodo) return res.status(400).json({ error: "Falta idNodo" });
-        await logica.vincularNodoAUsuario(idUsuario, idNodo);
-        return res.status(200).json({ mensaje: "✅ Nodo vinculado correctamente" });
-      }
-
-      if (req.method === "POST" && rutaLower.endsWith("/desvincularnodo")) {
-        const idUsuario = ruta.split("/")[2];
-        const { idNodo } = req.body;
-        if (!idNodo) return res.status(400).json({ error: "Falta idNodo" });
-        await logica.desvincularNodoDeUsuario(idUsuario, idNodo);
-        return res.status(200).json({ mensaje: "✅ Nodo desvinculado correctamente" });
       }
 
       // ===================================================================================
@@ -194,33 +130,15 @@ exports.ServidorREST = functions.https.onRequest((req, res) => {
 
       if (req.method === "POST" && rutaLower === "/notificar") {
         const { mensaje, color, topic } = req.body;
-
-        if (!mensaje || !color || !topic)
-          return res.status(400).json({ error: "Faltan parámetros: mensaje, color, topic" });
-
         await logica.enviarNotificacion(mensaje, color, topic);
-        return res.status(200).json({ mensaje: "🔔 Notificación enviada correctamente al topic " + topic });
+        return res.status(200).json({ mensaje: "🔔 Notificación enviada" });
       }
 
-      // -----------------------------------------------------------------------------------
-      // Ruta no encontrada
-      // -----------------------------------------------------------------------------------
-      return res.status(404).json({
-        error: "Ruta no encontrada o método no permitido",
-        ruta: req.path,
-        metodo: req.method,
-      });
+      return res.status(404).json({ error: "Ruta no encontrada", ruta, metodo: req.method });
 
     } catch (error) {
       functions.logger.error("❌ Error en ServidorREST:", error);
-      return res.status(500).json({
-        error: "Error interno del servidor",
-        detalle: error.message,
-      });
+      return res.status(500).json({ error: "Error interno", detalle: error.message });
     }
   });
 });
-
-// -----------------------------------------------------------------------------------
-// Fin del fichero ServidorREST.js
-// -----------------------------------------------------------------------------------
