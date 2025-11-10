@@ -180,7 +180,7 @@ async crearUsuario(nombre, correo, rol, password) {
   //------------------------------------------------------------------------------------
   async actualizarUsuario(idUsuario, datos) {
     try {
-      const updateAuth = {};
+      const updateAuth = {};  
       if (datos.correo) updateAuth.email = datos.correo;
       if (datos.password) updateAuth.password = datos.password;
       if (datos.nombre) updateAuth.displayName = datos.nombre;
