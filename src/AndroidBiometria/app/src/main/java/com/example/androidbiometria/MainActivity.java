@@ -69,13 +69,8 @@
 
         // callbackDelEscaneo: objeto
         private ScanCallback callbackDelEscaneo = null;
-
-        private boolean testeado = false;
-
-        private String nombreDispositivoQR = null;
-
-        private static final String NOMBRE_NODO_CONSTANTE = "NODO_TEST";
-
+        private String codigoNodoQR = null;  // El código del dispositivo (del QR)
+        private String nombreNodoUsuario = null;  // El nombre amigable asignado por el usuario
 
 
         // ---------------------------------------------------------------------------
@@ -139,73 +134,48 @@
             }
 
 
-            findViewById(R.id.botonLeerQR).setOnClickListener(v -> {
-                Intent intent = new Intent("com.google.zxing.client.android.SCAN");
-                intent.putExtra("SCAN_MODE", "QR_CODE_MODE");
-                try {
-                    startActivityForResult(intent, 1234);
-                } catch (Exception e) {
-                    // Si no está instalada la app de escaneo → llevar a Play Store
-                    Intent marketIntent = new Intent(Intent.ACTION_VIEW);
-                    marketIntent.setData(android.net.Uri.parse("https://play.google.com/store/apps/details?id=com.google.zxing.client.android"));
-                    startActivity(marketIntent);
-                }
+            Button botonAñadirNodo = findViewById(R.id.botonLeerQR);
+            botonAñadirNodo.setOnClickListener(v -> {
+                android.app.AlertDialog.Builder builder = new android.app.AlertDialog.Builder(this);
+                builder.setTitle("Añadir nodo")
+                        .setItems(new CharSequence[]{"📷 Escanear QR del nodo", "⌨️ Introducir código del nodo"}, (dialog, which) -> {
+                            if (which == 0) {
+                                // Escanear QR
+                                Intent intent = new Intent("com.google.zxing.client.android.SCAN");
+                                intent.putExtra("SCAN_MODE", "QR_CODE_MODE");
+                                try {
+                                    startActivityForResult(intent, 1234);
+                                } catch (Exception e) {
+                                    Intent marketIntent = new Intent(Intent.ACTION_VIEW);
+                                    marketIntent.setData(android.net.Uri.parse("https://play.google.com/store/apps/details?id=com.google.zxing.client.android"));
+                                    startActivity(marketIntent);
+                                }
+                            } else {
+                                // Introducir código manual
+                                android.widget.EditText input = new android.widget.EditText(this);
+                                new android.app.AlertDialog.Builder(this)
+                                        .setTitle("Introduce el código del nodo")
+                                        .setView(input)
+                                        .setPositiveButton("Aceptar", (d, w) -> {
+                                            codigoNodoQR = input.getText().toString().trim();
+                                            if (!codigoNodoQR.isEmpty()) {
+                                                solicitarNombreNodo();
+
+                                            } else {
+                                                Toast.makeText(this, "⚠️ Código vacío", Toast.LENGTH_SHORT).show();
+                                            }
+                                        })
+                                        .setNegativeButton("Cancelar", null)
+                                        .show();
+                            }
+                        })
+                        .show();
             });
 
 
+
+
         } // onCreate()
-
-        // --------------------------------------------------------------------------------
-        // Sin parámetros de entrada
-        // -->
-        // buscarTodosLosDispositivosBTLE() --> inicia el escaneo BLE
-        // -->
-        // void (sin valor de retorno)
-        // --------------------------------------------------------------
-        private void buscarTodosLosDispositivosBTLE() {
-            Log.d(ETIQUETA_LOG, " buscarTodosLosDispositivosBTL(): empieza ");
-
-            // AÑADIR: Verificación de permisos BLUETOOTH_SCAN
-            if (ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_SCAN) != PackageManager.PERMISSION_GRANTED) {
-                Log.d(ETIQUETA_LOG, " buscarTodosLosDispositivosBTL(): Sin permiso BLUETOOTH_SCAN");
-                return;
-            }
-
-            Log.d(ETIQUETA_LOG, " buscarTodosLosDispositivosBTL(): instalamos scan callback ");
-
-            this.callbackDelEscaneo = new ScanCallback() {
-                @Override
-                public void onScanResult( int callbackType, ScanResult resultado ) {
-                    super.onScanResult(callbackType, resultado);
-                    Log.d(ETIQUETA_LOG, " buscarTodosLosDispositivosBTL(): onScanResult() ");
-
-                    mostrarInformacionDispositivoBTLE( resultado );
-                }
-
-                @Override
-                public void onBatchScanResults(List<ScanResult> results) {
-                    super.onBatchScanResults(results);
-                    Log.d(ETIQUETA_LOG, " buscarTodosLosDispositivosBTL(): onBatchScanResults() ");
-
-                }
-
-                @Override
-                public void onScanFailed(int errorCode) {
-                    super.onScanFailed(errorCode);
-                    Log.d(ETIQUETA_LOG, " buscarTodosLosDispositivosBTL(): onScanFailed() ");
-
-                }
-            };
-
-            Log.d(ETIQUETA_LOG, " buscarTodosLosDispositivosBTL(): empezamos a escanear ");
-
-            if (ActivityCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_SCAN) != PackageManager.PERMISSION_GRANTED) {
-                Log.d(ETIQUETA_LOG, " buscarTodosLosDispositivosBTL(): Sin permiso BLUETOOTH_SCAN");
-                return;
-            }
-            this.elEscanner.startScan( this.callbackDelEscaneo);
-
-        } // ()
 
         // --------------------------------------------------------------------------------
         // resultado: ScanResult (escaneo de dispositivo detectado)
@@ -302,13 +272,14 @@
                         return;
                     }
 
-                    //mostrarInformacionDispositivoBTLE(resultado);
+                    String nodoQR = (nombreNodoUsuario != null) ? nombreNodoUsuario :
+                            (codigoNodoQR != null ? codigoNodoQR : "Desconocido");
 
                     // Convertimos a LogicaFake
                     LogicaFake beacon = convertirScanResult(resultado);
 
                     // ✅ Ejecutar obtenerNodo **solo una vez**
-                    beacon.obtenerNodo("Josue");
+                    beacon.obtenerNodo(nodoQR);
 
                     // ✅ Detener el escaneo - ya no se buscará más
                     detenerBusquedaDispositivosBTLE();
@@ -378,31 +349,6 @@
             } finally {
                 this.callbackDelEscaneo = null;
             }
-        } // ()
-
-        // --------------------------------------------------------------------------------
-        // v: View (botón pulsado)
-        // -->
-        // botonBuscarDispositivosBTLEPulsado(v) --> lanza búsqueda de todos los dispositivos
-        // -->
-        // void (sin valor de retorno)
-        // --------------------------------------------------------------
-        public void botonBuscarDispositivosBTLEPulsado( View v ) {
-            Log.d(ETIQUETA_LOG, " boton buscar dispositivos BTLE Pulsado" );
-            this.buscarTodosLosDispositivosBTLE();
-        } // ()
-
-        // --------------------------------------------------------------------------------
-        // v: View (botón pulsado)
-        // -->
-        // botonBuscarNuestroDispositivoBTLEPulsado(v) --> lanza búsqueda filtrada por nombre
-        // -->
-        // void (sin valor de retorno)
-        // --------------------------------------------------------------
-        public void botonBuscarNuestroDispositivoBTLEPulsado( View v ) {
-            Log.d(ETIQUETA_LOG, " boton nuestro dispositivo BTLE Pulsado" );
-            this.buscarEsteDispositivoBTLE( "Josue" );
-
         } // ()
 
         // --------------------------------------------------------------------------------
@@ -534,7 +480,10 @@
             // ✅ Nombre del nodo:
             //    Si se leyó un QR → usarlo
             //    Si no → usar nombre BLE
-            String nombreNodoUsado = "Josue";
+            //String nombreNodoUsado = "Josue";
+            String nodoQR = (nombreNodoUsuario != null) ? nombreNodoUsuario :
+                    (codigoNodoQR != null ? codigoNodoQR : "Desconocido");
+
 
             return new LogicaFake(
                     nombre,
@@ -553,12 +502,11 @@
                     Utilidades.bytesToInt(tib.getMinor()),
                     tib.getTxPower(),
                     uid,                // ✅ propietarioId
-                    nombreNodoUsado     // ✅ nombre del nodo
+                    nodoQR     // ✅ nombre del nodo
             );
         }
 
-
-        // ===========================================================
+    // ===========================================================
     // METODO PARA GENERAR UNA NOTIFICACIÓN LOCAL
     // ===========================================================
         private void generarNotificacion(String mensaje, String colorTexto) {
@@ -630,35 +578,67 @@
             super.onActivityResult(requestCode, resultCode, data);
 
             if (requestCode == 1234 && resultCode == RESULT_OK) {
-                nombreDispositivoQR = data.getStringExtra("SCAN_RESULT");
-                Log.d(ETIQUETA_LOG, "📌 QR leído = " + nombreDispositivoQR);
-
-                // ✅ Cambiar texto del botón automáticamente
-                Button botonQR = findViewById(R.id.botonBuscarQRBTLE);
-                botonQR.setText(nombreDispositivoQR);
+                codigoNodoQR = data.getStringExtra("SCAN_RESULT");
+                Log.d(ETIQUETA_LOG, "📌 QR leído = " + codigoNodoQR);
+                solicitarNombreNodo();
             }
         }
 
 
+
+
         public void botonBuscarDispositivoQR(View v) {
-            if (nombreDispositivoQR == null) {
+            if (codigoNodoQR == null) {
                 Toast.makeText(this, "⚠ Primero debes escanear un QR", Toast.LENGTH_SHORT).show();
                 return;
             }
 
-            Log.d(ETIQUETA_LOG, "🔍 Buscando dispositivo leído del QR: " + nombreDispositivoQR);
-            this.buscarEsteDispositivoBTLE(nombreDispositivoQR);
+            Log.d(ETIQUETA_LOG, "🔍 Buscando dispositivo leído del QR: " + codigoNodoQR);
+            this.buscarEsteDispositivoBTLE(codigoNodoQR);
 
-            //FirebaseAuth.getInstance().signOut();
-
-            // ✅ Nueva URL hacia tu intranet
+            // Abrir web con datos del nodo
             String url = "https://proyectodebiometria.web.app/";
-
             Intent intent = new Intent(MainActivity.this, WebNodoActivity.class);
             intent.putExtra("url", url);
+            intent.putExtra("nombreNodo", nombreNodoUsuario);
             startActivity(intent);
-
         }
+
+
+
+        private void solicitarNombreNodo() {
+            android.widget.EditText input = new android.widget.EditText(this);
+            new android.app.AlertDialog.Builder(this)
+                    .setTitle("Ponle un nombre a tu nodo de sensores")
+                    .setView(input)
+                    .setPositiveButton("Aceptar", (dialog, which) -> {
+                        nombreNodoUsuario = input.getText().toString().trim();
+                        if (!nombreNodoUsuario.isEmpty()) {
+                            Log.d(ETIQUETA_LOG, "📟 Nodo detectado: " + codigoNodoQR);
+                            Log.d(ETIQUETA_LOG, "📛 Nombre personalizado: " + nombreNodoUsuario);
+
+                            // Crear dinámicamente el botón de búsqueda
+                            Button botonBuscar = new Button(this);
+                            botonBuscar.setText("Buscar " + nombreNodoUsuario);
+                            botonBuscar.setOnClickListener(this::botonBuscarDispositivoQR);
+
+                            ((android.widget.LinearLayout) findViewById(android.R.id.content)
+                                    .getRootView()
+                                    .findViewById(R.id.botonLeerQR)
+                                    .getParent())
+                                    .addView(botonBuscar);
+
+                            Toast.makeText(this, "✅ Nodo añadido: " + nombreNodoUsuario, Toast.LENGTH_SHORT).show();
+                        } else {
+                            Toast.makeText(this, "⚠️ Debes poner un nombre", Toast.LENGTH_SHORT).show();
+                        }
+                    })
+                    .setNegativeButton("Cancelar", null)
+                    .show();
+        }
+
+
+
 
 
     } // class

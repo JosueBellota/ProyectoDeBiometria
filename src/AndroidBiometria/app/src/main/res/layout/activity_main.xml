@@ -8,14 +8,6 @@
     tools:context=".MainActivity">
 
     <Button
-        android:id="@+id/botonBuscarDispositivosBTLE"
-        android:text="Buscar Dispositivos BTLE nou 4"
-        android:onClick="botonBuscarDispositivosBTLEPulsado"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        />
-
-    <Button
         android:id="@+id/botonDetenerBusquedaDispositivosBTLE"
         android:text="Detener búsaqueda Dispositivos BTLE"
         android:onClick="botonDetenerBusquedaDispositivosBTLEPulsado"
@@ -24,26 +16,11 @@
         />
 
     <Button
-        android:id="@+id/botonBuscarNuestroDispositivoBTLE"
-        android:text="Buscar nuestro dispositivo  BTLE"
-        android:onClick="botonBuscarNuestroDispositivoBTLEPulsado"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        />
-
-
-    <Button
         android:id="@+id/botonLeerQR"
-        android:text="📷 Escanear QR"
+        android:text="➕ Añadir nodo"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content" />
 
-    <Button
-        android:id="@+id/botonBuscarQRBTLE"
-        android:text="Buscar dispositivo desde QR"
-        android:onClick="botonBuscarDispositivoQR"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content" />
 
     <Button
         android:id="@+id/logoutButton"
