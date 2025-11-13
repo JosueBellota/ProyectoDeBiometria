@@ -6,6 +6,7 @@ import Registro from "./Registro";
 import IntranetCiudadano from "./ciudadano/Intranet";
 import IntranetAdmin from "./admin/Intranet";
 import Perfil from "./ciudadano/Perfil";
+import Autologin from "./Autologin";
 import { escucharSesion } from "./logicaFake/auth";
 
 function App() {
@@ -33,6 +34,9 @@ function App() {
 
   return (
     <Routes>
+
+      <Route path="/autologin" element={<Autologin />} />
+
       <Route
         path="/"
         element={

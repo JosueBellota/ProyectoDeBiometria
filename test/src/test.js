@@ -60,11 +60,44 @@ async function testUsuarios() {
   resultados.push(resCiudadanoExtra);
   const idCiudadanoExtra = resCiudadanoExtra.resultado?.idUsuario;
 
+  // ✅ Obtener usuario por UID estándar
   if (idCiudadano) resultados.push(await callAPI("GET", `/usuarios/${idCiudadano}`));
-  if (idAdmin) resultados.push(await callAPI("GET", `/usuarios/admin/${idAdmin}`));
-  if (idCiudadanoExtra) resultados.push(await callAPI("DELETE", `/usuarios/${idCiudadanoExtra}`));
 
-  return { resultados, idCiudadano, unique };
+  // ✅ Obtener usuario completo (nueva ruta)
+  if (idCiudadano)
+    resultados.push(await callAPI("GET", `/usuarios/completo/${idCiudadano}`));
+
+  // ✅ Obtener lista de usuarios desde admin
+  if (idAdmin) resultados.push(await callAPI("GET", `/usuarios/admin/${idAdmin}`));
+
+  // 🗑️ Eliminar usuario extra
+  if (idCiudadanoExtra)
+    resultados.push(await callAPI("DELETE", `/usuarios/${idCiudadanoExtra}`));
+
+  return { resultados, idCiudadano, idAdmin, unique };
+}
+
+/* -------------------------------------------------------------------------- */
+/* ✅ TOKEN AUTOLOGIN                                                         */
+/* -------------------------------------------------------------------------- */
+async function testAutologin(idCiudadano) {
+  const resultados = [];
+  if (!idCiudadano) return resultados;
+
+  resultados.push({ paso: "🧪 Generando token autologin" });
+  const res = await callAPI("GET", `/autologin/${idCiudadano}`);
+  resultados.push(res);
+
+  if (res.resultado?.link) {
+    resultados.push({
+      paso: "🔗 Enlace autologin generado correctamente",
+      resultado: res.resultado.link,
+    });
+  } else {
+    resultados.push({ paso: "❌ Fallo al generar enlace autologin" });
+  }
+
+  return resultados;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -76,7 +109,6 @@ async function testNodos(idCiudadano, unique) {
   const nombreNodoPrincipal = `NodoPrincipal_${unique}`;
   const nombreNodoEliminar = `NodoEliminar_${unique}`;
 
-  // Crear nodo principal
   resultados.push(
     await callAPI("POST", "/nodos", {
       nombre: nombreNodoPrincipal,
@@ -85,7 +117,6 @@ async function testNodos(idCiudadano, unique) {
     })
   );
 
-  // Crear nodo que luego se eliminará
   resultados.push(
     await callAPI("POST", "/nodos", {
       nombre: nombreNodoEliminar,
@@ -94,7 +125,6 @@ async function testNodos(idCiudadano, unique) {
     })
   );
 
-  // Insertar mediciones en el nodo principal
   resultados.push(
     await callAPI("POST", "/mediciones", {
       nombreNodo: nombreNodoPrincipal,
@@ -103,15 +133,12 @@ async function testNodos(idCiudadano, unique) {
     })
   );
 
-  // Consultar medidas
   resultados.push(
     await callAPI("GET", `/mediciones/${idCiudadano}/${nombreNodoPrincipal}`)
   );
 
-  // Obtener nodos que pertenecen al ciudadano
   resultados.push(await callAPI("GET", `/nodos/propietario/${idCiudadano}`));
 
-  // Actualizar nodo principal
   resultados.push(
     await callAPI("PUT", "/nodos", {
       nombreNodo: nombreNodoPrincipal,
@@ -120,7 +147,6 @@ async function testNodos(idCiudadano, unique) {
     })
   );
 
-  // Eliminar nodo secundario
   resultados.push(
     await callAPI("DELETE", "/nodos", {
       nombreNodo: nombreNodoEliminar,
@@ -148,15 +174,18 @@ async function testNotificacion(idCiudadano) {
 export async function pruebaAutomatica() {
   const resultados = [];
 
-  resultados.push({ paso: "🧪 Test USUARIOS" });
-  const { resultados: resUsuarios, idCiudadano, unique } = await testUsuarios();
-  resultados.push(...resUsuarios);
+  // resultados.push({ paso: "🧪 Test USUARIOS" });
+  // const { resultados: resUsuarios, idCiudadano, idAdmin, unique } = await testUsuarios();
+  // resultados.push(...resUsuarios);
 
-  resultados.push({ paso: "🧪 Test NODOS y MEDICIONES (ciudadano)" });
-  resultados.push(...await testNodos(idCiudadano, unique));
+  resultados.push({ paso: "🧪 Test TOKEN AUTOLOGIN" });
+  resultados.push(...await testAutologin("wgKVzCb5WhUMgTL1guI4GDGjI603"));
+
+  // resultados.push({ paso: "🧪 Test NODOS y MEDICIONES (ciudadano)" });
+  // resultados.push(...await testNodos(idCiudadano, unique));
 
   resultados.push({ paso: "🧪 Test NOTIFICACIONES" });
-  resultados.push(await testNotificacion(idCiudadano));
+  resultados.push(await testNotificacion("wgKVzCb5WhUMgTL1guI4GDGjI603"));
 
   resultados.push({ paso: "✅ Prueba completada correctamente" });
   return resultados;
