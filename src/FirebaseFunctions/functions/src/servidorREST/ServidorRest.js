@@ -52,6 +52,15 @@ exports.ServidorREST = functions.https.onRequest((req, res) => {
       // ================================ RUTAS DE USUARIOS ================================
       // ===================================================================================
 
+      // ✅ NUEVO ENDPOINT UNIVERSAL: GET /usuarios/completo/:uid
+      if (req.method === "GET" && rutaLower.startsWith("/usuarios/completo/")) {
+        const uid = ruta.split("/")[3];
+        const usuario = await logica.obtenerUsuario(uid);
+        return usuario
+          ? res.status(200).json(usuario)
+          : res.status(404).json({ error: "Usuario no encontrado" });
+      }
+
       if (req.method === "GET" && rutaLower.startsWith("/usuarios/") && !rutaLower.startsWith("/usuarios/admin/")) {
         const idUsuario = ruta.split("/")[2];
         const usuario = await logica.obtenerUsuario(idUsuario);

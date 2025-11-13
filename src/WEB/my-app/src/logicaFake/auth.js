@@ -1,12 +1,14 @@
-// logicaFake/auth.js
+// src/logicaFake/auth.js
 import { API_BASE, firebaseConfig } from "./config";
 import { initializeApp } from "firebase/app";
-import { 
-  getAuth, 
-  signInWithEmailAndPassword, 
-  onAuthStateChanged, 
-  signOut 
+import {
+  getAuth,
+  signInWithEmailAndPassword,
+  onAuthStateChanged,
+  signOut,
 } from "firebase/auth";
+
+import { obtenerUsuarioCompleto } from "./logicaFake"; 
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
@@ -18,7 +20,6 @@ export async function registrarCiudadano(nombre, correo, password) {
   try {
     console.log("🟦 Registrando usuario en backend:", correo);
 
-    // Llamada al Servidor REST (tu API)
     const res = await fetch(`${API_BASE}/usuarios`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -35,19 +36,18 @@ export async function registrarCiudadano(nombre, correo, password) {
 
     if (!res.ok) throw new Error(data.error || "Error al registrar en backend");
 
-    // Iniciamos sesión con Firebase (para obtener token)
     const authRes = await signInWithEmailAndPassword(auth, correo, password);
     const user = authRes.user;
-    const token = await user.getIdToken();
 
     console.log("✅ Usuario autenticado con Firebase:");
     console.log("   UID:", user.uid);
-    console.log("   Token JWT:", token.substring(0, 40) + "..."); // truncamos por seguridad
 
-    const usuario = { uid: user.uid, correo, token, nombre };
+    // Guardar en localStorage (por conveniencia)
+    const usuario = { uid: user.uid, correo, rol: "ciudadano", nombre };
     localStorage.setItem("usuario", JSON.stringify(usuario));
 
-    return usuario;
+    // Devolver solo el UID para consistencia
+    return user.uid;
   } catch (error) {
     console.error("❌ Error en registrarCiudadano:", error);
     return null;
@@ -63,16 +63,18 @@ export async function loginUsuario(correo, password) {
 
     const userCredential = await signInWithEmailAndPassword(auth, correo, password);
     const user = userCredential.user;
-    const token = await user.getIdToken();
 
     console.log("✅ Sesión iniciada con Firebase:");
     console.log("   UID:", user.uid);
-    console.log("   Token JWT:", token.substring(0, 40) + "...");
 
-    const usuario = { uid: user.uid, correo: user.email, token };
-    localStorage.setItem("usuario", JSON.stringify(usuario));
+    // Guardar temporalmente (para futuras consultas)
+    localStorage.setItem(
+      "usuario",
+      JSON.stringify({ uid: user.uid, correo: user.email })
+    );
 
-    return usuario;
+    // 🟢 Devolver solo el UID
+    return user.uid;
   } catch (error) {
     console.error("❌ Error en loginUsuario:", error.code, error.message);
     return null;
@@ -80,8 +82,7 @@ export async function loginUsuario(correo, password) {
 }
 
 // ---------------------------------------------------------
-// Actualizar usuario en backend
-// ---------------------------------------------------------
+// (las demás funciones igual)
 export async function actualizarUsuario(idUsuario, nuevosDatos) {
   try {
     console.log(`🟨 Actualizando usuario ${idUsuario} en ServidorREST...`);
@@ -97,7 +98,10 @@ export async function actualizarUsuario(idUsuario, nuevosDatos) {
 
     if (!res.ok) throw new Error(data.error || "Error al actualizar usuario");
 
-    const usuarioActualizado = { ...obtenerUsuarioLogueado(), ...nuevosDatos };
+    const usuarioActualizado = {
+      ...obtenerUsuarioLogueado(),
+      ...nuevosDatos,
+    };
     localStorage.setItem("usuario", JSON.stringify(usuarioActualizado));
 
     console.log("✅ Usuario actualizado en localStorage:", usuarioActualizado);
@@ -108,20 +112,41 @@ export async function actualizarUsuario(idUsuario, nuevosDatos) {
   }
 }
 
-// ---------------------------------------------------------
-// Escuchar sesión persistente (Firebase)
-// ---------------------------------------------------------
 export function escucharSesion(callback) {
   return onAuthStateChanged(auth, async (user) => {
     if (user) {
-      const token = await user.getIdToken();
-      console.log("🟩 Sesión detectada (persistente):");
+      console.log("🟩 Sesión detectada en Firebase:");
       console.log("   UID:", user.uid);
-      console.log("   Token JWT:", token.substring(0, 40) + "...");
+      console.log("   Correo:", user.email);
 
-      const usuario = { uid: user.uid, correo: user.email, token };
-      localStorage.setItem("usuario", JSON.stringify(usuario));
-      callback(usuario);
+      try {
+        // 🔹 Intentar obtener el usuario completo desde el backend
+        const usuarioCompleto = await obtenerUsuarioCompleto(user.uid);
+
+        if (usuarioCompleto && !usuarioCompleto.error) {
+          const usuarioFinal = {
+            ...usuarioCompleto,
+            uid: user.uid,
+            correo: usuarioCompleto.correo || user.email,
+          };
+
+          localStorage.setItem("usuario", JSON.stringify(usuarioFinal));
+
+          console.log("✅ Usuario completo obtenido desde backend:", usuarioFinal.rol);
+          callback(usuarioFinal);
+        } else {
+          // Si el backend falla, usar fallback "ciudadano"
+          console.warn("⚠️ No se pudo obtener usuario desde backend, usando ciudadano por defecto");
+          const usuario = { uid: user.uid, correo: user.email, rol: "ciudadano" };
+          localStorage.setItem("usuario", JSON.stringify(usuario));
+          callback(usuario);
+        }
+      } catch (err) {
+        console.error("❌ Error al obtener usuario desde backend:", err);
+        const usuario = { uid: user.uid, correo: user.email, rol: "ciudadano" };
+        localStorage.setItem("usuario", JSON.stringify(usuario));
+        callback(usuario);
+      }
     } else {
       console.log("🟥 No hay sesión activa");
       localStorage.removeItem("usuario");
@@ -130,13 +155,11 @@ export function escucharSesion(callback) {
   });
 }
 
-// ---------------------------------------------------------
 export function obtenerUsuarioLogueado() {
   const user = localStorage.getItem("usuario");
   return user ? JSON.parse(user) : null;
 }
 
-// ---------------------------------------------------------
 export async function cerrarSesion() {
   try {
     console.log("🟠 Cerrando sesión en Firebase...");

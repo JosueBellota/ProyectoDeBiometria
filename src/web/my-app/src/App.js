@@ -1,9 +1,9 @@
+// src/App.js
 import React, { useEffect, useState } from "react";
 import { Routes, Route, Navigate, useNavigate } from "react-router-dom";
-import Home from "./Home";
 import Login from "./Login";
 import Registro from "./Registro";
-import Intranet from "./ciudadano/Intranet";
+import IntranetCiudadano from "./ciudadano/Intranet";
 import IntranetAdmin from "./admin/Intranet";
 import Perfil from "./ciudadano/Perfil";
 import { escucharSesion } from "./logicaFake/auth";
@@ -14,10 +14,18 @@ function App() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const unsubscribe = escucharSesion((user) => {
-      setUsuario(user);
+    const unsubscribe = escucharSesion(async (user) => {
+      if (user) {
+        console.log("👤 Usuario detectado desde Firebase:");
+        console.log("📧 Correo:", user.correo);
+        console.log("🧩 Rol detectado:", user.rol || "ciudadano (por defecto)");
+        setUsuario(user);
+      } else {
+        setUsuario(null);
+      }
       setCargando(false);
     });
+
     return () => unsubscribe();
   }, []);
 
@@ -25,12 +33,76 @@ function App() {
 
   return (
     <Routes>
-      <Route path="/" element={usuario ? <Navigate to="/ciudadano/intranet" /> : <Home />} />
-      <Route path="/login" element={usuario ? <Navigate to="/ciudadano/intranet" /> : <Login />} />
-      <Route path="/registro" element={usuario ? <Navigate to="/ciudadano/intranet" /> : <Registro />} />
-      <Route path="/ciudadano/intranet" element={usuario ? <Intranet /> : <Navigate to="/login" />} />
-      <Route path="/admin/intranet" element={usuario ? <IntranetAdmin /> : <Navigate to="/login" />} />
-      <Route path="/perfil" element={usuario ? <Perfil /> : <Navigate to="/login" />} />
+      <Route
+        path="/"
+        element={
+          usuario ? (
+            usuario.rol === "admin" ? (
+              <Navigate to="/admin/intranet" />
+            ) : (
+              <Navigate to="/ciudadano/intranet" />
+            )
+          ) : (
+            <Navigate to="/login" />
+          )
+        }
+      />
+
+      <Route
+        path="/login"
+        element={
+          usuario ? (
+            usuario.rol === "admin" ? (
+              <Navigate to="/admin/intranet" />
+            ) : (
+              <Navigate to="/ciudadano/intranet" />
+            )
+          ) : (
+            <Login />
+          )
+        }
+      />
+
+      <Route
+        path="/registro"
+        element={usuario ? <Navigate to="/ciudadano/intranet" /> : <Registro />}
+      />
+
+      <Route
+        path="/ciudadano/intranet"
+        element={
+          usuario ? (
+            usuario.rol === "ciudadano" ? (
+              <IntranetCiudadano />
+            ) : (
+              <Navigate to="/admin/intranet" />
+            )
+          ) : (
+            <Navigate to="/login" />
+          )
+        }
+      />
+
+      <Route
+        path="/admin/intranet"
+        element={
+          usuario ? (
+            usuario.rol === "admin" ? (
+              <IntranetAdmin />
+            ) : (
+              <Navigate to="/ciudadano/intranet" />
+            )
+          ) : (
+            <Navigate to="/login" />
+          )
+        }
+      />
+
+      <Route
+        path="/perfil"
+        element={usuario ? <Perfil /> : <Navigate to="/login" />}
+      />
+
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

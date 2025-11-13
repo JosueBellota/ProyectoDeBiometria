@@ -1,7 +1,61 @@
-este es el funcionamiento de mi pagin web de autenticacion por token :
+src/
+ admin/
+   Intranet.js
+   Perfil.js
+
+ ciudadano/
+   
+   Intranet.js
+   Perfil.js
 
 
-auth.js:
+login.js
+registro.js
+App.js 
+  
+i want to update the functionality to work with this new herachy there's no more app.js in admin/ and for the moment remove the token and show in the console which rol has ben detected
+
+App.js:
+
+import React, { useEffect, useState } from "react";
+import { Routes, Route, Navigate, useNavigate } from "react-router-dom";
+import Home from "./Home";
+import Login from "./Login";
+import Registro from "./Registro";
+import Intranet from "./ciudadano/Intranet";
+import IntranetAdmin from "./admin/Intranet";
+import Perfil from "./ciudadano/Perfil";
+import { escucharSesion } from "./logicaFake/auth";
+
+function App() {
+  const [usuario, setUsuario] = useState(null);
+  const [cargando, setCargando] = useState(true);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const unsubscribe = escucharSesion((user) => {
+      setUsuario(user);
+      setCargando(false);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  if (cargando) return <p>Cargando sesión...</p>;
+
+  return (
+    <Routes>
+      <Route path="/" element={usuario ? <Navigate to="/ciudadano/intranet" /> : <Home />} />
+      <Route path="/login" element={usuario ? <Navigate to="/ciudadano/intranet" /> : <Login />} />
+      <Route path="/registro" element={usuario ? <Navigate to="/ciudadano/intranet" /> : <Registro />} />
+      <Route path="/ciudadano/intranet" element={usuario ? <Intranet /> : <Navigate to="/login" />} />
+      <Route path="/admin/intranet" element={usuario ? <IntranetAdmin /> : <Navigate to="/login" />} />
+      <Route path="/perfil" element={usuario ? <Perfil /> : <Navigate to="/login" />} />
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
+  );
+
+login.js:
+
 
 // logicaFake/auth.js
 import { API_BASE, firebaseConfig } from "./config";
@@ -152,113 +206,163 @@ export async function cerrarSesion() {
   localStorage.removeItem("usuario");
 }
 
-en mi android igual funciona la autenticacion pero no añadi el token el cual igual debo hacerlo para poder estar iniciado cuando entro a la web desde el web view
 
 
-login:
+auth.js:
 
-package com.example.androidbiometria;
 
-import android.os.Bundle;
+// logicaFake/auth.js
+import { API_BASE, firebaseConfig } from "./config";
+import { initializeApp } from "firebase/app";
+import { 
+  getAuth, 
+  signInWithEmailAndPassword, 
+  onAuthStateChanged, 
+  signOut 
+} from "firebase/auth";
 
-import androidx.appcompat.app.AppCompatActivity;
-import android.content.Intent;
-import android.widget.*;
-import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.auth.FirebaseUser;
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
 
-public class Login extends AppCompatActivity {
+// ---------------------------------------------------------
+// Registrar ciudadano
+// ---------------------------------------------------------
+export async function registrarCiudadano(nombre, correo, password) {
+  try {
+    console.log("🟦 Registrando usuario en backend:", correo);
 
-    private EditText emailField, passwordField;
-    private Button loginButton, registerButton;
-    private FirebaseAuth auth;
+    // Llamada al Servidor REST (tu API)
+    const res = await fetch(`${API_BASE}/usuarios`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        nombre,
+        correo,
+        rol: "ciudadano",
+        password,
+      }),
+    });
 
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_login);
+    const data = await res.json();
+    console.log("🟢 Respuesta del ServidorREST:", data);
 
-        auth = FirebaseAuth.getInstance();
+    if (!res.ok) throw new Error(data.error || "Error al registrar en backend");
 
-        // Si ya hay sesión, saltar directo al MainActivity
-        FirebaseUser currentUser = auth.getCurrentUser();
-        if (currentUser != null) {
-            startActivity(new Intent(this, MainActivity.class));
-            finish();
-        }
+    // Iniciamos sesión con Firebase (para obtener token)
+    const authRes = await signInWithEmailAndPassword(auth, correo, password);
+    const user = authRes.user;
+    const token = await user.getIdToken();
 
-        emailField = findViewById(R.id.email);
-        passwordField = findViewById(R.id.password);
-        loginButton = findViewById(R.id.loginButton);
-        registerButton = findViewById(R.id.registerButton);
+    console.log("✅ Usuario autenticado con Firebase:");
+    console.log("   UID:", user.uid);
+    console.log("   Token JWT:", token.substring(0, 40) + "..."); // truncamos por seguridad
 
-        loginButton.setOnClickListener(v -> loginUsuario());
-        registerButton.setOnClickListener(v ->
-                startActivity(new Intent(this, Register.class))
-        );
+    const usuario = { uid: user.uid, correo, token, nombre };
+    localStorage.setItem("usuario", JSON.stringify(usuario));
+
+    return usuario;
+  } catch (error) {
+    console.error("❌ Error en registrarCiudadano:", error);
+    return null;
+  }
+}
+
+// ---------------------------------------------------------
+// Iniciar sesión
+// ---------------------------------------------------------
+export async function loginUsuario(correo, password) {
+  try {
+    console.log("🟦 Iniciando sesión en Firebase:", correo);
+
+    const userCredential = await signInWithEmailAndPassword(auth, correo, password);
+    const user = userCredential.user;
+    const token = await user.getIdToken();
+
+    console.log("✅ Sesión iniciada con Firebase:");
+    console.log("   UID:", user.uid);
+    console.log("   Token JWT:", token.substring(0, 40) + "...");
+
+    const usuario = { uid: user.uid, correo: user.email, token };
+    localStorage.setItem("usuario", JSON.stringify(usuario));
+
+    return usuario;
+  } catch (error) {
+    console.error("❌ Error en loginUsuario:", error.code, error.message);
+    return null;
+  }
+}
+
+// ---------------------------------------------------------
+// Actualizar usuario en backend
+// ---------------------------------------------------------
+export async function actualizarUsuario(idUsuario, nuevosDatos) {
+  try {
+    console.log(`🟨 Actualizando usuario ${idUsuario} en ServidorREST...`);
+
+    const res = await fetch(`${API_BASE}/usuarios/${idUsuario}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(nuevosDatos),
+    });
+
+    const data = await res.json();
+    console.log("🟢 Respuesta del ServidorREST:", data);
+
+    if (!res.ok) throw new Error(data.error || "Error al actualizar usuario");
+
+    const usuarioActualizado = { ...obtenerUsuarioLogueado(), ...nuevosDatos };
+    localStorage.setItem("usuario", JSON.stringify(usuarioActualizado));
+
+    console.log("✅ Usuario actualizado en localStorage:", usuarioActualizado);
+    return usuarioActualizado;
+  } catch (error) {
+    console.error("❌ Error en actualizarUsuario:", error);
+    throw error;
+  }
+}
+
+// ---------------------------------------------------------
+// Escuchar sesión persistente (Firebase)
+// ---------------------------------------------------------
+export function escucharSesion(callback) {
+  return onAuthStateChanged(auth, async (user) => {
+    if (user) {
+      const token = await user.getIdToken();
+      console.log("🟩 Sesión detectada (persistente):");
+      console.log("   UID:", user.uid);
+      console.log("   Token JWT:", token.substring(0, 40) + "...");
+
+      const usuario = { uid: user.uid, correo: user.email, token };
+      localStorage.setItem("usuario", JSON.stringify(usuario));
+      callback(usuario);
+    } else {
+      console.log("🟥 No hay sesión activa");
+      localStorage.removeItem("usuario");
+      callback(null);
     }
+  });
+}
 
-    private void loginUsuario() {
-        String email = emailField.getText().toString().trim();
-        String password = passwordField.getText().toString().trim();
+// ---------------------------------------------------------
+export function obtenerUsuarioLogueado() {
+  const user = localStorage.getItem("usuario");
+  return user ? JSON.parse(user) : null;
+}
 
-        if (email.isEmpty() || password.isEmpty()) {
-            Toast.makeText(this, "Completa todos los campos", Toast.LENGTH_SHORT).show();
-            return;
-        }
-
-        auth.signInWithEmailAndPassword(email, password)
-                .addOnSuccessListener(result -> {
-                    Toast.makeText(this, "Inicio de sesión exitoso", Toast.LENGTH_SHORT).show();
-                    startActivity(new Intent(this, MainActivity.class));
-                    finish();
-                })
-                .addOnFailureListener(e ->
-                        Toast.makeText(this, "Error: " + e.getMessage(), Toast.LENGTH_SHORT).show()
-                );
-    }
+// ---------------------------------------------------------
+export async function cerrarSesion() {
+  try {
+    console.log("🟠 Cerrando sesión en Firebase...");
+    await signOut(auth);
+  } catch (e) {
+    console.error("⚠️ Error cerrando sesión:", e);
+  }
+  localStorage.removeItem("usuario");
 }
 
 
 
-web Nodo acitivty:
 
-package com.example.androidbiometria;
-
-import androidx.appcompat.app.AppCompatActivity;
-import android.os.Bundle;
-import android.webkit.CookieManager;
-import android.webkit.WebView;
-import android.webkit.WebSettings;
-
-public class WebNodoActivity extends AppCompatActivity {
-
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_web_nodo);
-
-        String url = getIntent().getStringExtra("url");
-
-        WebView webView = findViewById(R.id.webNodo);
-        WebSettings webSettings = webView.getSettings();
-
-        // 🔹 Habilitar JavaScript y almacenamiento
-        webSettings.setJavaScriptEnabled(true);
-        webSettings.setDomStorageEnabled(true);
-        webSettings.setDatabaseEnabled(true);
-        webSettings.setCacheMode(WebSettings.LOAD_DEFAULT);
-
-        // 🔹 Permitir cookies
-        CookieManager cookieManager = CookieManager.getInstance();
-        cookieManager.setAcceptCookie(true);
-        cookieManager.setAcceptThirdPartyCookies(webView, true);
-
-        // 🔹 Habilitar depuración (opcional, para probar)
-        WebView.setWebContentsDebuggingEnabled(true);
-
-        webView.loadUrl(url);
-    }
 }
 
-
+export default App;
