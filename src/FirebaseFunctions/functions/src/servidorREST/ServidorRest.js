@@ -133,18 +133,18 @@ exports.ServidorREST = functions.https.onRequest((req, res) => {
         return res.status(200).json({ mensaje: "🗑️ Nodo eliminado" });
       }
 
-      // GET /autologin/:uid
-      if (req.method === "GET" && rutaLower.startsWith("/autologin/")) {
-        const uid = ruta.split("/")[2];
-        try {
-          const token = await logica.generarTokenAutologin(uid);
-          if (!token) return res.status(404).json({ error: "Usuario no encontrado" });
-          const link = `https://proyectodebiometria.web.app/autologin?token=${token}`;
-          return res.status(200).json({ link });
-        } catch (e) {
-          return res.status(500).json({ error: e.message });
-        }
+    // GET /autologin/:uid
+    if (req.method === "GET" && rutaLower.startsWith("/autologin/")) {
+      const uid = ruta.split("/")[2];
+      try {
+        const link = await logica.generarTokenAutologin(uid);
+        if (!link) return res.status(404).json({ error: "Usuario no encontrado" });
+
+        return res.status(200).json({ link });
+      } catch (e) {
+        return res.status(500).json({ error: e.message });
       }
+    }
 
 
       // ===================================================================================
@@ -165,3 +165,8 @@ exports.ServidorREST = functions.https.onRequest((req, res) => {
     }
   });
 });
+
+
+// deploy
+// gcloud functions deploy ServidorREST --region=us-central1 --runtime=nodejs22 --trigger-http --service-account=proyectodebiometria@appspot.gserviceaccount.com --allow-unauthenticated
+

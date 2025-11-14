@@ -461,28 +461,33 @@ async crearUsuario(nombre, correo, rol, password) {
 
 
   async generarTokenAutologin(uid) {
-    try {
-      // Verificar si el usuario existe directamente en Firebase Auth
-      const userRecord = await this.#admin.auth().getUser(uid);
-      if (!userRecord) {
-        functions.logger.warn(`⚠️ Usuario con UID ${uid} no encontrado en Firebase Auth`);
-        return null;
-      }
-
-      // Obtener el rol desde los claims personalizados, si existen
-      const rol = userRecord.customClaims?.rol || "usuario";
-
-      // Generar token personalizado válido para iniciar sesión
-      const token = await this.#admin.auth().createCustomToken(uid, { rol });
-
-      functions.logger.info(`🔑 Token autologin generado correctamente para UID: ${uid}`);
-      return token;
-
-    } catch (error) {
-      functions.logger.error("❌ Error generando token autologin:", error);
+    
+  try {
+    // Verificar si el usuario existe directamente en Firebase Auth
+    const userRecord = await this.#admin.auth().getUser(uid);
+    if (!userRecord) {
+      functions.logger.warn(`⚠️ Usuario con UID ${uid} no encontrado en Firebase Auth`);
       return null;
     }
+
+    // Obtener el rol desde los claims personalizados, si existen
+    const rol = userRecord.customClaims?.rol || "usuario";
+
+    // Generar token personalizado válido para iniciar sesión
+    const token = await this.#admin.auth().createCustomToken(uid, { rol });
+
+    // Construir el link directamente
+    const link = `https://proyectodebiometria.web.app/autologin?token=${token}`;
+
+    functions.logger.info(`🔑 Link autologin generado correctamente para UID: ${uid}`);
+    return link;
+
+  } catch (error) {
+    functions.logger.error("❌ Error generando token autologin:", error);
+    return null;
   }
+}
+
 
 
   // ------------------------------------------------------------------------------------
