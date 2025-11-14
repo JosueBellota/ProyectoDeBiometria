@@ -7,6 +7,7 @@ import IntranetCiudadano from "./ciudadano/Intranet";
 import IntranetAdmin from "./admin/Intranet";
 import Perfil from "./ciudadano/Perfil";
 import Autologin from "./Autologin";
+import Home from "./Home"; // <--- IMPORTANTE
 import { escucharSesion } from "./logicaFake/auth";
 
 function App() {
@@ -34,9 +35,9 @@ function App() {
 
   return (
     <Routes>
-
       <Route path="/autologin" element={<Autologin />} />
 
+      {/* HOME por defecto */}
       <Route
         path="/"
         element={
@@ -47,11 +48,12 @@ function App() {
               <Navigate to="/ciudadano/intranet" />
             )
           ) : (
-            <Navigate to="/login" />
+            <Home />   // <--- AHORA CARGA HOME SI NO HAY USUARIO
           )
         }
       />
 
+      {/* Login manual */}
       <Route
         path="/login"
         element={

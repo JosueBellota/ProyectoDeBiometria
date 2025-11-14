@@ -5,6 +5,7 @@ import {
   getAuth,
   signInWithEmailAndPassword,
   onAuthStateChanged,
+  sendEmailVerification,
   signOut,
 } from "firebase/auth";
 
@@ -46,6 +47,14 @@ export async function registrarCiudadano(nombre, correo, password) {
     const usuario = { uid: user.uid, correo, rol: "ciudadano", nombre };
     localStorage.setItem("usuario", JSON.stringify(usuario));
 
+
+    //Enviar correo de verificación
+    try {
+      await sendEmailVerification(user);
+      console.log("📧 Email de verificación enviado automáticamente");
+    } catch (err) {
+      console.error("⚠️ Error enviando verificación automática:", err);
+    }
     // Devolver solo el UID para consistencia
     return user.uid;
   } catch (error) {
@@ -53,6 +62,30 @@ export async function registrarCiudadano(nombre, correo, password) {
     return null;
   }
 }
+
+// ---------------------------------------------------------
+// Enviar email de verificación (independiente del registro)
+// ---------------------------------------------------------
+export async function enviarVerificacionCorreo() {
+  try {
+    const user = auth.currentUser;
+
+    if (!user) {
+      console.warn("⚠️ No hay usuario autenticado para enviar verificación.");
+      return { ok: false, error: "No hay sesión activa" };
+    }
+
+    await sendEmailVerification(user);
+
+    console.log("📧 Email de verificación enviado a:", user.email);
+    return { ok: true };
+
+  } catch (error) {
+    console.error("❌ Error al enviar email de verificación:", error);
+    return { ok: false, error: error.message };
+  }
+}
+
 
 // ---------------------------------------------------------
 // Iniciar sesión
