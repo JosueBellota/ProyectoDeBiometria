@@ -1,368 +1,461 @@
-src/
- admin/
-   Intranet.js
-   Perfil.js
+podriamos ahorrarnos los permisos de token en firebase clould si directamente generamos el token en la app de react en autologin y simplemente verificamos en el clould que el id exista?:
 
- ciudadano/
-   
-   Intranet.js
-   Perfil.js
+error: "❌ Error generando token autologin: FirebaseAuthError: Permission 'iam.serviceAccounts.signBlob' denied on resource (or it may not exist).; Please refer to https://firebase.google.com/docs/auth/admin/create-custom-tokens for more details on how to use and troubleshoot this feature.
+    at FirebaseAuthError.fromServerError (/workspace/node_modules/firebase-admin/lib/utils/error.js:148:16)
+    at handleCryptoSignerError (/workspace/node_modules/firebase-admin/lib/auth/token-generator.js:180:46)
+    at /workspace/node_modules/firebase-admin/lib/auth/token-generator.js:139:19
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async LogicaDeNegocio.generarTokenAutologin (/workspace/src/LogicaDeNegocio/LogicaDeNegocio.js:476:21)
+    at async /workspace/src/servidorREST/ServidorRest.js:140:25 {
+  errorInfo: {
+    code: 'auth/insufficient-permission',
+    message: "Permission 'iam.serviceAccounts.signBlob' denied on resource (or it may not exist).; Please refer to https://firebase.google.com/docs/auth/admin/create-custom-tokens for more details on how to use and troubleshoot this feature."
+  },
+  codePrefix: 'auth'
+}"
 
 
-login.js
-registro.js
-App.js 
-  
-i want to update the functionality to work with this new herachy there's no more app.js in admin/ and for the moment remove the token and show in the console which rol has ben detected
+test.js:
 
-App.js:
+// --------------------------------------------------------------------------
+// 🔧 URL base del servidor REST desplegado en Firebase
+// --------------------------------------------------------------------------
+const BASE_URL = "https://us-central1-proyectodebiometria.cloudfunctions.net/ServidorREST";
 
-import React, { useEffect, useState } from "react";
-import { Routes, Route, Navigate, useNavigate } from "react-router-dom";
-import Home from "./Home";
-import Login from "./Login";
-import Registro from "./Registro";
-import Intranet from "./ciudadano/Intranet";
-import IntranetAdmin from "./admin/Intranet";
-import Perfil from "./ciudadano/Perfil";
-import { escucharSesion } from "./logicaFake/auth";
+async function callAPI(metodo, ruta, body = null) {
+  try {
+    const res = await fetch(`${BASE_URL}${ruta}`, {
+      method: metodo,
+      headers: { "Content-Type": "application/json" },
+      body: body ? JSON.stringify(body) : undefined,
+    });
 
-function App() {
-  const [usuario, setUsuario] = useState(null);
-  const [cargando, setCargando] = useState(true);
+    const data = await res.json().catch(() => ({}));
+    return res.ok
+      ? { paso: `${metodo} ${ruta}`, resultado: data }
+      : { paso: `${metodo} ${ruta}`, error: data.error || data };
+  } catch (err) {
+    return { paso: `${metodo} ${ruta}`, error: err.message };
+  }
+}
+
+/* -------------------------------------------------------------------------- */
+/* ✅ USUARIOS                                                                */
+/* -------------------------------------------------------------------------- */
+async function testUsuarios() {
+  const resultados = [];
+  const unique = `${Date.now()}_${Math.floor(Math.random() * 10000)}`;
+
+  const ciudadano = {
+    nombre: `Ciudadano_${unique}`,
+    correo: `ciudadano_${unique}@test.com`,
+    rol: "ciudadano",
+    password: "123456",
+  };
+
+  const resCiudadano = await callAPI("POST", "/usuarios", ciudadano);
+  resultados.push(resCiudadano);
+  const idCiudadano = resCiudadano.resultado?.idUsuario;
+
+  const admin = {
+    nombre: `Admin_${unique}`,
+    correo: `admin_${unique}@test.com`,
+    rol: "admin",
+    password: "admin123",
+  };
+
+  const resAdmin = await callAPI("POST", "/usuarios", admin);
+  resultados.push(resAdmin);
+  const idAdmin = resAdmin.resultado?.idUsuario;
+
+  const ciudadanoExtra = {
+    nombre: `CiudadanoExtra_${unique}`,
+    correo: `extra_${unique}@test.com`,
+    rol: "ciudadano",
+    password: "123456",
+  };
+
+  const resCiudadanoExtra = await callAPI("POST", "/usuarios", ciudadanoExtra);
+  resultados.push(resCiudadanoExtra);
+  const idCiudadanoExtra = resCiudadanoExtra.resultado?.idUsuario;
+
+  // ✅ Obtener usuario por UID estándar
+  if (idCiudadano) resultados.push(await callAPI("GET", `/usuarios/${idCiudadano}`));
+
+  // ✅ Obtener usuario completo (nueva ruta)
+  if (idCiudadano)
+    resultados.push(await callAPI("GET", `/usuarios/completo/${idCiudadano}`));
+
+  // ✅ Obtener lista de usuarios desde admin
+  if (idAdmin) resultados.push(await callAPI("GET", `/usuarios/admin/${idAdmin}`));
+
+  // 🗑️ Eliminar usuario extra
+  if (idCiudadanoExtra)
+    resultados.push(await callAPI("DELETE", `/usuarios/${idCiudadanoExtra}`));
+
+  return { resultados, idCiudadano, idAdmin, unique };
+}
+
+/* -------------------------------------------------------------------------- */
+/* ✅ TOKEN AUTOLOGIN                                                         */
+/* -------------------------------------------------------------------------- */
+async function testAutologin(idCiudadano) {
+  const resultados = [];
+  if (!idCiudadano) return resultados;
+
+  resultados.push({ paso: "🧪 Generando token autologin" });
+  const res = await callAPI("GET", `/autologin/${idCiudadano}`);
+  resultados.push(res);
+
+  if (res.resultado?.link) {
+    resultados.push({
+      paso: "🔗 Enlace autologin generado correctamente",
+      resultado: res.resultado.link,
+    });
+  } else {
+    resultados.push({ paso: "❌ Fallo al generar enlace autologin" });
+  }
+
+  return resultados;
+}
+
+/* -------------------------------------------------------------------------- */
+/* ✅ NODOS + MEDICIONES (solo ciudadano)                                     */
+/* -------------------------------------------------------------------------- */
+async function testNodos(idCiudadano, unique) {
+  const resultados = [];
+
+  const nombreNodoPrincipal = `NodoPrincipal_${unique}`;
+  const nombreNodoEliminar = `NodoEliminar_${unique}`;
+
+  resultados.push(
+    await callAPI("POST", "/nodos", {
+      nombre: nombreNodoPrincipal,
+      ubicacion: { lat: 10, lng: 20 },
+      propietarioId: idCiudadano,
+    })
+  );
+
+  resultados.push(
+    await callAPI("POST", "/nodos", {
+      nombre: nombreNodoEliminar,
+      ubicacion: { lat: 11, lng: 21 },
+      propietarioId: idCiudadano,
+    })
+  );
+
+  resultados.push(
+    await callAPI("POST", "/mediciones", {
+      nombreNodo: nombreNodoPrincipal,
+      propietarioId: idCiudadano,
+      medidas: { temperatura: 22.5, co2: 40, humedad: 55 },
+    })
+  );
+
+  resultados.push(
+    await callAPI("GET", `/mediciones/${idCiudadano}/${nombreNodoPrincipal}`)
+  );
+
+  resultados.push(await callAPI("GET", `/nodos/propietario/${idCiudadano}`));
+
+  resultados.push(
+    await callAPI("PUT", "/nodos", {
+      nombreNodo: nombreNodoPrincipal,
+      propietarioId: idCiudadano,
+      datos: { ubicacion: { lat: 99, lng: 99 } },
+    })
+  );
+
+  resultados.push(
+    await callAPI("DELETE", "/nodos", {
+      nombreNodo: nombreNodoEliminar,
+      propietarioId: idCiudadano,
+    })
+  );
+
+  return resultados;
+}
+
+/* -------------------------------------------------------------------------- */
+/* ✅ NOTIFICACIÓN                                                            */
+/* -------------------------------------------------------------------------- */
+async function testNotificacion(idCiudadano) {
+  return await callAPI("POST", "/notificar", {
+    mensaje: "Prueba automática de notificación",
+    color: "#27F531",
+    topic: idCiudadano,
+  });
+}
+
+/* -------------------------------------------------------------------------- */
+/* ✅ EJECUCIÓN GENERAL                                                       */
+/* -------------------------------------------------------------------------- */
+export async function pruebaAutomatica() {
+  const resultados = [];
+
+  // resultados.push({ paso: "🧪 Test USUARIOS" });
+  // const { resultados: resUsuarios, idCiudadano, idAdmin, unique } = await testUsuarios();
+  // resultados.push(...resUsuarios);
+
+  resultados.push({ paso: "🧪 Test TOKEN AUTOLOGIN" });
+  resultados.push(...await testAutologin("wgKVzCb5WhUMgTL1guI4GDGjI603"));
+
+  // resultados.push({ paso: "🧪 Test NODOS y MEDICIONES (ciudadano)" });
+  // resultados.push(...await testNodos(idCiudadano, unique));
+
+  resultados.push({ paso: "🧪 Test NOTIFICACIONES" });
+  resultados.push(await testNotificacion("wgKVzCb5WhUMgTL1guI4GDGjI603"));
+
+  resultados.push({ paso: "✅ Prueba completada correctamente" });
+  return resultados;
+}
+
+logica de negocio:
+
+ async generarTokenAutologin(uid) {
+    try {
+      // Verificar si el usuario existe directamente en Firebase Auth
+      const userRecord = await this.#admin.auth().getUser(uid);
+      if (!userRecord) {
+        functions.logger.warn(`⚠️ Usuario con UID ${uid} no encontrado en Firebase Auth`);
+        return null;
+      }
+
+      // Obtener el rol desde los claims personalizados, si existen
+      const rol = userRecord.customClaims?.rol || "usuario";
+
+      // Generar token personalizado válido para iniciar sesión
+      const token = await this.#admin.auth().createCustomToken(uid, { rol });
+
+      functions.logger.info(`🔑 Token autologin generado correctamente para UID: ${uid}`);
+      return token;
+
+    } catch (error) {
+      functions.logger.error("❌ Error generando token autologin:", error);
+      return null;
+    }
+  }
+
+
+servidor rest:
+
+// -----------------------------------------------------------------------------------
+// Fichero: ServidorREST.js
+// Responsable: Josue Bellota Ichaso
+// -----------------------------------------------------------------------------------
+
+const cors = require("cors")({ origin: true });
+const functions = require("firebase-functions");
+const LogicaDeNegocio = require("../LogicaDeNegocio/LogicaDeNegocio");
+
+const logica = new LogicaDeNegocio();
+
+exports.ServidorREST = functions.https.onRequest((req, res) => {
+  cors(req, res, async () => {
+    try {
+      const ruta = req.path;
+      const rutaLower = ruta.toLowerCase();
+
+      // ===================================================================================
+      // ============================== RUTAS DE MEDICIONES ================================
+      // ===================================================================================
+
+      // GET /mediciones/:propietarioId/:nombreNodo
+      if (req.method === "GET" && rutaLower.startsWith("/mediciones/")) {
+        const partes = ruta.split("/");
+        const propietarioId = partes[2];
+        const nombreNodo = partes[3];
+
+        if (!propietarioId || !nombreNodo) {
+          return res.status(400).json({ error: "Faltan parámetros propietarioId y nombreNodo" });
+        }
+
+        const resultado = await logica.obtenerMedidas(nombreNodo, propietarioId);
+        return resultado
+          ? res.status(200).json(resultado)
+          : res.status(404).json({ error: `No se encontraron medidas para nodo "${nombreNodo}"` });
+      }
+
+      // POST /mediciones
+      if (req.method === "POST" && rutaLower === "/mediciones") {
+        const { nombreNodo, propietarioId, medidas } = req.body;
+        if (!nombreNodo || !propietarioId || !medidas) {
+          return res.status(400).json({
+            error: "Se esperaba { nombreNodo, propietarioId, medidas: {...} }",
+          });
+        }
+
+        await logica.guardarMedidas(nombreNodo, propietarioId, medidas);
+        return res.status(200).json({ mensaje: "✅ Medidas guardadas correctamente" });
+      }
+
+      // ===================================================================================
+      // ================================ RUTAS DE USUARIOS ================================
+      // ===================================================================================
+
+      // ✅ NUEVO ENDPOINT UNIVERSAL: GET /usuarios/completo/:uid
+      if (req.method === "GET" && rutaLower.startsWith("/usuarios/completo/")) {
+        const uid = ruta.split("/")[3];
+        const usuario = await logica.obtenerUsuario(uid);
+        return usuario
+          ? res.status(200).json(usuario)
+          : res.status(404).json({ error: "Usuario no encontrado" });
+      }
+
+      if (req.method === "GET" && rutaLower.startsWith("/usuarios/") && !rutaLower.startsWith("/usuarios/admin/")) {
+        const idUsuario = ruta.split("/")[2];
+        const usuario = await logica.obtenerUsuario(idUsuario);
+        return usuario
+          ? res.status(200).json(usuario)
+          : res.status(404).json({ error: "Usuario no encontrado" });
+      }
+
+      if (req.method === "GET" && rutaLower.startsWith("/usuarios/admin/")) {
+        const idAdmin = ruta.split("/")[3];
+        const usuarios = await logica.obtenerUsuariosDesdeAdmin(idAdmin);
+        return usuarios
+          ? res.status(200).json(usuarios)
+          : res.status(403).json({ error: "No autorizado" });
+      }
+
+      if (req.method === "POST" && rutaLower === "/usuarios") {
+        const { nombre, correo, rol, password } = req.body;
+        if (!nombre || !correo || !rol || !password) {
+          return res.status(400).json({ error: "Datos incompletos" });
+        }
+        const idUsuario = await logica.crearUsuario(nombre, correo, rol, password);
+        return res.status(200).json({ mensaje: "✅ Usuario creado", idUsuario });
+      }
+
+      if (req.method === "PUT" && rutaLower.startsWith("/usuarios/")) {
+        const idUsuario = ruta.split("/")[2];
+        await logica.actualizarUsuario(idUsuario, req.body);
+        return res.status(200).json({ mensaje: "✅ Usuario actualizado" });
+      }
+
+      if (req.method === "DELETE" && rutaLower.startsWith("/usuarios/")) {
+        const idUsuario = ruta.split("/")[2];
+        await logica.eliminarUsuario(idUsuario);
+        return res.status(200).json({ mensaje: "🗑️ Usuario eliminado" });
+      }
+
+      // ===================================================================================
+      // ================================= RUTAS DE NODOS =================================
+      // ===================================================================================
+
+      // GET /nodos/propietario/:idPropietario
+      if (req.method === "GET" && rutaLower.startsWith("/nodos/propietario/")) {
+        const idPropietario = ruta.split("/")[3];
+        const nodos = await logica.obtenerNodos(idPropietario);
+        return res.status(200).json(nodos);
+      }
+
+      // POST /nodos   { nombreNodo, ubicacion, propietarioId }
+      if (req.method === "POST" && rutaLower === "/nodos") {
+        const { nombre, ubicacion, propietarioId } = req.body;
+        if (!nombre || !ubicacion || !propietarioId) {
+          return res.status(400).json({ error: "Datos incompletos" });
+        }
+        await logica.crearNodo(nombre, ubicacion, propietarioId);
+        return res.status(200).json({ mensaje: "✅ Nodo creado" });
+      }
+
+      // PUT /nodos   { nombreNodo, propietarioId, datos }
+      if (req.method === "PUT" && rutaLower === "/nodos") {
+        const { nombreNodo, propietarioId, datos } = req.body;
+        await logica.actualizarNodo(nombreNodo, propietarioId, datos);
+        return res.status(200).json({ mensaje: "✅ Nodo actualizado" });
+      }
+
+      // DELETE /nodos   { nombreNodo, propietarioId }
+      if (req.method === "DELETE" && rutaLower === "/nodos") {
+        const { nombreNodo, propietarioId } = req.body;
+        await logica.eliminarNodo(nombreNodo, propietarioId);
+        return res.status(200).json({ mensaje: "🗑️ Nodo eliminado" });
+      }
+
+      // GET /autologin/:uid
+      if (req.method === "GET" && rutaLower.startsWith("/autologin/")) {
+        const uid = ruta.split("/")[2];
+        try {
+          const token = await logica.generarTokenAutologin(uid);
+          if (!token) return res.status(404).json({ error: "Usuario no encontrado" });
+          const link = `https://proyectodebiometria.web.app/autologin?token=${token}`;
+          return res.status(200).json({ link });
+        } catch (e) {
+          return res.status(500).json({ error: e.message });
+        }
+      }
+
+
+      // ===================================================================================
+      // ================================ NOTIFICACIONES ===================================
+      // ===================================================================================
+
+      if (req.method === "POST" && rutaLower === "/notificar") {
+        const { mensaje, color, topic } = req.body;
+        await logica.enviarNotificacion(mensaje, color, topic);
+        return res.status(200).json({ mensaje: "🔔 Notificación enviada" });
+      }
+
+      return res.status(404).json({ error: "Ruta no encontrada", ruta, metodo: req.method });
+
+    } catch (error) {
+      functions.logger.error("❌ Error en ServidorREST:", error);
+      return res.status(500).json({ error: "Error interno", detalle: error.message });
+    }
+  });
+});
+
+Autologin:
+
+
+// src/Autologin.js
+import React, { useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { getAuth, signInWithCustomToken } from "firebase/auth";
+import { obtenerUsuarioCompleto } from "./logicaFake/logicaFake";
+
+function Autologin() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const unsubscribe = escucharSesion((user) => {
-      setUsuario(user);
-      setCargando(false);
-    });
-    return () => unsubscribe();
-  }, []);
+    const doAutologin = async () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const token = urlParams.get("token");
 
-  if (cargando) return <p>Cargando sesión...</p>;
+      if (!token) {
+        console.error("❌ No se encontró token en la URL");
+        navigate("/login");
+        return;
+      }
 
-  return (
-    <Routes>
-      <Route path="/" element={usuario ? <Navigate to="/ciudadano/intranet" /> : <Home />} />
-      <Route path="/login" element={usuario ? <Navigate to="/ciudadano/intranet" /> : <Login />} />
-      <Route path="/registro" element={usuario ? <Navigate to="/ciudadano/intranet" /> : <Registro />} />
-      <Route path="/ciudadano/intranet" element={usuario ? <Intranet /> : <Navigate to="/login" />} />
-      <Route path="/admin/intranet" element={usuario ? <IntranetAdmin /> : <Navigate to="/login" />} />
-      <Route path="/perfil" element={usuario ? <Perfil /> : <Navigate to="/login" />} />
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
-  );
+      try {
+        console.log("🟦 Iniciando sesión con token...");
+        const auth = getAuth();
+        const userCredential = await signInWithCustomToken(auth, token);
+        const user = userCredential.user;
 
-login.js:
+        console.log("✅ Sesión iniciada con UID:", user.uid);
 
+        // Obtener usuario completo desde backend
+        const usuarioCompleto = await obtenerUsuarioCompleto(user.uid);
+        const usuarioFinal = { ...usuarioCompleto, uid: user.uid };
 
-// logicaFake/auth.js
-import { API_BASE, firebaseConfig } from "./config";
-import { initializeApp } from "firebase/app";
-import { 
-  getAuth, 
-  signInWithEmailAndPassword, 
-  onAuthStateChanged, 
-  signOut 
-} from "firebase/auth";
+        localStorage.setItem("usuario", JSON.stringify(usuarioFinal));
 
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
+        if (usuarioFinal.rol === "admin") navigate("/admin/intranet");
+        else navigate("/ciudadano/intranet");
+      } catch (e) {
+        console.error("❌ Error en autologin:", e);
+        navigate("/login");
+      }
+    };
 
-// ---------------------------------------------------------
-// Registrar ciudadano
-// ---------------------------------------------------------
-export async function registrarCiudadano(nombre, correo, password) {
-  try {
-    console.log("🟦 Registrando usuario en backend:", correo);
+    doAutologin();
+  }, [navigate]);
 
-    // Llamada al Servidor REST (tu API)
-    const res = await fetch(`${API_BASE}/usuarios`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        nombre,
-        correo,
-        rol: "ciudadano",
-        password,
-      }),
-    });
-
-    const data = await res.json();
-    console.log("🟢 Respuesta del ServidorREST:", data);
-
-    if (!res.ok) throw new Error(data.error || "Error al registrar en backend");
-
-    // Iniciamos sesión con Firebase (para obtener token)
-    const authRes = await signInWithEmailAndPassword(auth, correo, password);
-    const user = authRes.user;
-    const token = await user.getIdToken();
-
-    console.log("✅ Usuario autenticado con Firebase:");
-    console.log("   UID:", user.uid);
-    console.log("   Token JWT:", token.substring(0, 40) + "..."); // truncamos por seguridad
-
-    const usuario = { uid: user.uid, correo, token, nombre };
-    localStorage.setItem("usuario", JSON.stringify(usuario));
-
-    return usuario;
-  } catch (error) {
-    console.error("❌ Error en registrarCiudadano:", error);
-    return null;
-  }
+  return <p>🔐 Iniciando sesión automáticamente...</p>;
 }
 
-// ---------------------------------------------------------
-// Iniciar sesión
-// ---------------------------------------------------------
-export async function loginUsuario(correo, password) {
-  try {
-    console.log("🟦 Iniciando sesión en Firebase:", correo);
-
-    const userCredential = await signInWithEmailAndPassword(auth, correo, password);
-    const user = userCredential.user;
-    const token = await user.getIdToken();
-
-    console.log("✅ Sesión iniciada con Firebase:");
-    console.log("   UID:", user.uid);
-    console.log("   Token JWT:", token.substring(0, 40) + "...");
-
-    const usuario = { uid: user.uid, correo: user.email, token };
-    localStorage.setItem("usuario", JSON.stringify(usuario));
-
-    return usuario;
-  } catch (error) {
-    console.error("❌ Error en loginUsuario:", error.code, error.message);
-    return null;
-  }
-}
-
-// ---------------------------------------------------------
-// Actualizar usuario en backend
-// ---------------------------------------------------------
-export async function actualizarUsuario(idUsuario, nuevosDatos) {
-  try {
-    console.log(`🟨 Actualizando usuario ${idUsuario} en ServidorREST...`);
-
-    const res = await fetch(`${API_BASE}/usuarios/${idUsuario}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(nuevosDatos),
-    });
-
-    const data = await res.json();
-    console.log("🟢 Respuesta del ServidorREST:", data);
-
-    if (!res.ok) throw new Error(data.error || "Error al actualizar usuario");
-
-    const usuarioActualizado = { ...obtenerUsuarioLogueado(), ...nuevosDatos };
-    localStorage.setItem("usuario", JSON.stringify(usuarioActualizado));
-
-    console.log("✅ Usuario actualizado en localStorage:", usuarioActualizado);
-    return usuarioActualizado;
-  } catch (error) {
-    console.error("❌ Error en actualizarUsuario:", error);
-    throw error;
-  }
-}
-
-// ---------------------------------------------------------
-// Escuchar sesión persistente (Firebase)
-// ---------------------------------------------------------
-export function escucharSesion(callback) {
-  return onAuthStateChanged(auth, async (user) => {
-    if (user) {
-      const token = await user.getIdToken();
-      console.log("🟩 Sesión detectada (persistente):");
-      console.log("   UID:", user.uid);
-      console.log("   Token JWT:", token.substring(0, 40) + "...");
-
-      const usuario = { uid: user.uid, correo: user.email, token };
-      localStorage.setItem("usuario", JSON.stringify(usuario));
-      callback(usuario);
-    } else {
-      console.log("🟥 No hay sesión activa");
-      localStorage.removeItem("usuario");
-      callback(null);
-    }
-  });
-}
-
-// ---------------------------------------------------------
-export function obtenerUsuarioLogueado() {
-  const user = localStorage.getItem("usuario");
-  return user ? JSON.parse(user) : null;
-}
-
-// ---------------------------------------------------------
-export async function cerrarSesion() {
-  try {
-    console.log("🟠 Cerrando sesión en Firebase...");
-    await signOut(auth);
-  } catch (e) {
-    console.error("⚠️ Error cerrando sesión:", e);
-  }
-  localStorage.removeItem("usuario");
-}
-
-
-
-auth.js:
-
-
-// logicaFake/auth.js
-import { API_BASE, firebaseConfig } from "./config";
-import { initializeApp } from "firebase/app";
-import { 
-  getAuth, 
-  signInWithEmailAndPassword, 
-  onAuthStateChanged, 
-  signOut 
-} from "firebase/auth";
-
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-
-// ---------------------------------------------------------
-// Registrar ciudadano
-// ---------------------------------------------------------
-export async function registrarCiudadano(nombre, correo, password) {
-  try {
-    console.log("🟦 Registrando usuario en backend:", correo);
-
-    // Llamada al Servidor REST (tu API)
-    const res = await fetch(`${API_BASE}/usuarios`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        nombre,
-        correo,
-        rol: "ciudadano",
-        password,
-      }),
-    });
-
-    const data = await res.json();
-    console.log("🟢 Respuesta del ServidorREST:", data);
-
-    if (!res.ok) throw new Error(data.error || "Error al registrar en backend");
-
-    // Iniciamos sesión con Firebase (para obtener token)
-    const authRes = await signInWithEmailAndPassword(auth, correo, password);
-    const user = authRes.user;
-    const token = await user.getIdToken();
-
-    console.log("✅ Usuario autenticado con Firebase:");
-    console.log("   UID:", user.uid);
-    console.log("   Token JWT:", token.substring(0, 40) + "..."); // truncamos por seguridad
-
-    const usuario = { uid: user.uid, correo, token, nombre };
-    localStorage.setItem("usuario", JSON.stringify(usuario));
-
-    return usuario;
-  } catch (error) {
-    console.error("❌ Error en registrarCiudadano:", error);
-    return null;
-  }
-}
-
-// ---------------------------------------------------------
-// Iniciar sesión
-// ---------------------------------------------------------
-export async function loginUsuario(correo, password) {
-  try {
-    console.log("🟦 Iniciando sesión en Firebase:", correo);
-
-    const userCredential = await signInWithEmailAndPassword(auth, correo, password);
-    const user = userCredential.user;
-    const token = await user.getIdToken();
-
-    console.log("✅ Sesión iniciada con Firebase:");
-    console.log("   UID:", user.uid);
-    console.log("   Token JWT:", token.substring(0, 40) + "...");
-
-    const usuario = { uid: user.uid, correo: user.email, token };
-    localStorage.setItem("usuario", JSON.stringify(usuario));
-
-    return usuario;
-  } catch (error) {
-    console.error("❌ Error en loginUsuario:", error.code, error.message);
-    return null;
-  }
-}
-
-// ---------------------------------------------------------
-// Actualizar usuario en backend
-// ---------------------------------------------------------
-export async function actualizarUsuario(idUsuario, nuevosDatos) {
-  try {
-    console.log(`🟨 Actualizando usuario ${idUsuario} en ServidorREST...`);
-
-    const res = await fetch(`${API_BASE}/usuarios/${idUsuario}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(nuevosDatos),
-    });
-
-    const data = await res.json();
-    console.log("🟢 Respuesta del ServidorREST:", data);
-
-    if (!res.ok) throw new Error(data.error || "Error al actualizar usuario");
-
-    const usuarioActualizado = { ...obtenerUsuarioLogueado(), ...nuevosDatos };
-    localStorage.setItem("usuario", JSON.stringify(usuarioActualizado));
-
-    console.log("✅ Usuario actualizado en localStorage:", usuarioActualizado);
-    return usuarioActualizado;
-  } catch (error) {
-    console.error("❌ Error en actualizarUsuario:", error);
-    throw error;
-  }
-}
-
-// ---------------------------------------------------------
-// Escuchar sesión persistente (Firebase)
-// ---------------------------------------------------------
-export function escucharSesion(callback) {
-  return onAuthStateChanged(auth, async (user) => {
-    if (user) {
-      const token = await user.getIdToken();
-      console.log("🟩 Sesión detectada (persistente):");
-      console.log("   UID:", user.uid);
-      console.log("   Token JWT:", token.substring(0, 40) + "...");
-
-      const usuario = { uid: user.uid, correo: user.email, token };
-      localStorage.setItem("usuario", JSON.stringify(usuario));
-      callback(usuario);
-    } else {
-      console.log("🟥 No hay sesión activa");
-      localStorage.removeItem("usuario");
-      callback(null);
-    }
-  });
-}
-
-// ---------------------------------------------------------
-export function obtenerUsuarioLogueado() {
-  const user = localStorage.getItem("usuario");
-  return user ? JSON.parse(user) : null;
-}
-
-// ---------------------------------------------------------
-export async function cerrarSesion() {
-  try {
-    console.log("🟠 Cerrando sesión en Firebase...");
-    await signOut(auth);
-  } catch (e) {
-    console.error("⚠️ Error cerrando sesión:", e);
-  }
-  localStorage.removeItem("usuario");
-}
-
-
-
-
-}
-
-export default App;
+export default Autologin;

@@ -184,9 +184,9 @@ export async function pruebaAutomatica() {
   // resultados.push({ paso: "🧪 Test NODOS y MEDICIONES (ciudadano)" });
   // resultados.push(...await testNodos(idCiudadano, unique));
 
-  resultados.push({ paso: "🧪 Test NOTIFICACIONES" });
-  resultados.push(await testNotificacion("wgKVzCb5WhUMgTL1guI4GDGjI603"));
+  // resultados.push({ paso: "🧪 Test NOTIFICACIONES" });
+  // resultados.push(await testNotificacion("wgKVzCb5WhUMgTL1guI4GDGjI603"));
 
-  resultados.push({ paso: "✅ Prueba completada correctamente" });
+  // resultados.push({ paso: "✅ Prueba completada correctamente" });
   return resultados;
 }
