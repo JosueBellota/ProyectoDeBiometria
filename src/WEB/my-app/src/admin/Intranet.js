@@ -17,13 +17,13 @@ function IntranetAdmin() {
     const user = obtenerUsuarioLogueado();
 
     if (!user) {
-      navigate("/login");
+      navigate("/");
       return;
     }
 
     if (user.rol !== "admin") {
       alert("⚠️ Acceso denegado. Solo los administradores pueden ingresar.");
-      navigate("/login");
+      navigate("/");
       return;
     }
   }, [navigate]);

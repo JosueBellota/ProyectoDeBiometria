@@ -460,35 +460,39 @@ async crearUsuario(nombre, correo, rol, password) {
   }
 
 
+  // ------------------------------------------------------------------------------------
+  // uid: texto
+  // -->
+  // generarTokenAutologin(uid)
+  // -->
+  // - Verifica que el usuario exista en Firebase Authentication
+  // - Obtiene el rol desde los claims personalizados del usuario
+  // - Genera un token personalizado válido para autologin
+  // - Construye y devuelve un link de acceso automático
+  // -->
+  // ------------------------------------------------------------------------------------
   async generarTokenAutologin(uid) {
-    
-  try {
-    // Verificar si el usuario existe directamente en Firebase Auth
-    const userRecord = await this.#admin.auth().getUser(uid);
-    if (!userRecord) {
-      functions.logger.warn(`⚠️ Usuario con UID ${uid} no encontrado en Firebase Auth`);
+    try {
+      // Verificar si el usuario existe en Firebase Auth
+      const userRecord = await this.#admin.auth().getUser(uid);
+      if (!userRecord) {
+        functions.logger.warn(`⚠️ Usuario con UID ${uid} no encontrado en Firebase Auth`);
+        return null;
+      }
+
+      // Obtener el rol desde los claims personalizados, si existen
+      const rol = userRecord.customClaims?.rol || "usuario";
+      const token = await this.#admin.auth().createCustomToken(uid, { rol });
+      const link = `https://proyectodebiometria.web.app/autologin?token=${token}`;
+      
+      functions.logger.info(`🔑 Link autologin generado correctamente para UID: ${uid}`);
+      return link;
+
+    } catch (error) {
+      functions.logger.error("❌ Error generando token autologin:", error);
       return null;
     }
-
-    // Obtener el rol desde los claims personalizados, si existen
-    const rol = userRecord.customClaims?.rol || "usuario";
-
-    // Generar token personalizado válido para iniciar sesión
-    const token = await this.#admin.auth().createCustomToken(uid, { rol });
-
-    // Construir el link directamente
-    const link = `https://proyectodebiometria.web.app/autologin?token=${token}`;
-
-    functions.logger.info(`🔑 Link autologin generado correctamente para UID: ${uid}`);
-    return link;
-
-  } catch (error) {
-    functions.logger.error("❌ Error generando token autologin:", error);
-    return null;
   }
-}
-
-
 
   // ------------------------------------------------------------------------------------
   // mensaje: texto, color: texto, topic: texto
@@ -521,9 +525,8 @@ async crearUsuario(nombre, correo, rol, password) {
           mensaje,
           color,
         },
-        topic: topic, // <-- Ahora el topic se recibe dinámico
+        topic: topic, 
       };
-
       await admin.messaging().send(payload);
       functions.logger.info("✅ Notificación enviada al topic:", topic);
     } catch (error) {
