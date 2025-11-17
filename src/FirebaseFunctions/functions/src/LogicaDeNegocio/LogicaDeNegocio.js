@@ -535,6 +535,30 @@ async crearUsuario(nombre, correo, rol, password) {
   }
 
 
+  // ------------------------------------------------------------------------------------
+  // uid: texto
+  // -->
+  // revocarSesion(uid)
+  // -->
+  // - Fuerza el cierre de sesión del usuario revocando sus refresh tokens
+  // - En el cliente Android/WebView la sesión caduca en cuanto el token sea revalidado
+  // - Este es el método recomendado por Firebase para forzar logout remoto
+  // -->
+  // true si se revoca correctamente, false si ocurre un error
+  // ------------------------------------------------------------------------------------
+  async revocarSesion(uid) {
+    try {
+      await this.#admin.auth().revokeRefreshTokens(uid);
+
+      functions.logger.info(`⛔ Sesión revocada correctamente para UID: ${uid}`);
+      return true;
+
+    } catch (error) {
+      functions.logger.error("❌ Error en revocarSesion:", error);
+      return false;
+    }
+  }
+
 }
 
 module.exports = LogicaDeNegocio;

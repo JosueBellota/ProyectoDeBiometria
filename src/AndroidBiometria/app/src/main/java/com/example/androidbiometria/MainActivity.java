@@ -74,45 +74,73 @@
 
 
         // ---------------------------------------------------------------------------
-        // Ciclo de vida
+        // Ciclo de Vida de la app
         // ---------------------------------------------------------------------------
+
         @Override
         protected void onCreate(Bundle savedInstanceState) {
             super.onCreate(savedInstanceState);
             setContentView(R.layout.activity_main);
 
+            // ---------------------------------------------------------------------------
+            // LISTENER GLOBAL → Fuerza Logout si el servidor revoca la sesión
+            // ---------------------------------------------------------------------------
+            FirebaseAuth.getInstance().addAuthStateListener(auth -> {
+                if (auth.getCurrentUser() == null) {
 
-            // ---- LOGOUT ----
+                    // Desuscribir del topic anterior (si existía)
+                    String lastUid = FirebaseAuth.getInstance().getUid();
+                    if (lastUid != null) {
+                        FirebaseMessaging.getInstance().unsubscribeFromTopic(lastUid);
+                    }
+
+                    // Redirigir al Login
+                    Intent intent = new Intent(MainActivity.this, Login.class);
+                    intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP |
+                            Intent.FLAG_ACTIVITY_NEW_TASK |
+                            Intent.FLAG_ACTIVITY_CLEAR_TASK);
+                    startActivity(intent);
+                    finish();
+                }
+            });
+
+            // ---------------------------------------------------------------------------
+            // LOGOUT MANUAL (botón)
+            // ---------------------------------------------------------------------------
             findViewById(R.id.logoutButton).setOnClickListener(v -> {
-                FirebaseAuth.getInstance().signOut();  // 🔥 Cierra sesión en Firebase
+                FirebaseAuth.getInstance().signOut();
+
                 FirebaseMessaging.getInstance().unsubscribeFromTopic(
                         FirebaseAuth.getInstance().getUid() == null ? "" : FirebaseAuth.getInstance().getUid()
                 );
 
-                Intent intent = new Intent(MainActivity.this, Login.class); // <-- o tu pantalla de login
-                intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+                Intent intent = new Intent(MainActivity.this, Login.class);
+                intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP |
+                        Intent.FLAG_ACTIVITY_NEW_TASK |
+                        Intent.FLAG_ACTIVITY_CLEAR_TASK);
                 startActivity(intent);
-                finish(); // 🏁 Evita volver atrás con el botón "atrás"
+                finish();
             });
 
-            // Permiso de notificaciones para Android 13+
+            // ---------------------------------------------------------------------------
+            // Permisos de notificación Android 13+
+            // ---------------------------------------------------------------------------
             if (Build.VERSION.SDK_INT >= 33 &&
                     checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)
                             != PackageManager.PERMISSION_GRANTED) {
                 requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS}, 2001);
             }
 
-
             Log.d(ETIQUETA_LOG, "onCreate(): empieza");
 
             // Inicializar Bluetooth y obtener el escáner
             inicializarBlueTooth();
 
-            //generarNotificacion("CO₂ alto", "#27F531");
-
             Log.d(ETIQUETA_LOG, "onCreate(): termina");
 
-            // ✅ Obtener UID *dentro* de onCreate
+            // ---------------------------------------------------------------------------
+            // Suscripción al Topic del UID del usuario
+            // ---------------------------------------------------------------------------
             String uid;
             if (FirebaseAuth.getInstance().getCurrentUser() != null) {
                 uid = FirebaseAuth.getInstance().getCurrentUser().getUid();
@@ -133,7 +161,9 @@
                 Log.w(">>>>", "⚠️ No hay usuario logueado, NO se puede suscribir a topic.");
             }
 
-
+            // ---------------------------------------------------------------------------
+            // Botón para añadir nodo (QR o código manual)
+            // ---------------------------------------------------------------------------
             Button botonAñadirNodo = findViewById(R.id.botonLeerQR);
             botonAñadirNodo.setOnClickListener(v -> {
                 android.app.AlertDialog.Builder builder = new android.app.AlertDialog.Builder(this);
@@ -172,10 +202,8 @@
                         .show();
             });
 
-
-
-
         } // onCreate()
+
 
         // --------------------------------------------------------------------------------
         // resultado: ScanResult (escaneo de dispositivo detectado)
@@ -699,6 +727,40 @@
                 }
             }).start();
         }
+
+        @Override
+        protected void onResume() {
+            super.onResume();
+
+            FirebaseAuth auth = FirebaseAuth.getInstance();
+
+            if (auth.getCurrentUser() != null) {
+                auth.getCurrentUser().getIdToken(true)
+                        .addOnCompleteListener(task -> {
+
+                            if (!task.isSuccessful()) {
+                                // ❌ El token ya no es válido → sesión revocada
+                                forzarLogout();
+                            }
+                        });
+            }
+        }
+
+        private void forzarLogout() {
+            FirebaseAuth.getInstance().signOut();
+            FirebaseMessaging.getInstance().unsubscribeFromTopic(
+                    FirebaseAuth.getInstance().getUid() == null ? "" : FirebaseAuth.getInstance().getUid()
+            );
+
+            Intent intent = new Intent(MainActivity.this, Login.class);
+            intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP |
+                    Intent.FLAG_ACTIVITY_NEW_TASK |
+                    Intent.FLAG_ACTIVITY_CLEAR_TASK);
+            startActivity(intent);
+            finish();
+        }
+
+
 
         interface Callback {
             void onSuccess(String link);

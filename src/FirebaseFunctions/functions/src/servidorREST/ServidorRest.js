@@ -132,20 +132,33 @@ exports.ServidorREST = functions.https.onRequest((req, res) => {
         await logica.eliminarNodo(nombreNodo, propietarioId);
         return res.status(200).json({ mensaje: "🗑️ Nodo eliminado" });
       }
+      
+      // ===================================================================================
+      // =============================== AUTOLOGIN Y LOGOUT ================================
+      // ===================================================================================
 
-    // GET /autologin/:uid
-    if (req.method === "GET" && rutaLower.startsWith("/autologin/")) {
-      const uid = ruta.split("/")[2];
-      try {
-        const link = await logica.generarTokenAutologin(uid);
-        if (!link) return res.status(404).json({ error: "Usuario no encontrado" });
+      // GET /autologin/:uid
+      if (req.method === "GET" && rutaLower.startsWith("/autologin/")) {
+        const uid = ruta.split("/")[2];
+        try {
+          const link = await logica.generarTokenAutologin(uid);
+          if (!link) return res.status(404).json({ error: "Usuario no encontrado" });
 
-        return res.status(200).json({ link });
-      } catch (e) {
-        return res.status(500).json({ error: e.message });
+          return res.status(200).json({ link });
+        } catch (e) {
+          return res.status(500).json({ error: e.message });
+        }
       }
-    }
 
+      // ⛔ NUEVO ENDPOINT: GET /logout/:uid  (forzar cierre de sesión)
+      if (req.method === "GET" && rutaLower.startsWith("/logout/")) {
+        const uid = ruta.split("/")[2];
+        const ok = await logica.revocarSesion(uid);
+
+        return ok
+          ? res.status(200).json({ mensaje: "⛔ Sesión revocada. El usuario será desconectado." })
+          : res.status(500).json({ error: "No se pudo revocar la sesión del usuario" });
+      }
 
       // ===================================================================================
       // ================================ NOTIFICACIONES ===================================
