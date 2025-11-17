@@ -195,10 +195,24 @@ export function obtenerUsuarioLogueado() {
 
 export async function cerrarSesion() {
   try {
-    console.log("🟠 Cerrando sesión en Firebase...");
+    const usuario = obtenerUsuarioLogueado();
+    if (usuario?.uid) {
+      console.log("🟠 Enviando revocación de sesión al backend…");
+
+      // 🔥 Llamar al nuevo endpoint que revoca la sesión en Firebase Auth
+      await fetch(`${API_BASE}/logout/${usuario.uid}`, {
+        method: "GET"
+      });
+    }
+
+    console.log("🟠 Cerrando sesión localmente en Firebase…");
     await signOut(auth);
+
   } catch (e) {
     console.error("⚠️ Error cerrando sesión:", e);
   }
+
+  // 🔥 Limpieza final
   localStorage.removeItem("usuario");
 }
+

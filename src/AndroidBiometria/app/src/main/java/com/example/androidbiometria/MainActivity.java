@@ -74,45 +74,73 @@
 
 
         // ---------------------------------------------------------------------------
-        // Ciclo de vida
+        // Ciclo de Vida de la app
         // ---------------------------------------------------------------------------
+
         @Override
         protected void onCreate(Bundle savedInstanceState) {
             super.onCreate(savedInstanceState);
             setContentView(R.layout.activity_main);
 
+            // ---------------------------------------------------------------------------
+            // LISTENER GLOBAL → Fuerza Logout si el servidor revoca la sesión
+            // ---------------------------------------------------------------------------
+            FirebaseAuth.getInstance().addAuthStateListener(auth -> {
+                if (auth.getCurrentUser() == null) {
 
-            // ---- LOGOUT ----
+                    // Desuscribir del topic anterior (si existía)
+                    String lastUid = FirebaseAuth.getInstance().getUid();
+                    if (lastUid != null) {
+                        FirebaseMessaging.getInstance().unsubscribeFromTopic(lastUid);
+                    }
+
+                    // Redirigir al Login
+                    Intent intent = new Intent(MainActivity.this, Login.class);
+                    intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP |
+                            Intent.FLAG_ACTIVITY_NEW_TASK |
+                            Intent.FLAG_ACTIVITY_CLEAR_TASK);
+                    startActivity(intent);
+                    finish();
+                }
+            });
+
+            // ---------------------------------------------------------------------------
+            // LOGOUT MANUAL (botón)
+            // ---------------------------------------------------------------------------
             findViewById(R.id.logoutButton).setOnClickListener(v -> {
-                FirebaseAuth.getInstance().signOut();  // 🔥 Cierra sesión en Firebase
+                FirebaseAuth.getInstance().signOut();
+
                 FirebaseMessaging.getInstance().unsubscribeFromTopic(
                         FirebaseAuth.getInstance().getUid() == null ? "" : FirebaseAuth.getInstance().getUid()
                 );
 
-                Intent intent = new Intent(MainActivity.this, Login.class); // <-- o tu pantalla de login
-                intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+                Intent intent = new Intent(MainActivity.this, Login.class);
+                intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP |
+                        Intent.FLAG_ACTIVITY_NEW_TASK |
+                        Intent.FLAG_ACTIVITY_CLEAR_TASK);
                 startActivity(intent);
-                finish(); // 🏁 Evita volver atrás con el botón "atrás"
+                finish();
             });
 
-            // Permiso de notificaciones para Android 13+
+            // ---------------------------------------------------------------------------
+            // Permisos de notificación Android 13+
+            // ---------------------------------------------------------------------------
             if (Build.VERSION.SDK_INT >= 33 &&
                     checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)
                             != PackageManager.PERMISSION_GRANTED) {
                 requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS}, 2001);
             }
 
-
             Log.d(ETIQUETA_LOG, "onCreate(): empieza");
 
             // Inicializar Bluetooth y obtener el escáner
             inicializarBlueTooth();
 
-            //generarNotificacion("CO₂ alto", "#27F531");
-
             Log.d(ETIQUETA_LOG, "onCreate(): termina");
 
-            // ✅ Obtener UID *dentro* de onCreate
+            // ---------------------------------------------------------------------------
+            // Suscripción al Topic del UID del usuario
+            // ---------------------------------------------------------------------------
             String uid;
             if (FirebaseAuth.getInstance().getCurrentUser() != null) {
                 uid = FirebaseAuth.getInstance().getCurrentUser().getUid();
@@ -133,7 +161,9 @@
                 Log.w(">>>>", "⚠️ No hay usuario logueado, NO se puede suscribir a topic.");
             }
 
-
+            // ---------------------------------------------------------------------------
+            // Botón para añadir nodo (QR o código manual)
+            // ---------------------------------------------------------------------------
             Button botonAñadirNodo = findViewById(R.id.botonLeerQR);
             botonAñadirNodo.setOnClickListener(v -> {
                 android.app.AlertDialog.Builder builder = new android.app.AlertDialog.Builder(this);
@@ -172,10 +202,8 @@
                         .show();
             });
 
-
-
-
         } // onCreate()
+
 
         // --------------------------------------------------------------------------------
         // resultado: ScanResult (escaneo de dispositivo detectado)
@@ -596,13 +624,40 @@
             Log.d(ETIQUETA_LOG, "🔍 Buscando dispositivo leído del QR: " + codigoNodoQR);
             this.buscarEsteDispositivoBTLE(codigoNodoQR);
 
-            // Abrir web con datos del nodo
-            String url = "https://proyectodebiometria.web.app/";
-            Intent intent = new Intent(MainActivity.this, WebNodoActivity.class);
-            intent.putExtra("url", url);
-            intent.putExtra("nombreNodo", nombreNodoUsuario);
-            startActivity(intent);
+            String uid = FirebaseAuth.getInstance().getCurrentUser() != null
+                    ? FirebaseAuth.getInstance().getCurrentUser().getUid()
+                    : null;
+
+            if (uid == null) {
+                Toast.makeText(this, "❌ No hay usuario logueado", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            // 🧩 Obtener link autologin desde el servidor
+            obtenerLinkAutologin(uid, new Callback() {
+                @Override
+                public void onSuccess(String link) {
+                    if (link == null) {
+                        runOnUiThread(() -> Toast.makeText(MainActivity.this, "❌ Error obteniendo enlace", Toast.LENGTH_SHORT).show());
+                        return;
+                    }
+
+                    // Abrir WebNodoActivity con el enlace autologin
+                    runOnUiThread(() -> {
+                        Intent intent = new Intent(MainActivity.this, WebNodoActivity.class);
+                        intent.putExtra("url", link);
+                        intent.putExtra("nombreNodo", nombreNodoUsuario);
+                        startActivity(intent);
+                    });
+                }
+
+                @Override
+                public void onError(String error) {
+                    runOnUiThread(() -> Toast.makeText(MainActivity.this, "❌ Error API: " + error, Toast.LENGTH_SHORT).show());
+                }
+            });
         }
+
 
 
 
@@ -637,6 +692,80 @@
                     .show();
         }
 
+
+        private void obtenerLinkAutologin(String uid, Callback callback) {
+            String url = "https://us-central1-proyectodebiometria.cloudfunctions.net/ServidorREST/autologin/" + uid;
+
+            new Thread(() -> {
+                try {
+                    java.net.URL apiUrl = new java.net.URL(url);
+                    java.net.HttpURLConnection conn = (java.net.HttpURLConnection) apiUrl.openConnection();
+                    conn.setRequestMethod("GET");
+                    conn.setRequestProperty("Content-Type", "application/json");
+
+                    int responseCode = conn.getResponseCode();
+
+                    if (responseCode == 200) {
+                        java.io.BufferedReader in = new java.io.BufferedReader(
+                                new java.io.InputStreamReader(conn.getInputStream())
+                        );
+                        StringBuilder response = new StringBuilder();
+                        String line;
+                        while ((line = in.readLine()) != null) response.append(line);
+                        in.close();
+
+                        // Convertir JSON
+                        org.json.JSONObject obj = new org.json.JSONObject(response.toString());
+                        String link = obj.optString("link", null);
+
+                        callback.onSuccess(link);
+                    } else {
+                        callback.onError("HTTP " + responseCode);
+                    }
+                } catch (Exception e) {
+                    callback.onError(e.getMessage());
+                }
+            }).start();
+        }
+
+        @Override
+        protected void onResume() {
+            super.onResume();
+
+            FirebaseAuth auth = FirebaseAuth.getInstance();
+
+            if (auth.getCurrentUser() != null) {
+                auth.getCurrentUser().getIdToken(true)
+                        .addOnCompleteListener(task -> {
+
+                            if (!task.isSuccessful()) {
+                                // ❌ El token ya no es válido → sesión revocada
+                                forzarLogout();
+                            }
+                        });
+            }
+        }
+
+        private void forzarLogout() {
+            FirebaseAuth.getInstance().signOut();
+            FirebaseMessaging.getInstance().unsubscribeFromTopic(
+                    FirebaseAuth.getInstance().getUid() == null ? "" : FirebaseAuth.getInstance().getUid()
+            );
+
+            Intent intent = new Intent(MainActivity.this, Login.class);
+            intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP |
+                    Intent.FLAG_ACTIVITY_NEW_TASK |
+                    Intent.FLAG_ACTIVITY_CLEAR_TASK);
+            startActivity(intent);
+            finish();
+        }
+
+
+
+        interface Callback {
+            void onSuccess(String link);
+            void onError(String error);
+        }
 
 
 

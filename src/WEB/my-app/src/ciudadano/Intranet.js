@@ -13,7 +13,7 @@ function Intranet() {
 
   useEffect(() => {
     const user = obtenerUsuarioLogueado();
-    if (!user) navigate("/login");
+    if (!user) navigate("/");
   }, [navigate]);
 
   const formatearTiempo = (tiempo) => {
