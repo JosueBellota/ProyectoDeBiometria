@@ -14,6 +14,7 @@ function Login() {
     setError(null);
 
     try {
+      console.log("🟦 Iniciando proceso de login...");
       const uid = await loginUsuario(correo, password);
 
       if (!uid) {
@@ -21,20 +22,24 @@ function Login() {
         return;
       }
 
+      console.log("🟩 UID obtenido del login:", uid);
+
       // ✅ Obtener datos completos del usuario desde el backend
       const usuarioCompleto = await obtenerUsuarioCompleto(uid);
 
-      if (usuarioCompleto.error) {
-        setError("Error al obtener los datos del usuario");
+      if (!usuarioCompleto || usuarioCompleto.error) {
+        console.error("❌ Error obteniendo usuario completo:", usuarioCompleto);
+        setError("Usuario no encontrado en el backend");
         return;
       }
 
-      // Guardar el usuario con su rol en localStorage
+      // Guardar el usuario completo con su rol y UID
       const usuarioFinal = {
         ...usuarioCompleto,
         uid,
         correo: usuarioCompleto.correo || correo,
       };
+
       localStorage.setItem("usuario", JSON.stringify(usuarioFinal));
 
       console.log("✅ Usuario logueado:", usuarioFinal.nombre, "→ Rol:", usuarioFinal.rol);

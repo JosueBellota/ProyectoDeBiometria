@@ -53,18 +53,26 @@ async function obtenerMediciones(nombreNodo, propietarioId) {
 }
 
 // ----------------------------------------------------------
-// obtenerUsuarioCompleto
+// obtenerUsuarioCompleto(uid) → Obtiene datos completos del usuario
 // ----------------------------------------------------------
 export async function obtenerUsuarioCompleto(uid) {
   try {
-    const res = await fetch(`${API_BASE}/usuarios/${uid}`);
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error);
+    if (!uid) throw new Error("Se requiere el UID del usuario");
+
+    // ✅ Nuevo endpoint universal
+    let res = await fetch(`${API_BASE}/usuarios/completo/${uid}`);
+    let data = await res.json();
+
+    if (!res.ok || data.error) throw new Error(data.error || "No se pudo obtener el usuario");
+
     return data;
   } catch (error) {
+    console.error("❌ Error en obtenerUsuarioCompleto:", error);
     return { error: error.message };
   }
 }
+
+
 
 // ----------------------------------------------------------
 // main()  → Ciudadano

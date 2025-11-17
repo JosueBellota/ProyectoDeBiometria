@@ -52,6 +52,15 @@ exports.ServidorREST = functions.https.onRequest((req, res) => {
       // ================================ RUTAS DE USUARIOS ================================
       // ===================================================================================
 
+      // ✅ NUEVO ENDPOINT UNIVERSAL: GET /usuarios/completo/:uid
+      if (req.method === "GET" && rutaLower.startsWith("/usuarios/completo/")) {
+        const uid = ruta.split("/")[3];
+        const usuario = await logica.obtenerUsuario(uid);
+        return usuario
+          ? res.status(200).json(usuario)
+          : res.status(404).json({ error: "Usuario no encontrado" });
+      }
+
       if (req.method === "GET" && rutaLower.startsWith("/usuarios/") && !rutaLower.startsWith("/usuarios/admin/")) {
         const idUsuario = ruta.split("/")[2];
         const usuario = await logica.obtenerUsuario(idUsuario);
@@ -124,6 +133,20 @@ exports.ServidorREST = functions.https.onRequest((req, res) => {
         return res.status(200).json({ mensaje: "🗑️ Nodo eliminado" });
       }
 
+    // GET /autologin/:uid
+    if (req.method === "GET" && rutaLower.startsWith("/autologin/")) {
+      const uid = ruta.split("/")[2];
+      try {
+        const link = await logica.generarTokenAutologin(uid);
+        if (!link) return res.status(404).json({ error: "Usuario no encontrado" });
+
+        return res.status(200).json({ link });
+      } catch (e) {
+        return res.status(500).json({ error: e.message });
+      }
+    }
+
+
       // ===================================================================================
       // ================================ NOTIFICACIONES ===================================
       // ===================================================================================
@@ -142,3 +165,8 @@ exports.ServidorREST = functions.https.onRequest((req, res) => {
     }
   });
 });
+
+
+// deploy
+// gcloud functions deploy ServidorREST --region=us-central1 --runtime=nodejs22 --trigger-http --service-account=proyectodebiometria@appspot.gserviceaccount.com --allow-unauthenticated
+
