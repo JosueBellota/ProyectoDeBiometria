@@ -149,7 +149,8 @@ async crearUsuario(nombre, correo, rol, password) {
       correo,
       rol,
       monedas: 0,           
-      premios: [],           
+      premios: [],
+      distancia: 0,           
       creadoEn: this.#admin.firestore.Timestamp.now(),
     };
 
@@ -172,14 +173,22 @@ async crearUsuario(nombre, correo, rol, password) {
   // objeto con datos del usuario o null
   //------------------------------------------------------------------------------------
   async obtenerUsuario(idUsuario) {
-    try {
-      const doc = await this.#db.collection("usuarios").doc(idUsuario).get();
-      return doc.exists ? doc.data() : null;
-    } catch (error) {
-      functions.logger.error("❌ Error en obtenerUsuario:", error);
-      return null;
+  try {
+    const doc = await this.#db.collection("usuarios").doc(idUsuario).get();
+    if (doc.exists) {
+      const usuarioData = doc.data();
+      // Asegurar que el campo distancia existe, si no establecerlo a 0
+      if (usuarioData.distancia === undefined) {
+        usuarioData.distancia = 0;
+      }
+      return usuarioData;
     }
+    return null;
+  } catch (error) {
+    functions.logger.error("❌ Error en obtenerUsuario:", error);
+    return null;
   }
+}
 
   //------------------------------------------------------------------------------------
   // idUsuario, datos (entrada)
@@ -188,22 +197,38 @@ async crearUsuario(nombre, correo, rol, password) {
   // -->
   // void
   //------------------------------------------------------------------------------------
-  async actualizarUsuario(idUsuario, datos) {
+  async obtenerUsuariosDesdeAdmin(idAdmin) {
+    
     try {
-      const updateAuth = {};  
-      if (datos.correo) updateAuth.email = datos.correo;
-      if (datos.password) updateAuth.password = datos.password;
-      if (datos.nombre) updateAuth.displayName = datos.nombre;
+      const adminDoc = await this.#db.collection("usuarios").doc(idAdmin).get();
 
-      if (Object.keys(updateAuth).length > 0) {
-        await this.#admin.auth().updateUser(idUsuario, updateAuth);
+      if (!adminDoc.exists) {
+        throw new Error(`Usuario admin no encontrado (${idAdmin})`);
       }
 
-      if (datos.password) delete datos.password;
-      await this.#db.collection("usuarios").doc(idUsuario).update(datos);
-      functions.logger.info(`✅ Usuario actualizado: ${idUsuario}`);
+      const adminData = adminDoc.data();
+      if (adminData.rol !== "admin") {
+        throw new Error(`El usuario ${idAdmin} no tiene permisos de administrador`);
+      }
+
+      const snapshot = await this.#db.collection("usuarios").get();
+      const usuarios = snapshot.docs.map((doc) => {
+        const usuarioData = doc.data();
+        // Asegurar que el campo distancia existe, si no establecerlo a 0
+        if (usuarioData.distancia === undefined) {
+          usuarioData.distancia = 0;
+        }
+        return {
+          id: doc.id,
+          ...usuarioData,
+        };
+      });
+
+      functions.logger.info(`✅ Usuario admin ${idAdmin} obtuvo lista de ${usuarios.length} usuarios`);
+      return usuarios;
     } catch (error) {
-      functions.logger.error("❌ Error en actualizarUsuario:", error);
+      functions.logger.error("❌ Error en obtenerUsuariosDesdeAdmin:", error);
+      return null;
     }
   }
   //------------------------------------------------------------------------------------

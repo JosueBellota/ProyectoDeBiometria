@@ -38,6 +38,12 @@
     import com.google.firebase.auth.FirebaseAuth;
     import com.google.firebase.messaging.FirebaseMessaging;
 
+    import android.content.Context;
+    import android.location.LocationManager;
+    import android.provider.Settings;
+    import android.os.Handler;
+    import android.app.AlertDialog;
+
     // -----------------------------------------------------------------------------------
     //
     // Fichero:MainActivity.java
@@ -56,6 +62,7 @@
     // ---------------------------------------------------------------------------
     // Constantes y variables globales
     // ---------------------------------------------------------------------------
+        private DistanciaManager distanciaManager;
 
         // ETIQUETA_LOG: texto (String)
         private static final String ETIQUETA_LOG = ">>>>";
@@ -71,6 +78,9 @@
         private ScanCallback callbackDelEscaneo = null;
         private String codigoNodoQR = null;  // El código del dispositivo (del QR)
         private String nombreNodoUsuario = null;  // El nombre amigable asignado por el usuario
+
+        private String uidGlobal;
+
 
 
         // ---------------------------------------------------------------------------
@@ -201,6 +211,11 @@
                         })
                         .show();
             });
+
+            uidGlobal = uid;
+            distanciaManager = new DistanciaManager(this, findViewById(R.id.textoDistancia));
+
+
 
         } // onCreate()
 
@@ -461,29 +476,124 @@
         // -->
         // void (sin valor de retorno)
         // -----------------------------------------------------------------------------------
-        public void onRequestPermissionsResult(int requestCode, String[] permissions,
-                                               int[] grantResults) {
-            super.onRequestPermissionsResult( requestCode, permissions, grantResults);
+        @Override
 
-            switch (requestCode) {
-                case CODIGO_PETICION_PERMISOS:
-                    // If request is cancelled, the result arrays are empty.
-                    if (grantResults.length > 0 &&
-                            grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+        public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+            super.onRequestPermissionsResult(requestCode, permissions, grantResults);
 
-                        Log.d(ETIQUETA_LOG, " onRequestPermissionResult(): permisos concedidos  !!!!");
-                        // Permission is granted. Continue the action or workflow
-                        // in your app.
-                    }  else {
+            if (requestCode == CODIGO_PETICION_PERMISOS) {
+                boolean permisosOk = true;
 
-                        Log.d(ETIQUETA_LOG, " onRequestPermissionResult(): Socorro: permisos NO concedidos  !!!!");
-
+                for (int r : grantResults) {
+                    if (r != PackageManager.PERMISSION_GRANTED) {
+                        permisosOk = false;
+                        break;
                     }
-                    return;
+                }
+
+                if (permisosOk) {
+                    Log.d(">>>>", "Permisos concedidos, verificando estado de Bluetooth y GPS…");
+                    verificarYActivarBluetoothYGps();
+                } else {
+                    Log.e(">>>>", "Permisos NO concedidos. No se puede usar GPS.");
+                }
             }
-            // Other 'case' lines to check for other
-            // permissions this app might request.
-        } // ()
+        }
+
+        private void verificarYActivarBluetoothYGps() {
+            // Verificar Bluetooth
+            BluetoothAdapter bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+            boolean bluetoothActivado = bluetoothAdapter != null && bluetoothAdapter.isEnabled();
+
+            // Verificar GPS
+            LocationManager locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
+            boolean gpsActivado = locationManager != null &&
+                    locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
+
+            if (bluetoothActivado && gpsActivado) {
+                // Ambos están activados, iniciar tracking
+                Log.d(">>>>", "Bluetooth y GPS activados, iniciando tracking GPS…");
+                if (uidGlobal != null) {
+                    // Usar un nombre de nodo por defecto para el tracking de distancia del móvil
+                    String nombreNodoMovil = "movil_" + uidGlobal.substring(0, 8); // Ejemplo: "movil_abc12345"
+                    distanciaManager.iniciar(uidGlobal, nombreNodoMovil);
+                }
+            } else {
+                // Mostrar diálogo para activar lo que falte
+                mostrarDialogoActivacion(bluetoothActivado, gpsActivado);
+            }
+        }
+        private void mostrarDialogoActivacion(boolean bluetoothOk, boolean gpsOk) {
+            AlertDialog.Builder builder = new AlertDialog.Builder(this);
+            builder.setTitle("Activar servicios necesarios");
+
+            StringBuilder mensaje = new StringBuilder("Para usar la aplicación necesitas activar:\n\n");
+
+            if (!bluetoothOk) {
+                mensaje.append("• Bluetooth\n");
+            }
+            if (!gpsOk) {
+                mensaje.append("• GPS/Localización\n");
+            }
+
+            mensaje.append("\n¿Quieres activarlos ahora?");
+
+            builder.setMessage(mensaje.toString());
+
+            builder.setPositiveButton("Activar", (dialog, which) -> {
+                if (!bluetoothOk) {
+                    activarBluetooth();
+                }
+                if (!gpsOk) {
+                    activarGPS();
+                }
+
+                // Verificar nuevamente después de un breve delay
+                new Handler().postDelayed(() -> {
+                    verificarYActivarBluetoothYGps();
+                }, 2000);
+            });
+
+            builder.setNegativeButton("Cancelar", (dialog, which) -> {
+                Toast.makeText(this, "Los servicios necesarios no están activos", Toast.LENGTH_LONG).show();
+            });
+
+            builder.setCancelable(false);
+            builder.show();
+        }
+
+        private void activarBluetooth() {
+            try {
+                BluetoothAdapter bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+                if (bluetoothAdapter != null && !bluetoothAdapter.isEnabled()) {
+                    if (ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED) {
+                        bluetoothAdapter.enable();
+                        Toast.makeText(this, "Activando Bluetooth...", Toast.LENGTH_SHORT).show();
+                    } else {
+                        // Solicitar permiso BLUETOOTH_CONNECT si no lo tenemos
+                        ActivityCompat.requestPermissions(this,
+                                new String[]{Manifest.permission.BLUETOOTH_CONNECT},
+                                CODIGO_PETICION_PERMISOS);
+                    }
+                }
+            } catch (SecurityException e) {
+                Log.e(">>>>", "Error de seguridad al activar Bluetooth: " + e.getMessage());
+            }
+        }
+
+        private void activarGPS() {
+            try {
+                LocationManager locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
+                if (locationManager != null && !locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
+                    Intent intent = new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS);
+                    startActivity(intent);
+                    Toast.makeText(this, "Por favor, activa el GPS en ajustes", Toast.LENGTH_LONG).show();
+                }
+            } catch (Exception e) {
+                Log.e(">>>>", "Error al activar GPS: " + e.getMessage());
+            }
+        }
+
 
 
         private LogicaFake convertirScanResult(ScanResult resultado) {
@@ -732,12 +842,16 @@
         protected void onResume() {
             super.onResume();
 
-            FirebaseAuth auth = FirebaseAuth.getInstance();
+            // Verificar si debemos reiniciar el tracking
+            if (uidGlobal != null && !distanciaManager.isTracking()) {
+                Log.d(">>>>", "🔄 Revisando estado de tracking en onResume...");
+                verificarYActivarBluetoothYGps();
+            }
 
+            FirebaseAuth auth = FirebaseAuth.getInstance();
             if (auth.getCurrentUser() != null) {
                 auth.getCurrentUser().getIdToken(true)
                         .addOnCompleteListener(task -> {
-
                             if (!task.isSuccessful()) {
                                 // ❌ El token ya no es válido → sesión revocada
                                 forzarLogout();
@@ -747,6 +861,9 @@
         }
 
         private void forzarLogout() {
+
+            distanciaManager.detener();
+
             FirebaseAuth.getInstance().signOut();
             FirebaseMessaging.getInstance().unsubscribeFromTopic(
                     FirebaseAuth.getInstance().getUid() == null ? "" : FirebaseAuth.getInstance().getUid()
