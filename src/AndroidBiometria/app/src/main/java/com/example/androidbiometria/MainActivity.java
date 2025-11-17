@@ -596,13 +596,40 @@
             Log.d(ETIQUETA_LOG, "🔍 Buscando dispositivo leído del QR: " + codigoNodoQR);
             this.buscarEsteDispositivoBTLE(codigoNodoQR);
 
-            // Abrir web con datos del nodo
-            String url = "https://proyectodebiometria.web.app/";
-            Intent intent = new Intent(MainActivity.this, WebNodoActivity.class);
-            intent.putExtra("url", url);
-            intent.putExtra("nombreNodo", nombreNodoUsuario);
-            startActivity(intent);
+            String uid = FirebaseAuth.getInstance().getCurrentUser() != null
+                    ? FirebaseAuth.getInstance().getCurrentUser().getUid()
+                    : null;
+
+            if (uid == null) {
+                Toast.makeText(this, "❌ No hay usuario logueado", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            // 🧩 Obtener link autologin desde el servidor
+            obtenerLinkAutologin(uid, new Callback() {
+                @Override
+                public void onSuccess(String link) {
+                    if (link == null) {
+                        runOnUiThread(() -> Toast.makeText(MainActivity.this, "❌ Error obteniendo enlace", Toast.LENGTH_SHORT).show());
+                        return;
+                    }
+
+                    // Abrir WebNodoActivity con el enlace autologin
+                    runOnUiThread(() -> {
+                        Intent intent = new Intent(MainActivity.this, WebNodoActivity.class);
+                        intent.putExtra("url", link);
+                        intent.putExtra("nombreNodo", nombreNodoUsuario);
+                        startActivity(intent);
+                    });
+                }
+
+                @Override
+                public void onError(String error) {
+                    runOnUiThread(() -> Toast.makeText(MainActivity.this, "❌ Error API: " + error, Toast.LENGTH_SHORT).show());
+                }
+            });
         }
+
 
 
 
@@ -637,6 +664,46 @@
                     .show();
         }
 
+
+        private void obtenerLinkAutologin(String uid, Callback callback) {
+            String url = "https://us-central1-proyectodebiometria.cloudfunctions.net/ServidorREST/autologin/" + uid;
+
+            new Thread(() -> {
+                try {
+                    java.net.URL apiUrl = new java.net.URL(url);
+                    java.net.HttpURLConnection conn = (java.net.HttpURLConnection) apiUrl.openConnection();
+                    conn.setRequestMethod("GET");
+                    conn.setRequestProperty("Content-Type", "application/json");
+
+                    int responseCode = conn.getResponseCode();
+
+                    if (responseCode == 200) {
+                        java.io.BufferedReader in = new java.io.BufferedReader(
+                                new java.io.InputStreamReader(conn.getInputStream())
+                        );
+                        StringBuilder response = new StringBuilder();
+                        String line;
+                        while ((line = in.readLine()) != null) response.append(line);
+                        in.close();
+
+                        // Convertir JSON
+                        org.json.JSONObject obj = new org.json.JSONObject(response.toString());
+                        String link = obj.optString("link", null);
+
+                        callback.onSuccess(link);
+                    } else {
+                        callback.onError("HTTP " + responseCode);
+                    }
+                } catch (Exception e) {
+                    callback.onError(e.getMessage());
+                }
+            }).start();
+        }
+
+        interface Callback {
+            void onSuccess(String link);
+            void onError(String error);
+        }
 
 
 
