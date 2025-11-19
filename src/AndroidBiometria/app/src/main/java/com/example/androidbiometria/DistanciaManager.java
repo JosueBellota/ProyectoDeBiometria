@@ -167,22 +167,17 @@ public class DistanciaManager {
 
         new Thread(() -> {
             try {
-                URL url = new URL("https://us-central1-proyectodebiometria.cloudfunctions.net/ServidorREST/mediciones");
+                URL url = new URL("https://us-central1-proyectodebiometria.cloudfunctions.net/ServidorREST/usuarios/" + propietarioId);
 
                 HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-                conn.setRequestMethod("POST");
+                conn.setRequestMethod("PUT");
                 conn.setRequestProperty("Content-Type", "application/json");
                 conn.setDoOutput(true);
                 conn.setConnectTimeout(10000);
                 conn.setReadTimeout(10000);
 
-                JSONObject medidas = new JSONObject();
-                medidas.put("distancia", distancia);
-
                 JSONObject body = new JSONObject();
-                body.put("nombreNodo", nombreNodo);
-                body.put("propietarioId", propietarioId);
-                body.put("medidas", medidas);
+                body.put("distancia", distancia);
 
                 String bodyString = body.toString();
                 Log.d(">>>>", "📦 Enviando JSON: " + bodyString);

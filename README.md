@@ -1,4 +1,4 @@
-# Proyecto de Biometría y Medio Ambiente: Sprint 0
+# Proyecto de Biometría y Medio Ambiente
 
 ## Diseños
 
@@ -24,11 +24,27 @@ Ubicación: `test/`
    ```
 
 **Descripción:**
-La prueba automática valida las funciones de **Firebase Functions**:
+La prueba automática valida las funciones de **Firebase Functions** y la lógica de negocio:
 
-* Envía una medida de sensor con un **POST** a la función `ManejarPOST`.
-* Recupera las medidas almacenadas con un **GET** a la función `ManejarGET`.
-* Muestra los resultados en pantalla indicando si el test fue exitoso (✅) o si ocurrió algún error (❌).
+*   **Usuarios**:
+    *   Crea usuarios con roles `ciudadano` y `admin`.
+    *   Obtiene los datos de un usuario.
+    *   Obtiene la lista completa de usuarios (solo para `admin`).
+    *   Actualiza los datos de un usuario.
+    *   Elimina un usuario.
+*   **Autenticación**:
+    *   Genera un token de autologin.
+    *   Revoca la sesión de un usuario (logout forzado).
+*   **Nodos y Mediciones**:
+    *   Crea nodos para un usuario.
+    *   Guarda mediciones de sensores en un nodo.
+    *   Dispara una notificación si el CO2 es elevado.
+    *   Obtiene las mediciones de un nodo.
+    *   Obtiene todos los nodos de un usuario.
+    *   Actualiza los datos de un nodo.
+    *   Elimina un nodo.
+*   **Notificaciones**:
+    *   Envía notificaciones a un usuario específico o a un topic general.
 
 ## Programas
 
@@ -69,7 +85,7 @@ Ruta: `src/WEB/my-app/`
 
 ### API / Modelo de Negocio
 
-Ruta: `src/FirebaseFunctions/functions/src`
+Ruta: `src/FirebaseFunctions/functions/`
 **Cómo ejecutarlo / despliegue:**
 *(estas funciones solo están en local para edición, pruebas y luego despliegue a Firebase Functions Cloud)*
 
@@ -85,64 +101,57 @@ Ruta: `src/FirebaseFunctions/functions/src`
    firebase deploy --only functions
    ```
 
-**Descripción:**
+**Descripción de Endpoints:**
 
-* ManejarPOST (POST)
-
-
-Recibe un JSON con los datos { sensor: string, valor: number }.
-Valida los campos y llama a LogicaDeNegocio para guardarlos en la colección 'medidas' de Firestore.
-Devuelve un JSON con el resultado del proceso o registra errores en Firebase Functions.
-
-
-
-* recibirMedida (GET)
-
-Recupera la última medición registrada desde Firestore a través de LogicaDeNegocio.
-Devuelve { sensor, valor, tiempo } o registra errores en los logs de Firebase.
-
-
-Arquitectura:
-El sistema separa claramente la interfaz HTTP (Funciones Cloud) de la lógica de negocio (LogicaDeNegocio.js),
-mejorando mantenibilidad, escalabilidad y reutilización del código.
+*   `GET /usuarios/completo/{uid}`: Obtiene los datos completos de un usuario.
+*   `GET /usuarios/{idUsuario}`: Obtiene los datos de un usuario.
+*   `GET /usuarios/admin/{idAdmin}`: Obtiene la lista de todos los usuarios (requiere rol de `admin`).
+*   `POST /usuarios`: Crea un nuevo usuario.
+*   `PUT /usuarios/{idUsuario}`: Actualiza los datos de un usuario.
+*   `DELETE /usuarios/{idUsuario}`: Elimina un usuario.
+*   `GET /nodos/propietario/{idPropietario}`: Obtiene todos los nodos de un usuario.
+*   `POST /nodos`: Crea un nuevo nodo.
+*   `PUT /nodos`: Actualiza un nodo existente.
+*   `DELETE /nodos`: Elimina un nodo.
+*   `GET /mediciones/{propietarioId}/{nombreNodo}`: Obtiene las mediciones de un nodo.
+*   `POST /mediciones`: Guarda nuevas mediciones para un nodo.
+*   `GET /autologin/{uid}`: Genera un enlace de autologin.
+*   `GET /logout/{uid}`: Revoca la sesión de un usuario.
+*   `POST /notificar`: Envía una notificación.
 
 ## Firebase
 
 ### Firestore
 
-Firestore almacena la información en **colecciones** y **documentos**.
-Ejemplo de colección: `mediciones`
+Firestore almacena la información en dos colecciones principales: `usuarios` y `nodos`.
 
-Un documento dentro de esta colección tendría la siguiente estructura:
+**Colección `usuarios`:**
 
 ```json
 {
-  "Document ID": "rJzftLL0jh2B1siitvQT",
-  "nombre": "CO2",
-  "timestamp": "October 3, 2025 at 4:41:22 PM UTC+2",
-  "valor": 123455
+  "uid": "...",
+  "nombre": "Nombre del Usuario",
+  "correo": "usuario@email.com",
+  "rol": "ciudadano" | "admin",
+  "monedas": 150,
+  "premios": ["premio_bronce"],
+  "distancia": 8.5,
+  "creadoEn": "timestamp"
 }
 ```
 
-📌 Equivalente en **SQL** (tabla `mediciones`):
+**Colección `nodos`:**
 
-```sql
-CREATE TABLE mediciones (
-    document_id VARCHAR(255) PRIMARY KEY,
-    nombre VARCHAR(50),
-    timestamp TIMESTAMP,
-    valor INT
-);
-
-INSERT INTO mediciones (document_id, nombre, timestamp, valor)
-VALUES 
-('rJzftLL0jh2B1siitvQT', 'CO2', '2025-10-03 16:41:22+02', 123455),
-('xB90Ld9hOtkX4Sx4V4mC', 'CO2', '2025-10-03 16:44:48+02', 1234),
-('ylD8IWoJWjaMxH7xgOHu', 'CO2', '2025-10-03 16:43:21+02', 1234567),
-('zXNT0iuaAPZZZhJUv5tK', 'CO2', '2025-10-03 12:54:28+02', -26037);
+```json
+{
+  "propietarioId": "uid_del_usuario",
+  "nombre": "Nombre del Nodo",
+  "ubicacion": "Ubicación del Nodo",
+  "sensores": {
+    "co2": 450,
+    "temperatura": 22.5,
+    "humedad": 55
+  },
+  "tiempo": "timestamp"
+}
 ```
-
-De esta forma:
-
-* En **Firestore**, cada fila es un **documento JSON** en una colección.
-* En **SQL**, cada documento se traduce en una **fila de tabla** con columnas bien definidas.

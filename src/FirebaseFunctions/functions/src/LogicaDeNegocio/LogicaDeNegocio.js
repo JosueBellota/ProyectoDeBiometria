@@ -190,6 +190,47 @@ async crearUsuario(nombre, correo, rol, password) {
   }
 }
 
+// ------------------------------------------------------------------------------------
+// idUsuario: texto, datos: objeto (campos a actualizar)
+// -->
+// actualizarUsuario(idUsuario, datos)
+// -->
+// - Actualiza los campos especificados del usuario en Firestore
+// ------------------------------------------------------------------------------------
+async actualizarUsuario(idUsuario, datos) {
+  try {
+    const usuarioRef = this.#db.collection("usuarios").doc(idUsuario);
+    const usuarioDoc = await usuarioRef.get();
+
+    if (!usuarioDoc.exists) {
+      throw new Error(`Usuario con ID ${idUsuario} no encontrado`);
+    }
+
+    // Preparar datos para actualización (excluir campos que no se deben actualizar)
+    const datosActualizacion = { ...datos };
+    delete datosActualizacion.uid; // No permitir cambiar el UID
+    delete datosActualizacion.creadoEn; // No permitir cambiar la fecha de creación
+    delete datosActualizacion.correo; // El correo se gestiona en Authentication
+
+    // Si se intenta actualizar el correo, actualizarlo también en Authentication
+    if (datos.correo && datos.correo !== usuarioDoc.data().correo) {
+      await this.#admin.auth().updateUser(idUsuario, {
+        email: datos.correo
+      });
+    }
+
+    // Actualizar en Firestore
+    await usuarioRef.update(datosActualizacion);
+
+    functions.logger.info(`✅ Usuario ${idUsuario} actualizado correctamente`);
+    return true;
+
+  } catch (error) {
+    functions.logger.error("❌ Error en actualizarUsuario:", error);
+    throw error;
+  }
+}
+
   //------------------------------------------------------------------------------------
   // idUsuario, datos (entrada)
   // -->
