@@ -210,7 +210,6 @@ async actualizarUsuario(idUsuario, datos) {
     const datosActualizacion = { ...datos };
     delete datosActualizacion.uid; // No permitir cambiar el UID
     delete datosActualizacion.creadoEn; // No permitir cambiar la fecha de creación
-    delete datosActualizacion.correo; // El correo se gestiona en Authentication
 
     // Si se intenta actualizar el correo, actualizarlo también en Authentication
     if (datos.correo && datos.correo !== usuarioDoc.data().correo) {
