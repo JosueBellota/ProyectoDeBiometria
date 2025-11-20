@@ -168,3 +168,63 @@ button,
   border-radius: var(--radius-button);
   cursor: pointer;
 }
+
+/* HEADER NO REGISTRADO ----------------------------------- */
+
+.headerNR {
+  width: 100%;
+  background-color: #22604D; /* verde primario */
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 40px;
+  box-sizing: border-box;
+}
+
+.headerNR-left {
+  display: flex;
+  align-items: center;
+}
+
+.headerNR-logo {
+  height: 48px;          /* controla tamaño del logo */
+  width: auto;
+  border-radius: 50%;    /* si tu logo está en un círculo como en la maqueta */
+  background: #F7F2EA;   /* color crema del círculo */
+  padding: 8px;
+}
+
+.headerNR-nav {
+  display: flex;
+  gap: 60px;             /* separa los textos del menú */
+}
+
+.headerNR-nav a {
+  color: #EBEBEB;
+  font-weight: 700;
+  font-size: 16px;
+  text-decoration: none;
+}
+
+.headerNR-nav a:hover {
+  text-decoration: underline;
+}
+
+.headerNR-right {
+  display: flex;
+  align-items: center;
+}
+
+.headerNR-btn {
+  background-color: #EBEBEB;
+  padding: 10px 26px;
+  border-radius: 10px;
+  font-weight: 700;
+  color: #22604D;
+  text-decoration: none;
+  border: none;
+}
+
+.headerNR-btn:hover {
+  background-color: #D9D9D9;
+}
