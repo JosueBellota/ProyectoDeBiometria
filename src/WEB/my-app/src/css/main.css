@@ -173,7 +173,7 @@ button,
 
 .headerNR {
   width: 100%;
-  background-color: #22604D; /* verde primario */
+  background-color: #22604D;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -181,22 +181,31 @@ button,
   box-sizing: border-box;
 }
 
+/* Logo a la izquierda */
 .headerNR-left {
   display: flex;
   align-items: center;
 }
 
 .headerNR-logo {
-  height: 48px;          /* controla tamaño del logo */
+  height: 48px;
   width: auto;
-  border-radius: 50%;    /* si tu logo está en un círculo como en la maqueta */
-  background: #F7F2EA;   /* color crema del círculo */
+  border-radius: 50%;
+  background: #F7F2EA;
   padding: 8px;
 }
 
+/* NAV + BOTÓN juntos a la derecha */
+.headerNR-right {
+  display: flex;
+  align-items: center;
+  gap: 70px;   /* separación más grande y estética */
+}
+
+/* Navegación ahora va dentro del bloque derecho */
 .headerNR-nav {
   display: flex;
-  gap: 60px;             /* separa los textos del menú */
+  gap: 60px;   /* más separación entre INFORMACIÓN | INCIDENCIAS | INICIA SESIÓN */
 }
 
 .headerNR-nav a {
@@ -210,11 +219,7 @@ button,
   text-decoration: underline;
 }
 
-.headerNR-right {
-  display: flex;
-  align-items: center;
-}
-
+/* Botón REGÍSTRATE */
 .headerNR-btn {
   background-color: #EBEBEB;
   padding: 10px 26px;
@@ -228,3 +233,4 @@ button,
 .headerNR-btn:hover {
   background-color: #D9D9D9;
 }
+
