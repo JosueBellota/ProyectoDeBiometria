@@ -107,13 +107,14 @@ function Perfil() {
     const datosCompletos = await obtenerUsuarioCompleto(user.uid);
     if (!datosCompletos.error) {
       setUsuario(datosCompletos);
-      setPerfil({
-        ...perfil,
+      // Actualiza solo los campos relevantes, evitando la dependencia de 'perfil'
+      setPerfil(prev => ({
+        ...prev,
         nombre: datosCompletos.nombre,
         correo: datosCompletos.correo,
-      });
+      }));
     }
-  }, [navigate, perfil]); // Added perfil to dependency array
+  }, [navigate]); // Se elimina 'perfil' de las dependencias
 
   useEffect(() => {
     cargarUsuario();

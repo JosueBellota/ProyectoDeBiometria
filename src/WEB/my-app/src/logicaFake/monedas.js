@@ -1,8 +1,8 @@
 // src/logicaFake/monedas.js
 
-// Cooldown de 5 minutos (en milisegundos) para simular un día
-export const COOLDOWN_DIARIO = 5 * 60 * 1000; 
-export const TIEMPO_REQUERIDO_ACTIVIDAD = 30; // 30 segundos en segundos
+// Cooldown de 10 minutos (en milisegundos) para simular un día
+export const COOLDOWN_DIARIO = 10 * 60 * 1000; 
+export const TIEMPO_REQUERIDO_ACTIVIDAD = 120; // 2 minutos en segundos
 
 /**
  * Comprueba si el usuario puede reclamar una nueva moneda.
