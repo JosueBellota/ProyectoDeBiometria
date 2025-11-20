@@ -43,6 +43,10 @@
     import android.provider.Settings;
     import android.os.Handler;
     import android.app.AlertDialog;
+    import android.view.Menu;
+    import android.view.MenuInflater;
+    import android.view.MenuItem;
+    import androidx.appcompat.widget.Toolbar;
 
     // -----------------------------------------------------------------------------------
     //
@@ -92,6 +96,10 @@
             super.onCreate(savedInstanceState);
             setContentView(R.layout.activity_main);
 
+            // --- Toolbar Setup ---
+            Toolbar toolbar = findViewById(R.id.toolbar);
+            setSupportActionBar(toolbar);
+
             // ---------------------------------------------------------------------------
             // LISTENER GLOBAL → Fuerza Logout si el servidor revoca la sesión
             // ---------------------------------------------------------------------------
@@ -118,18 +126,7 @@
             // LOGOUT MANUAL (botón)
             // ---------------------------------------------------------------------------
             findViewById(R.id.logoutButton).setOnClickListener(v -> {
-                FirebaseAuth.getInstance().signOut();
-
-                FirebaseMessaging.getInstance().unsubscribeFromTopic(
-                        FirebaseAuth.getInstance().getUid() == null ? "" : FirebaseAuth.getInstance().getUid()
-                );
-
-                Intent intent = new Intent(MainActivity.this, Login.class);
-                intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP |
-                        Intent.FLAG_ACTIVITY_NEW_TASK |
-                        Intent.FLAG_ACTIVITY_CLEAR_TASK);
-                startActivity(intent);
-                finish();
+                forzarLogout();
             });
 
             // ---------------------------------------------------------------------------
@@ -151,18 +148,12 @@
             // ---------------------------------------------------------------------------
             // Suscripción al Topic del UID del usuario
             // ---------------------------------------------------------------------------
-            String uid;
-            if (FirebaseAuth.getInstance().getCurrentUser() != null) {
-                uid = FirebaseAuth.getInstance().getCurrentUser().getUid();
-            } else {
-                uid = null;
-            }
-
-            if (uid != null) {
-                FirebaseMessaging.getInstance().subscribeToTopic(uid)
+            uidGlobal = (FirebaseAuth.getInstance().getCurrentUser() != null) ? FirebaseAuth.getInstance().getCurrentUser().getUid() : null;
+            if (uidGlobal != null) {
+                FirebaseMessaging.getInstance().subscribeToTopic(uidGlobal)
                         .addOnCompleteListener(task -> {
                             if (task.isSuccessful()) {
-                                Log.d(">>>>", "✅ Suscrito al topic del usuario: " + uid);
+                                Log.d(">>>>", "✅ Suscrito al topic del usuario: " + uidGlobal);
                             } else {
                                 Log.w(">>>>", "❌ Error al suscribirse al topic del usuario", task.getException());
                             }
@@ -212,7 +203,6 @@
                         .show();
             });
 
-            uidGlobal = uid;
             distanciaManager = new DistanciaManager(this, findViewById(R.id.textoDistancia));
 
             // ---------------------------------------------------------------------------
@@ -228,6 +218,53 @@
 
 
         } // onCreate()
+
+        @Override
+        public boolean onCreateOptionsMenu(Menu menu) {
+            MenuInflater inflater = getMenuInflater();
+            inflater.inflate(R.menu.main_menu, menu);
+            return true;
+        }
+
+        @Override
+        public boolean onOptionsItemSelected(MenuItem item) {
+            if (item.getItemId() == R.id.action_intranet) {
+                Log.d(ETIQUETA_LOG, "Botón Intranet pulsado");
+                abrirIntranet();
+                return true;
+            }
+            return super.onOptionsItemSelected(item);
+        }
+
+        private void abrirIntranet() {
+            if (uidGlobal == null) {
+                Toast.makeText(this, "❌ No hay usuario logueado", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            obtenerLinkAutologin(uidGlobal, new Callback() {
+                @Override
+                public void onSuccess(String link) {
+                    if (link == null) {
+                        runOnUiThread(() -> Toast.makeText(MainActivity.this, "❌ Error obteniendo enlace", Toast.LENGTH_SHORT).show());
+                        return;
+                    }
+                    runOnUiThread(() -> {
+                        Intent intent = new Intent(MainActivity.this, WebNodoActivity.class);
+                        intent.putExtra("url", link);
+                        // Pasamos un nombre genérico ya que no está asociado a un nodo específico
+                        intent.putExtra("nombreNodo", "Intranet");
+                        startActivity(intent);
+                    });
+                }
+
+                @Override
+                public void onError(String error) {
+                    runOnUiThread(() -> Toast.makeText(MainActivity.this, "❌ Error API: " + error, Toast.LENGTH_SHORT).show());
+                }
+            });
+        }
+
 
 
         // --------------------------------------------------------------------------------
