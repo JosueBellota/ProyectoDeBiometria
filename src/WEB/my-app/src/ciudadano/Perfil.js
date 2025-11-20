@@ -6,7 +6,8 @@ import {
   reautenticarUsuario,
   actualizarPasswordConReautenticacion,
 } from "../logicaFake/auth";
-import Menu from "./templates/Menu";
+
+import HeaderRegistrado from "./templates/HeaderRegistrado";
 
 function Perfil() {
   const navigate = useNavigate();
@@ -116,8 +117,10 @@ function Perfil() {
   };
 
   return (
+    <><HeaderRegistrado monedas={usuario?.monedas ?? 0} />
+    
     <div className="container">
-      <Menu nombreUsuario={obtenerUsuarioLogueado()?.nombre} />
+      
       <h1>Perfil del Usuario</h1>
       <form onSubmit={handleSubmit} className="perfil-form">
         <div>
@@ -179,7 +182,9 @@ function Perfil() {
         <button type="submit">Actualizar</button>
       </form>
     </div>
+    </>
   );
+  
 }
 
 export default Perfil;
