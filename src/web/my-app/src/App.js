@@ -5,11 +5,14 @@ import Login from "./Login";
 import Registro from "./Registro";
 import IntranetCiudadano from "./ciudadano/Intranet";
 import IntranetAdmin from "./admin/Intranet";
-import Perfil from "./ciudadano/Perfil";
+import PerfilAdmin from "./admin/Perfil";
 import Autologin from "./Autologin";
-import Home from "./Home"; 
+import Home from "./Home";
 import CalidadAire from "./CalidadAire";
-import Tienda from "./ciudadano/Tienda";   // 🟢 NUEVO
+import InformacionCiudadano from "./ciudadano/Informacion";
+import CalidadAireCiudadano from "./ciudadano/CalidadAire";
+import Tienda from "./ciudadano/Tienda";
+import PerfilCiudadano from "./ciudadano/Perfil";
 import { escucharSesion } from "./logicaFake/auth";
 
 function App() {
@@ -20,9 +23,6 @@ function App() {
   useEffect(() => {
     const unsubscribe = escucharSesion(async (user) => {
       if (user) {
-        console.log("👤 Usuario detectado desde Firebase:");
-        console.log("📧 Correo:", user.correo);
-        console.log("🧩 Rol detectado:", user.rol || "ciudadano (por defecto)");
         setUsuario(user);
       } else {
         setUsuario(null);
@@ -39,111 +39,28 @@ function App() {
     <Routes>
       <Route path="/autologin" element={<Autologin />} />
 
-      {/* HOME por defecto */}
-      <Route
-        path="/"
-        element={
-          usuario ? (
-            usuario.rol === "admin" ? (
-              <Navigate to="/admin/intranet" />
-            ) : (
-              <Navigate to="/ciudadano/intranet" />
-            )
-          ) : (
-            <Home />
-          )
-        }
-      />
-
-      {/* Login */}
-      <Route
-        path="/login"
-        element={
-          usuario ? (
-            usuario.rol === "admin" ? (
-              <Navigate to="/admin/intranet" />
-            ) : (
-              <Navigate to="/ciudadano/intranet" />
-            )
-          ) : (
-            <Login />
-          )
-        }
-      />
-
-      {/* Registro */}
-      <Route
-        path="/registro"
-        element={
-          usuario ? (
-            <Navigate to="/ciudadano/intranet" />
-          ) : (
-            <Registro />
-          )
-        }
-      />
-
-      {/* INTRANET CIUDADANO */}
-      <Route
-        path="/ciudadano/intranet"
-        element={
-          usuario ? (
-            usuario.rol === "ciudadano" ? (
-              <IntranetCiudadano />
-            ) : (
-              <Navigate to="/admin/intranet" />
-            )
-          ) : (
-            <Navigate to="/login" />
-          )
-        }
-      />
-
-      {/* TIENDA (solo usuarios ciudadanos logueados) */}
-      <Route
-        path="/tienda"
-        element={
-          usuario ? (
-            usuario.rol === "ciudadano" ? (
-              <Tienda />
-            ) : (
-              <Navigate to="/admin/intranet" />
-            )
-          ) : (
-            <Navigate to="/login" />
-          )
-        }
-      />
-
-      {/* INTRANET ADMIN */}
-      <Route
-        path="/admin/intranet"
-        element={
-          usuario ? (
-            usuario.rol === "admin" ? (
-              <IntranetAdmin />
-            ) : (
-              <Navigate to="/ciudadano/intranet" />
-            )
-          ) : (
-            <Navigate to="/login" />
-          )
-        }
-      />
-
-      {/* PERFIL */}
-      <Route
-        path="/perfil"
-        element={usuario ? <Perfil /> : <Navigate to="/login" />}
-      />
-
-      {/* Calidad del aire */}
+      {/* Rutas públicas */}
+      <Route path="/" element={!usuario ? <Home /> : (usuario.rol === "admin" ? <Navigate to="/admin/intranet" /> : <Navigate to="/ciudadano/intranet" />)} />
+      <Route path="/login" element={!usuario ? <Login /> : (usuario.rol === "admin" ? <Navigate to="/admin/intranet" /> : <Navigate to="/ciudadano/intranet" />)} />
+      <Route path="/registro" element={!usuario ? <Registro /> : <Navigate to="/ciudadano/intranet" />} />
       <Route path="/calidad-aire" element={<CalidadAire />} />
 
-      {/* RUTA POR DEFECTO */}
+      {/* Rutas de ciudadano */}
+      <Route path="/ciudadano/intranet" element={usuario && usuario.rol === "ciudadano" ? <IntranetCiudadano /> : <Navigate to="/login" />} />
+      <Route path="/ciudadano/informacion" element={usuario && usuario.rol === "ciudadano" ? <InformacionCiudadano /> : <Navigate to="/login" />} />
+      <Route path="/ciudadano/calidad-aire" element={usuario && usuario.rol === "ciudadano" ? <CalidadAireCiudadano /> : <Navigate to="/login" />} />
+      <Route path="/ciudadano/tienda" element={usuario && usuario.rol === "ciudadano" ? <Tienda /> : <Navigate to="/login" />} />
+      <Route path="/ciudadano/perfil" element={usuario && usuario.rol === "ciudadano" ? <PerfilCiudadano /> : <Navigate to="/login" />} />
+
+      {/* Rutas de administrador */}
+      <Route path="/admin/intranet" element={usuario && usuario.rol === "admin" ? <IntranetAdmin /> : <Navigate to="/login" />} />
+      <Route path="/admin/perfil" element={usuario && usuario.rol === "admin" ? <PerfilAdmin /> : <Navigate to="/login" />} />
+
+      {/* Redirección por defecto */}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
 }
 
 export default App;
+

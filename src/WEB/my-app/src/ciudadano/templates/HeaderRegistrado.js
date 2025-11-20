@@ -1,51 +1,96 @@
-import React, { useState } from "react";
-import { Link } from "react-router-dom";
-import "../css/ciudadano.css";   // <-- CSS correcto
+import React, { useState, useEffect } from "react";
+import "../../css/main.css";
+import { Link, useNavigate } from "react-router-dom";
+import { obtenerUsuarioCompleto } from "../../logicaFake/logicaFake";
+import { cerrarSesion, obtenerUsuarioLogueado } from "../../logicaFake/auth";
+import AccountCircle from "@mui/icons-material/AccountCircle";
+import MonetizationOn from "@mui/icons-material/MonetizationOn";
 
-export default function HeaderRegistrado({ monedas = 0 }) {
+export default function HeaderRegistrado() {
   const [menuAbierto, setMenuAbierto] = useState(false);
+  const [usuario, setUsuario] = useState(null);
+  const navigate = useNavigate();
 
-  const toggleMenu = () => setMenuAbierto(!menuAbierto);
+  const toggleMenu = () => setMenuAbierto((prev) => !prev);
   const closeMenu = () => setMenuAbierto(false);
 
+  useEffect(() => {
+    const cargarUsuario = async () => {
+      const user = obtenerUsuarioLogueado();
+      if (user) {
+        try {
+          const datosCompletos = await obtenerUsuarioCompleto(user.uid);
+          if (!datosCompletos.error) {
+            setUsuario(datosCompletos);
+          }
+        } catch (error) {
+          console.error("Error al cargar datos de usuario:", error);
+        }
+      }
+    };
+    cargarUsuario();
+  }, []);
+
+  const handleLogout = () => {
+    cerrarSesion();
+    closeMenu();
+    navigate("/");
+  };
+
   return (
-    <header className="headerR">
-      {/* LOGO → INTRANET */}
-      <div className="headerR-left">
+    <header className="header-registrado">
+      <div className="header-registrado-left">
         <Link to="/ciudadano/intranet" onClick={closeMenu}>
-          <img src="/logo.svg" alt="Logo" className="headerR-logo" />
+          <img src="/logo.svg" alt="Logo" className="header-registrado-logo" />
         </Link>
       </div>
 
-      {/* BURGER (móvil) */}
       <button
-        className={`headerR-burger ${menuAbierto ? "open" : ""}`}
+        className={`header-registrado-burger ${menuAbierto ? "open" : ""}`}
         onClick={toggleMenu}
+        aria-label="Abrir menú"
       >
-        <span></span>
-        <span></span>
-        <span></span>
+        <span />
+        <span />
+        <span />
       </button>
 
-      {/* MENÚ DERECHO */}
-      <div className={`headerR-right ${menuAbierto ? "open" : ""}`}>
-        <nav className="headerR-nav">
-          <Link to="/informacion" onClick={closeMenu}>INFORMACIÓN</Link>
-          <Link to="/incidencias" onClick={closeMenu}>INCIDENCIAS</Link>
-          <Link to="/mapa" onClick={closeMenu}>MAPA</Link>
-          <Link to="/graficas" onClick={closeMenu}>GRÁFICAS</Link>
-          <Link to="/recorrido" onClick={closeMenu}>RECORRIDO</Link>
+      <div className={`header-registrado-right ${menuAbierto ? "open" : ""}`}>
+        <nav className="header-registrado-nav">
+          <Link to="/ciudadano/intranet" onClick={closeMenu}>
+            INTRANET
+          </Link>
+          
+          <Link to="/ciudadano/Informacion" onClick={closeMenu}>
+            INFORMACIÓN
+          </Link>
+          <Link to="/ciudadano/calidad-aire" onClick={closeMenu}>
+            CONTAMINANTES
+          </Link>
+
+          <button onClick={handleLogout} aria-label="Cerrar sesión">
+            CERRAR SESIÓN
+          </button>
+          <Link
+            to="/ciudadano/tienda"
+            onClick={closeMenu}
+            className="header-registrado-monedas-link"
+            aria-label={`Ir a la tienda. Tienes ${usuario?.monedas ?? 0} monedas`}
+          >
+            <MonetizationOn sx={{ fontSize: 24 }} />
+            <span>{usuario?.monedas ?? 0}</span>
+          </Link>
         </nav>
 
-        {/* MONEDAS → TIENDA */}
-        <Link to="/tienda" className="headerR-coins" onClick={closeMenu}>
-          <span className="headerR-coins-amount">{monedas}</span>
-          <img src="/moneda.png" alt="Moneda" className="headerR-moneda-img" />
-        </Link>
-
-        {/* PERFIL */}
-        <Link to="/perfil" className="headerR-profile-link" onClick={closeMenu}>
-          <div className="headerR-user-icon">👤</div>
+        <Link
+          to="/ciudadano/perfil"
+          onClick={closeMenu}
+          className="header-registrado-perfil-link"
+        >
+          <AccountCircle sx={{ fontSize: 48, color: "white" }} />
+          <span className="perfil-nombre">
+            {usuario ? usuario.nombre : "..."}
+          </span>
         </Link>
       </div>
     </header>

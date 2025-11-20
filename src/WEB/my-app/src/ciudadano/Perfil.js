@@ -6,7 +6,6 @@ import {
   reautenticarUsuario,
   actualizarPasswordConReautenticacion,
 } from "../logicaFake/auth";
-
 import HeaderRegistrado from "./templates/HeaderRegistrado";
 
 function Perfil() {
@@ -117,10 +116,10 @@ function Perfil() {
   };
 
   return (
-    <><HeaderRegistrado monedas={usuario?.monedas ?? 0} />
-    
+    <>
+    <HeaderRegistrado />
     <div className="container">
-      
+     
       <h1>Perfil del Usuario</h1>
       <form onSubmit={handleSubmit} className="perfil-form">
         <div>
@@ -184,7 +183,7 @@ function Perfil() {
     </div>
     </>
   );
-  
 }
 
 export default Perfil;
+

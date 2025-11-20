@@ -519,3 +519,195 @@ button,
     border-radius: 10px;
   }
 }
+
+.distancia-container {
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.distancia-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.distancia-info svg {
+    width: 24px;
+    height: 24px;
+    color: #007bff;
+}
+
+.distancia-texto {
+    font-size: 1.1rem;
+    font-weight: 500;
+}
+
+.reset-btn {
+    background-color: #dc3545;
+    color: white;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.reset-btn:hover {
+    background-color: #c82333;
+}
+/* HEADER REGISTRADO ----------------------------------- */
+
+.header-registrado {
+  width: 100%;
+  background-color: var(--color-primary);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 40px;
+  box-sizing: border-box;
+}
+
+.header-registrado-left {
+  display: flex;
+  align-items: center;
+}
+
+.header-registrado-logo {
+  height: 48px;
+  border-radius: 50%;
+  background: #F7F2EA;
+  padding: 8px;
+  margin-right: 24px;
+}
+
+.header-registrado-right {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+
+.header-registrado-nav {
+  display: flex;
+  align-items: center;
+  gap: 32px;
+}
+
+.header-registrado-nav a,
+.header-registrado-nav button {
+  color: #EBEBEB;
+  font-weight: 700;
+  font-size: 16px;
+  text-decoration: none;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  font-family: var(--font-base);
+}
+
+.header-registrado-nav a:hover,
+.header-registrado-nav button:hover {
+  text-decoration: underline;
+}
+
+.header-registrado-monedas-link {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: white;
+  text-decoration: none;
+  font-weight: bold;
+}
+
+.header-registrado-perfil-link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-decoration: none;
+}
+
+.perfil-nombre {
+  color: white;
+  font-size: 0.9rem;
+  font-weight: bold;
+}
+
+/* HAMBURGUESA */
+.header-registrado-burger {
+  display: none;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 8px;
+}
+
+.header-registrado-burger span {
+  display: block;
+  width: 22px;
+  height: 2px;
+  background-color: #EBEBEB;
+  margin: 4px 0;
+  transition: 0.2s ease;
+}
+
+.header-registrado-burger.open span:nth-child(1) {
+  transform: translateY(6px) rotate(45deg);
+}
+.header-registrado-burger.open span:nth-child(2) {
+  opacity: 0;
+}
+.header-registrado-burger.open span:nth-child(3) {
+  transform: translateY(-6px) rotate(-45deg);
+}
+
+/* RESPONSIVE */
+@media (max-width: 900px) {
+  .header-registrado {
+    padding: 10px 16px;
+    position: relative;
+  }
+
+  .header-registrado-burger {
+    display: block;
+    z-index: 20;
+  }
+
+  .header-registrado-right {
+    position: absolute;
+    top: 68px; /* Ajustado para el nuevo tama�o del logo */
+    right: 0;
+    left: 0;
+    background-color: var(--color-primary);
+    padding: 20px;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+    transform: translateY(-150%);
+    opacity: 0;
+    pointer-events: none;
+    transition: 0.3s ease-in-out;
+    z-index: 10;
+  }
+
+  .header-registrado-right.open {
+    transform: translateY(0);
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .header-registrado-nav {
+    flex-direction: column;
+    gap: 18px;
+    align-items: center;
+  }
+
+  .header-registrado-perfil-link {
+    flex-direction: column;
+  }
+}

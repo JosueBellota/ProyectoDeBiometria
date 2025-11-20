@@ -1,15 +1,9 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { obtenerUsuarioLogueado } from "./../logicaFake/auth";
-import {
-  main,
-  obtenerUsuarioCompleto,
-  actualizarDistanciaUsuario,
-} from "./../logicaFake/logicaFake";
-
+import { main, obtenerUsuarioCompleto, actualizarDistanciaUsuario } from "./../logicaFake/logicaFake";
 import HeaderRegistrado from "./templates/HeaderRegistrado";
 import "./css/ciudadano.css";
-
 
 function Intranet() {
   const navigate = useNavigate();
@@ -28,16 +22,16 @@ function Intranet() {
       }
       setUsuario(user);
 
-      // Obtener datos completos del usuario → distancia + monedas
+      // Fetch user data to get distance
       const userData = await obtenerUsuarioCompleto(user.uid);
-      if (userData) {
-        if (userData.distancia !== undefined)
-          setDistanciaRecorrida(userData.distancia);
+      if (userData && userData.distancia !== undefined) {
+        setDistanciaRecorrida(userData.distancia);
       }
 
-      // Obtener mediciones de sensor
+      // Fetch sensor measurements
       const res = await main();
       setResultados(res);
+
     } catch (error) {
       console.error("❌ Error al obtener datos:", error);
       setResultados([{ error: error.message }]);
@@ -55,7 +49,10 @@ function Intranet() {
     };
 
     window.addEventListener("focus", handleFocus);
-    return () => window.removeEventListener("focus", handleFocus);
+
+    return () => {
+      window.removeEventListener("focus", handleFocus);
+    };
   }, [fetchData]);
 
   const resetDistancia = async () => {
@@ -81,10 +78,20 @@ function Intranet() {
 
   return (
     <>
-      {/* 🟢 HEADER REGISTRADO */}
-      <HeaderRegistrado monedas={usuario?.monedas ?? 0} />
-
-      <div className="container">
+    <HeaderRegistrado />
+    <div
+      className="home-page"
+      style={{
+        width: "100%",
+        minHeight: "100vh",
+        backgroundImage: "url(/Fondo.png)",
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+        backgroundRepeat: "no-repeat",
+      }}
+    >
+      
+      <main className="home-content">
         <h1>Intranet - Mediciones de Sensores</h1>
 
         <div className="distancia-container">
@@ -157,9 +164,11 @@ function Intranet() {
             </div>
           ))
         )}
-      </div>
+      </main>
+    </div>
     </>
   );
 }
 
 export default Intranet;
+

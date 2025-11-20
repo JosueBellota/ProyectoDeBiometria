@@ -1,0 +1,203 @@
+import React, { useState } from "react";
+import HeaderRegistrado from "./templates/HeaderRegistrado";
+import "../css/main.css";
+
+const features = [
+  {
+    id: 0,
+    titulo: "Recorrido y trazado personal",
+    texto:
+      "Visualiza las rutas que recorres y cómo varían las condiciones ambientales a lo largo del camino. Transforma tus pasos en datos útiles para mejorar la ciudad.",
+    img: "/recorrido.png",
+    alt: "Mapa con un recorrido marcado"
+  },
+  {
+    id: 1,
+    titulo: "Información meteorológica en el mapa",
+    texto:
+      "Lleva tu nodo y observa en tiempo real la temperatura, el aire o el CO₂ de tu entorno. Contribuye a un mapa colectivo que muestra cómo respira la ciudad.",
+    img: "/informacion.png",
+    alt: "Mapa con información meteorológica"
+  },
+  {
+    id: 2,
+    titulo: "Gráficas y análisis de datos",
+    texto:
+      "Consulta gráficos con las mediciones de tu nodo. Detecta patrones, compara zonas y comprende mejor el ambiente que te rodea.",
+    img: "/grafica.png",
+    alt: "Gráficas de datos ambientales"
+  }
+];
+
+const faqs = [
+  {
+    pregunta: "1. ¿Qué es un nodo y para qué sirve?",
+    respuesta:
+      "Un nodo es un pequeño dispositivo portátil que mide diferentes parámetros ambientales como temperatura, humedad o concentración de CO₂. Sirve para recoger datos mientras te desplazas por la ciudad."
+  },
+  {
+    pregunta: "2. ¿Quién puede solicitar un nodo?",
+    respuesta:
+      "Cualquier ciudadano interesado, así como centros educativos, asociaciones o administraciones locales que quieran participar en la monitorización del aire."
+  },
+  {
+    pregunta: "3. ¿Necesito tener conocimientos técnicos para usarlo?",
+    respuesta:
+      "No. El nodo está pensado para ser sencillo: solo tienes que llevarlo contigo encendido. La aplicación se encarga de procesar y mostrar los datos."
+  },
+  {
+    pregunta: "4. ¿Qué información puedo ver en la aplicación?",
+    respuesta:
+      "Podrás ver tus recorridos, las mediciones asociadas a cada tramo, mapas de calor y gráficos que resumen el comportamiento de las variables ambientales."
+  },
+  {
+    pregunta: "5. ¿Qué diferencia hay entre usuarios registrados y no registrados?",
+    respuesta:
+      "Los usuarios registrados pueden vincular un nodo, guardar su historial de rutas, descargar datos y personalizar alertas. Los no registrados solo pueden explorar mapas y estadísticas generales."
+  },
+  {
+    pregunta: "6. ¿Qué pasa con mis datos personales?",
+    respuesta:
+      "Solo almacenamos los datos imprescindibles para el funcionamiento del servicio. Las rutas se anonimizan y puedes solicitar la eliminación de tu cuenta y tus datos en cualquier momento."
+  },
+  {
+    pregunta: "7. ¿Es necesario registrarse para ver los datos?",
+    respuesta:
+      "No. Puedes consultar mapas y estadísticas públicas sin registrarte. El registro solo es necesario si quieres asociar un nodo y guardar tu información personal de uso."
+  }
+];
+
+function Informacion() {
+  const [featureIndex, setFeatureIndex] = useState(0);
+  const [faqAbierta, setFaqAbierta] = useState(null);
+
+  const siguienteFeature = () => {
+    setFeatureIndex((prev) => (prev + 1) % features.length);
+  };
+
+  const anteriorFeature = () => {
+    setFeatureIndex((prev) => (prev - 1 + features.length) % features.length);
+  };
+
+  const toggleFaq = (index) => {
+    setFaqAbierta((prev) => (prev === index ? null : index));
+  };
+
+  return (
+    <div
+      className="home-page"
+      style={{
+        width: "100%",
+        minHeight: "100vh",
+        backgroundImage: "url(/Fondo.png)",
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+        backgroundRepeat: "no-repeat"
+      }}
+    >
+      <HeaderRegistrado />
+
+      <main className="home-content">
+        {/* Hero */}
+        <section className="home-hero">
+          <h1 className="home-hero-title">Tu ruta, tu aire, tu impacto.</h1>
+          <img
+            src="/mapaMain.png"
+            alt="Mapa principal de la ciudad"
+            className="home-main-map"
+          />
+        </section>
+
+        {/* Cómo funciona nuestro servicio */}
+        <section className="home-how">
+          <h2 className="home-how-title">¿Cómo funciona nuestro servicio?</h2>
+
+          {/* Versión escritorio: tres tarjetas */}
+          <div className="home-features-desktop">
+            {features.map((f) => (
+              <article key={f.id} className="home-feature-card">
+                <img src={f.img} alt={f.alt} className="home-feature-image" />
+                <h3 className="home-feature-title">{f.titulo}</h3>
+                <p className="home-feature-text">{f.texto}</p>
+              </article>
+            ))}
+          </div>
+
+          {/* Versión móvil: slider con flechas */}
+          <div className="home-features-mobile">
+            <button
+              type="button"
+              className="home-feature-arrow"
+              onClick={anteriorFeature}
+              aria-label="Anterior"
+            >
+              ‹
+            </button>
+
+            <article className="home-feature-card mobile">
+              <img
+                src={features[featureIndex].img}
+                alt={features[featureIndex].alt}
+                className="home-feature-image"
+              />
+              <h3 className="home-feature-title">
+                {features[featureIndex].titulo}
+              </h3>
+              <p className="home-feature-text">
+                {features[featureIndex].texto}
+              </p>
+            </article>
+
+            <button
+              type="button"
+              className="home-feature-arrow"
+              onClick={siguienteFeature}
+              aria-label="Siguiente"
+            >
+              ›
+            </button>
+          </div>
+        </section>
+
+        {/* FAQ */}
+        <section className="home-faq-section">
+          <h2 className="home-faq-title">FAQ</h2>
+
+          <div className="home-faq-list">
+            {faqs.map((item, index) => (
+              <div
+                key={index}
+                className={`faq-item ${faqAbierta === index ? "open" : ""}`}
+              >
+                <button
+                  type="button"
+                  className="faq-question"
+                  onClick={() => toggleFaq(index)}
+                >
+                  <span>{item.pregunta}</span>
+                  <span className="faq-toggle-icon">⌄</span>
+                </button>
+                {faqAbierta === index && (
+                  <div className="faq-answer">
+                    <p>{item.respuesta}</p>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* Contacto */}
+        <section className="home-contact">
+          <p>contacto@mail.com</p>
+        </section>
+
+        <footer className="home-footer">
+          <span>GTI 2025©</span>
+        </footer>
+      </main>
+    </div>
+  );
+}
+
+export default Informacion;
