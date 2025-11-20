@@ -1,0 +1,41 @@
+.distancia-container {
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.distancia-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.distancia-info svg {
+    width: 24px;
+    height: 24px;
+    color: #007bff;
+}
+
+.distancia-texto {
+    font-size: 1.1rem;
+    font-weight: 500;
+}
+
+.reset-btn {
+    background-color: #dc3545;
+    color: white;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.reset-btn:hover {
+    background-color: #c82333;
+}

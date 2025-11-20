@@ -85,6 +85,8 @@
 
         private String uidGlobal;
 
+        private LogicaFake logica;
+
 
 
         // ---------------------------------------------------------------------------
@@ -204,14 +206,30 @@
             });
 
             distanciaManager = new DistanciaManager(this, findViewById(R.id.textoDistancia));
-
+            logica = new LogicaFake(null, null, 0, null, null, null, null, null, 0, 0, null, null, 0, 0, 0, uidGlobal, null);
             // ---------------------------------------------------------------------------
             // Botón para resetear la distancia
             // ---------------------------------------------------------------------------
             Button botonResetear = findViewById(R.id.botonResetearDistancia);
+            botonResetear.setText("Resetear");
             botonResetear.setOnClickListener(v -> {
                 if (distanciaManager != null) {
                     distanciaManager.resetearDistancia();
+                    logica.actualizarDistancia(uidGlobal, 0, new okhttp3.Callback() {
+                        @Override
+                        public void onFailure(okhttp3.Call call, java.io.IOException e) {
+                            runOnUiThread(() -> Toast.makeText(MainActivity.this, "Error al resetear la distancia", Toast.LENGTH_SHORT).show());
+                        }
+
+                        @Override
+                        public void onResponse(okhttp3.Call call, okhttp3.Response response) throws java.io.IOException {
+                            if (response.isSuccessful()) {
+                                runOnUiThread(() -> Toast.makeText(MainActivity.this, "Distancia reseteada", Toast.LENGTH_SHORT).show());
+                            } else {
+                                runOnUiThread(() -> Toast.makeText(MainActivity.this, "Error al resetear la distancia", Toast.LENGTH_SHORT).show());
+                            }
+                        }
+                    });
                 }
             });
 

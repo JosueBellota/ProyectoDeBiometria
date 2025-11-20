@@ -224,8 +224,12 @@ public class DistanciaManager {
         }
         updateUIText("Distancia: 0 m");
         Log.d(">>>>", "🔄 Distancia reseteada a 0");
+    
+        // Notificar al servidor que la distancia se ha reseteado
+        if (propietarioId != null) {
+            enviarDistanciaServidor(0);
+        }
     }
-
     private void enviarDistanciaServidor(int distancia) {
         Log.d(">>>>", "🌐 Enviando distancia al servidor: " + distancia + "m");
         new Thread(() -> {

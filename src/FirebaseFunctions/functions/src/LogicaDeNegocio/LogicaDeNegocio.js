@@ -233,7 +233,7 @@ async actualizarUsuario(idUsuario, datos) {
   //------------------------------------------------------------------------------------
   // idUsuario, datos (entrada)
   // -->
-  // actualizarUsuario() --> (modifica los datos de un usuario existente)
+  // obtenerUsuariosDesdeAdmin() --> (modifica los datos de un usuario existente)
   // -->
   // void
   //------------------------------------------------------------------------------------
