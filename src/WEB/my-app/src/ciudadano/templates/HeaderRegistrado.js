@@ -3,6 +3,7 @@ import "../../css/main.css";
 import { Link, useNavigate } from "react-router-dom";
 import { obtenerUsuarioCompleto } from "../../logicaFake/logicaFake";
 import { cerrarSesion, obtenerUsuarioLogueado } from "../../logicaFake/auth";
+import { puedeReclamarMoneda, marcarMonedaReclamada, obtenerTiempoRestante, formatTime } from "../../logicaFake/monedas";
 import AccountCircle from "@mui/icons-material/AccountCircle";
 import MonetizationOn from "@mui/icons-material/MonetizationOn";
 
@@ -30,6 +31,27 @@ export default function HeaderRegistrado() {
     };
     cargarUsuario();
   }, []);
+
+  // Timer logic - runs in background
+  useEffect(() => {
+    const ultimaReclamacion = localStorage.getItem('ultimaReclamacionMoneda');
+    if (!ultimaReclamacion) {
+      console.log("HeaderRegistrado Timer: No hay reclamación previa, el usuario puede reclamar.");
+      return;
+    }
+
+    const intervalId = setInterval(() => {
+      const restante = obtenerTiempoRestante();
+      console.log(`HeaderRegistrado Timer (background): Tiempo restante ${formatTime(restante)}`);
+
+      if (restante <= 0) {
+        console.log("HeaderRegistrado Timer: Cooldown finalizado. El usuario puede reclamar.");
+        clearInterval(intervalId);
+      }
+    }, 1000);
+
+    return () => clearInterval(intervalId);
+  }, []); // Empty dependency array means this runs once on mount
 
   const handleLogout = () => {
     cerrarSesion();
@@ -77,7 +99,7 @@ export default function HeaderRegistrado() {
             className="header-registrado-monedas-link"
             aria-label={`Ir a la tienda. Tienes ${usuario?.monedas ?? 0} monedas`}
           >
-            <MonetizationOn sx={{ fontSize: 24 }} />
+            <MonetizationOn sx={{ fontSize: 24, color: 'white' }} />
             <span>{usuario?.monedas ?? 0}</span>
           </Link>
         </nav>

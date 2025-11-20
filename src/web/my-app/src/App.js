@@ -9,8 +9,9 @@ import PerfilAdmin from "./admin/Perfil";
 import Autologin from "./Autologin";
 import Home from "./Home";
 import CalidadAire from "./CalidadAire";
-import InformacionCiudadano from "./ciudadano/Informacion";
 import CalidadAireCiudadano from "./ciudadano/CalidadAire";
+import InformacionCiudadano from "./ciudadano/Informacion";
+
 import Tienda from "./ciudadano/Tienda";
 import PerfilCiudadano from "./ciudadano/Perfil";
 import { escucharSesion } from "./logicaFake/auth";
@@ -47,8 +48,8 @@ function App() {
 
       {/* Rutas de ciudadano */}
       <Route path="/ciudadano/intranet" element={usuario && usuario.rol === "ciudadano" ? <IntranetCiudadano /> : <Navigate to="/login" />} />
-      <Route path="/ciudadano/informacion" element={usuario && usuario.rol === "ciudadano" ? <InformacionCiudadano /> : <Navigate to="/login" />} />
       <Route path="/ciudadano/calidad-aire" element={usuario && usuario.rol === "ciudadano" ? <CalidadAireCiudadano /> : <Navigate to="/login" />} />
+      <Route path="/ciudadano/informacion" element={usuario && usuario.rol === "ciudadano" ? <InformacionCiudadano/> : <Navigate to="/login" />} />
       <Route path="/ciudadano/tienda" element={usuario && usuario.rol === "ciudadano" ? <Tienda /> : <Navigate to="/login" />} />
       <Route path="/ciudadano/perfil" element={usuario && usuario.rol === "ciudadano" ? <PerfilCiudadano /> : <Navigate to="/login" />} />
 
