@@ -7,12 +7,43 @@ import {
   onAuthStateChanged,
   sendEmailVerification,
   signOut,
+  EmailAuthProvider,
+  reauthenticateWithCredential,
+  updatePassword,
 } from "firebase/auth";
 
 import { obtenerUsuarioCompleto } from "./logicaFake"; 
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
+
+// ---------------------------------------------------------
+// Reautenticar usuario
+// ---------------------------------------------------------
+export async function reautenticarUsuario(currentPassword) {
+  const user = auth.currentUser;
+  if (!user) {
+    throw new Error("No hay usuario autenticado.");
+  }
+  const credential = EmailAuthProvider.credential(user.email, currentPassword);
+  await reauthenticateWithCredential(user, credential);
+  console.log("✅ Usuario re-autenticado correctamente.");
+}
+
+// ---------------------------------------------------------
+// Reautenticar y actualizar contraseña
+// ---------------------------------------------------------
+export async function actualizarPasswordConReautenticacion(currentPassword, newPassword) {
+  try {
+    await reautenticarUsuario(currentPassword);
+    const user = auth.currentUser;
+    await updatePassword(user, newPassword);
+    console.log("✅ Contraseña actualizada en Firebase Auth.");
+  } catch (error) {
+    console.error("❌ Error en el proceso de actualización de contraseña:", error);
+    throw error; // Re-lanzar para que el componente lo maneje
+  }
+}
 
 // ---------------------------------------------------------
 // Registrar ciudadano
