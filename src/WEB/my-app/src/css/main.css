@@ -193,7 +193,9 @@ button,
   border-radius: 50%;
   background: #F7F2EA;
   padding: 8px;
+  margin-right: 24px;  /* <-- NUEVO */
 }
+
 
 /* NAV + BOTÓN juntos a la derecha */
 .headerNR-right {
@@ -219,7 +221,6 @@ button,
   text-decoration: underline;
 }
 
-/* Botón REGÍSTRATE */
 .headerNR-btn {
   background-color: #EBEBEB;
   padding: 10px 26px;
@@ -228,9 +229,292 @@ button,
   color: #22604D;
   text-decoration: none;
   border: none;
+  margin-right: 16px;   /* <-- NUEVO */
 }
 
 .headerNR-btn:hover {
   background-color: #D9D9D9;
 }
 
+/* Botón hamburguesa (oculto en escritorio) */
+.headerNR-burger {
+  display: none;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 8px;
+  margin-left: auto;
+}
+
+.headerNR-burger span {
+  display: block;
+  width: 22px;
+  height: 2px;
+  background-color: #EBEBEB;
+  margin: 4px 0;
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+/* Animación al abrir */
+.headerNR-burger.open span:nth-child(1) {
+  transform: translateY(6px) rotate(45deg);
+}
+.headerNR-burger.open span:nth-child(2) {
+  opacity: 0;
+}
+.headerNR-burger.open span:nth-child(3) {
+  transform: translateY(-6px) rotate(-45deg);
+}
+
+/* ------- Responsive ------- */
+@media (max-width: 850px) {
+  .headerNR {
+    padding: 10px 16px;
+    position: relative;
+  }
+
+  /* Logo a la izquierda, burger a la derecha */
+  .headerNR-left {
+    z-index: 20;
+  }
+
+  .headerNR-burger {
+    display: block;
+    z-index: 20;
+  }
+
+  /* Menú desplegable */
+  .headerNR-right {
+    position: absolute;
+    top: 60px;
+    right: 0;
+    left: 0;
+    background-color: #22604D;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+    padding: 16px 24px;
+    transform: translateY(-200%);
+    opacity: 0;
+    pointer-events: none;
+    transition: transform 0.2s ease, opacity 0.2s ease;
+    z-index: 10;
+  }
+
+  .headerNR-right.open {
+    transform: translateY(0);
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .headerNR-nav {
+    flex-direction: column;
+    gap: 16px;
+  }
+
+.headerNR-nav a:first-child {
+    margin-top: 20px;   /* <-- AJUSTA a tu gusto */
+}
+
+}
+
+/* HOME --------------------------------------------------- */
+
+.home-page {
+  display: flex;
+  flex-direction: column;
+}
+
+.home-content {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 32px 16px 64px;
+}
+
+/* Hero */
+
+.home-hero {
+  text-align: center;
+  margin-bottom: 32px;
+}
+
+.home-hero-title {
+  margin-bottom: 24px;
+}
+
+.home-main-map {
+  width: 100%;
+  max-height: 420px;
+  object-fit: cover;
+  border-radius: 10px;
+  border: 1px solid var(--color-border);
+}
+
+/* Cómo funciona nuestro servicio */
+
+.home-how {
+  margin-top: 32px;
+  margin-bottom: 40px;
+}
+
+.home-how-title {
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+/* Tarjetas escritorio */
+
+.home-features-desktop {
+  display: flex;
+  gap: 24px;
+  justify-content: center;
+}
+
+.home-feature-card {
+  background: var(--color-surface);
+  border-radius: 10px;
+  border: 1px solid var(--color-border);
+  padding: 16px;
+  max-width: 320px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.home-feature-image {
+  width: 100%;
+  max-height: 180px;
+  object-fit: cover;
+  border-radius: 6px;
+  margin-bottom: 16px;
+}
+
+.home-feature-title {
+  margin-bottom: 8px;
+}
+
+.home-feature-text {
+  font-weight: 400;
+  font-size: 14px;
+}
+
+/* Slider móvil (por defecto oculto en escritorio) */
+
+.home-features-mobile {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.home-feature-card.mobile {
+  max-width: 320px;
+}
+
+.home-feature-arrow {
+  background: var(--color-surface);
+  border-radius: 50%;
+  border: 1px solid var(--color-border);
+  width: 32px;
+  height: 32px;
+  font-size: 18px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+/* FAQ */
+
+.home-faq-section {
+  margin-bottom: 40px;
+}
+
+.home-faq-title {
+  text-align: center;
+  margin-bottom: 16px;
+}
+
+.home-faq-list {
+  background: transparent;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+}
+
+.faq-item + .faq-item {
+  border-top: 1px solid var(--color-border);
+}
+
+.faq-question {
+  width: 100%;
+  padding: 10px 16px;
+  background: #ffffff;
+  border: none;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  text-align: left;
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.faq-toggle-icon {
+  transition: transform 0.2s ease;
+}
+
+.faq-item.open .faq-toggle-icon {
+  transform: rotate(180deg);
+}
+
+.faq-answer {
+  background: var(--color-surface);
+  padding: 12px 16px 14px;
+  font-size: 14px;
+  font-weight: 400;
+}
+
+/* Contacto y footer */
+
+.home-contact {
+  text-align: center;
+  margin-top: 24px;
+  margin-bottom: 16px;
+}
+
+.home-footer {
+  text-align: center;
+  font-size: 12px;
+  margin-top: 8px;
+}
+
+/* RESPONSIVE --------------------------------------------- */
+
+@media (max-width: 1024px) {
+  .home-content {
+    padding: 24px 12px 48px;
+  }
+}
+
+@media (max-width: 768px) {
+  .home-main-map {
+    max-height: none;
+  }
+
+  .home-features-desktop {
+    display: none; /* ocultar las 3 tarjetas */
+  }
+
+  .home-features-mobile {
+    display: flex; /* mostrar slider */
+  }
+
+  .home-feature-text {
+    font-size: 14px;
+  }
+
+  .home-faq-list {
+    border-radius: 10px;
+  }
+}
