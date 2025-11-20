@@ -1,6 +1,11 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { obtenerUsuarioLogueado, actualizarUsuario } from "../logicaFake/auth";
+import {
+  obtenerUsuarioLogueado,
+  actualizarUsuario,
+  reautenticarUsuario,
+  actualizarPasswordConReautenticacion,
+} from "../logicaFake/auth";
 import Menu from "./templates/Menu";
 
 function Perfil() {
@@ -9,7 +14,10 @@ function Perfil() {
     nombre: "",
     correo: "",
     contraseña: "",
+    nuevaContraseña: "",
+    repetirContraseña: "",
   });
+  const [usuarioOriginal, setUsuarioOriginal] = useState(null);
 
   useEffect(() => {
     const user = obtenerUsuarioLogueado();
@@ -20,7 +28,10 @@ function Perfil() {
         nombre: user.nombre || "",
         correo: user.correo || "",
         contraseña: "",
+        nuevaContraseña: "",
+        repetirContraseña: "",
       });
+      setUsuarioOriginal(user);
     }
   }, [navigate]);
 
@@ -32,6 +43,16 @@ function Perfil() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    if (!usuario.contraseña) {
+      alert("Debes introducir tu contraseña actual para realizar cambios.");
+      return;
+    }
+
+    if (usuario.nuevaContraseña !== usuario.repetirContraseña) {
+      alert("Las nuevas contraseñas no coinciden.");
+      return;
+    }
+
     try {
       const usuarioLocal = obtenerUsuarioLogueado();
       if (!usuarioLocal) {
@@ -40,25 +61,63 @@ function Perfil() {
         return;
       }
 
-      // ✅ Preparar los nuevos datos
-      const nuevosDatos = {};
-      if (usuario.nombre) nuevosDatos.nombre = usuario.nombre;
-      if (usuario.correo) nuevosDatos.correo = usuario.correo;
-      if (usuario.contraseña) nuevosDatos.password = usuario.contraseña;
+      let somethingChanged = false;
 
-      // ✅ Llamar a la función centralizada en auth.js
-      await actualizarUsuario(usuarioLocal.uid, nuevosDatos);
+      // 1. Manejar el cambio de contraseña
+      if (usuario.nuevaContraseña) {
+        somethingChanged = true;
+        await actualizarPasswordConReautenticacion(
+          usuario.contraseña,
+          usuario.nuevaContraseña
+        );
+        console.log("✅ Contraseña actualizada con éxito.");
+      }
 
-      alert("✅ Datos actualizados correctamente.");
+      // 2. Manejar el cambio de nombre o correo
+      const hasProfileDataChanged =
+        usuario.nombre !== usuarioOriginal.nombre ||
+        usuario.correo !== usuarioOriginal.correo;
+
+      if (hasProfileDataChanged) {
+        somethingChanged = true;
+        console.log("🟨 Actualizando nombre/correo...");
+
+        // Si la contraseña no se cambió en el paso 1, necesitamos reautenticar igualmente
+        if (!usuario.nuevaContraseña) {
+          await reautenticarUsuario(usuario.contraseña);
+        }
+
+        const nuevosDatos = {
+          nombre: usuario.nombre,
+          correo: usuario.correo,
+        };
+        await actualizarUsuario(usuarioLocal.uid, nuevosDatos);
+        console.log("✅ Datos del perfil (nombre/correo) actualizados.");
+      }
+      
+      if (!somethingChanged) {
+        alert("No has modificado ningún dato.");
+        return;
+      }
+
+      alert("✅ Perfil actualizado correctamente.");
+      navigate("/intranet");
+
     } catch (error) {
       console.error("❌ Error al actualizar:", error);
-      alert("❌ No se pudo actualizar el perfil.");
+      let errorMessage = "❌ No se pudo actualizar el perfil. ";
+      if (error.code === 'auth/wrong-password') {
+        errorMessage += "La contraseña actual es incorrecta.";
+      } else {
+        errorMessage += error.message;
+      }
+      alert(errorMessage);
     }
   };
 
   return (
     <div className="container">
-      <Menu />
+      <Menu nombreUsuario={obtenerUsuarioLogueado()?.nombre} />
       <h1>Perfil del Usuario</h1>
       <form onSubmit={handleSubmit} className="perfil-form">
         <div>
@@ -84,12 +143,36 @@ function Perfil() {
         </div>
 
         <div>
-          <label>Contraseña:</label>
+          <label>Nueva Contraseña:</label>
+          <input
+            type="password"
+            name="nuevaContraseña"
+            value={usuario.nuevaContraseña}
+            onChange={handleChange}
+            placeholder="Dejar en blanco para no cambiar"
+          />
+        </div>
+        
+        <div>
+          <label>Repetir Nueva Contraseña:</label>
+          <input
+            type="password"
+            name="repetirContraseña"
+            value={usuario.repetirContraseña}
+            onChange={handleChange}
+          />
+        </div>
+
+        <hr />
+
+        <div>
+          <label>Contraseña Actual (obligatoria para cualquier cambio):</label>
           <input
             type="password"
             name="contraseña"
             value={usuario.contraseña}
             onChange={handleChange}
+            required
           />
         </div>
 

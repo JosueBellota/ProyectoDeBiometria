@@ -78,7 +78,7 @@ function Intranet() {
 
   return (
     <div className="container">
-      <Menu />
+      <Menu nombreUsuario={usuario?.nombre} />
       <h1>Intranet - Mediciones de Sensores</h1>
 
       <div className="distancia-container">
