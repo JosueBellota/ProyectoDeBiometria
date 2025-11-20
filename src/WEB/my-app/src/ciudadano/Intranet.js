@@ -1,9 +1,15 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { obtenerUsuarioLogueado } from "./../logicaFake/auth";
-import { main, obtenerUsuarioCompleto, actualizarDistanciaUsuario } from "./../logicaFake/logicaFake";
-import Menu from "./templates/Menu";
+import {
+  main,
+  obtenerUsuarioCompleto,
+  actualizarDistanciaUsuario,
+} from "./../logicaFake/logicaFake";
+
+import HeaderRegistrado from "./templates/HeaderRegistrado";
 import "./css/ciudadano.css";
+
 
 function Intranet() {
   const navigate = useNavigate();
@@ -22,16 +28,16 @@ function Intranet() {
       }
       setUsuario(user);
 
-      // Fetch user data to get distance
+      // Obtener datos completos del usuario → distancia + monedas
       const userData = await obtenerUsuarioCompleto(user.uid);
-      if (userData && userData.distancia !== undefined) {
-        setDistanciaRecorrida(userData.distancia);
+      if (userData) {
+        if (userData.distancia !== undefined)
+          setDistanciaRecorrida(userData.distancia);
       }
 
-      // Fetch sensor measurements
+      // Obtener mediciones de sensor
       const res = await main();
       setResultados(res);
-
     } catch (error) {
       console.error("❌ Error al obtener datos:", error);
       setResultados([{ error: error.message }]);
@@ -49,10 +55,7 @@ function Intranet() {
     };
 
     window.addEventListener("focus", handleFocus);
-
-    return () => {
-      window.removeEventListener("focus", handleFocus);
-    };
+    return () => window.removeEventListener("focus", handleFocus);
   }, [fetchData]);
 
   const resetDistancia = async () => {
@@ -77,60 +80,85 @@ function Intranet() {
   };
 
   return (
-    <div className="container">
-      <Menu nombreUsuario={usuario?.nombre} />
-      <h1>Intranet - Mediciones de Sensores</h1>
+    <>
+      {/* 🟢 HEADER REGISTRADO */}
+      <HeaderRegistrado monedas={usuario?.monedas ?? 0} />
 
-      <div className="distancia-container">
-        <div className="distancia-info">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="24" height="24">
-            <path fillRule="evenodd" d="M11.25 4.5a1.5 1.5 0 100 3 1.5 1.5 0 000-3zM10.5 9.75a.75.75 0 00-1.5 0v2.25H7.5a.75.75 0 000 1.5h1.5v4.5a.75.75 0 001.5 0v-4.5h.75a.75.75 0 000-1.5h-.75V9.75z" clipRule="evenodd" />
-          </svg>
-          <span className="distancia-texto">
-            Distancia Recorrida: {distanciaRecorrida} metros
-          </span>
-        </div>
-        <button onClick={resetDistancia} className="reset-btn">Resetear</button>
-      </div>
+      <div className="container">
+        <h1>Intranet - Mediciones de Sensores</h1>
 
-      {cargando ? (
-        <p>Ejecutando petición...</p>
-      ) : resultados.length === 0 || (resultados[0] && (resultados[0].error || resultados[0].resultado === "El usuario no tiene nodos registrados.")) ? (
-        <p>No hay medidas recibidas aún.</p>
-      ) : (
-        resultados.map((r, index) => (
-          <div key={index} className="medida-card">
-            {r.error ? (
-              <span className="error">
-                ❌ Error: {typeof r.error === "string" ? r.error : JSON.stringify(r.error)}
-              </span>
-            ) : r.resultado && r.resultado.nodo ? (
-              <>
-                <strong>Nodo:</strong> {r.resultado.nodo || "Desconocido"} <br />
-                <strong>Tiempo:</strong>{" "}
-                {formatearTiempo(r.resultado.datos?.tiempo)} <br />
-                <strong>Sensores:</strong>
-                <ul>
-                  {Object.entries(r.resultado.datos?.sensores ?? {}).length > 0 ? (
-                    Object.entries(r.resultado.datos.sensores).map(
-                      ([sensor, valor]) => (
-                        <li key={sensor}>
-                          {sensor}: {valor ?? "-"}
-                        </li>
-                      )
-                    )
-                  ) : (
-                    <li>Sin datos de sensores</li>
-                  )}
-                </ul>
-              </>
-            ) : (
-              <p>{r.resultado}</p>
-            )}
+        <div className="distancia-container">
+          <div className="distancia-info">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="currentColor"
+              width="24"
+              height="24"
+            >
+              <path
+                fillRule="evenodd"
+                d="M11.25 4.5a1.5 1.5 0 100 3 1.5 1.5 0 000-3zM10.5 9.75a.75.75 0 00-1.5 0v2.25H7.5a.75.75 0 000 1.5h1.5v4.5a.75.75 0 001.5 0v-4.5h.75a.75.75 0 000-1.5h-.75V9.75z"
+                clipRule="evenodd"
+              />
+            </svg>
+            <span className="distancia-texto">
+              Distancia Recorrida: {distanciaRecorrida} metros
+            </span>
           </div>
-        ))
-      )}
-    </div>
+          <button onClick={resetDistancia} className="reset-btn">
+            Resetear
+          </button>
+        </div>
+
+        {cargando ? (
+          <p>Ejecutando petición...</p>
+        ) : resultados.length === 0 ||
+          (resultados[0] &&
+            (resultados[0].error ||
+              resultados[0].resultado ===
+                "El usuario no tiene nodos registrados.")) ? (
+          <p>No hay medidas recibidas aún.</p>
+        ) : (
+          resultados.map((r, index) => (
+            <div key={index} className="medida-card">
+              {r.error ? (
+                <span className="error">
+                  ❌ Error:{" "}
+                  {typeof r.error === "string"
+                    ? r.error
+                    : JSON.stringify(r.error)}
+                </span>
+              ) : r.resultado && r.resultado.nodo ? (
+                <>
+                  <strong>Nodo:</strong> {r.resultado.nodo || "Desconocido"}{" "}
+                  <br />
+                  <strong>Tiempo:</strong>{" "}
+                  {formatearTiempo(r.resultado.datos?.tiempo)} <br />
+                  <strong>Sensores:</strong>
+                  <ul>
+                    {Object.entries(r.resultado.datos?.sensores ?? {}).length >
+                    0 ? (
+                      Object.entries(r.resultado.datos.sensores).map(
+                        ([sensor, valor]) => (
+                          <li key={sensor}>
+                            {sensor}: {valor ?? "-"}
+                          </li>
+                        )
+                      )
+                    ) : (
+                      <li>Sin datos de sensores</li>
+                    )}
+                  </ul>
+                </>
+              ) : (
+                <p>{r.resultado}</p>
+              )}
+            </div>
+          ))
+        )}
+      </div>
+    </>
   );
 }
 

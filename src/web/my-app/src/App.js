@@ -7,8 +7,9 @@ import IntranetCiudadano from "./ciudadano/Intranet";
 import IntranetAdmin from "./admin/Intranet";
 import Perfil from "./ciudadano/Perfil";
 import Autologin from "./Autologin";
-import Home from "./Home"; // <--- IMPORTANTE
+import Home from "./Home"; 
 import CalidadAire from "./CalidadAire";
+import Tienda from "./ciudadano/Tienda";   // 🟢 NUEVO
 import { escucharSesion } from "./logicaFake/auth";
 
 function App() {
@@ -49,12 +50,12 @@ function App() {
               <Navigate to="/ciudadano/intranet" />
             )
           ) : (
-            <Home />   // <--- AHORA CARGA HOME SI NO HAY USUARIO
+            <Home />
           )
         }
       />
 
-      {/* Login manual */}
+      {/* Login */}
       <Route
         path="/login"
         element={
@@ -70,11 +71,19 @@ function App() {
         }
       />
 
+      {/* Registro */}
       <Route
         path="/registro"
-        element={usuario ? <Navigate to="/ciudadano/intranet" /> : <Registro />}
+        element={
+          usuario ? (
+            <Navigate to="/ciudadano/intranet" />
+          ) : (
+            <Registro />
+          )
+        }
       />
 
+      {/* INTRANET CIUDADANO */}
       <Route
         path="/ciudadano/intranet"
         element={
@@ -90,6 +99,23 @@ function App() {
         }
       />
 
+      {/* TIENDA (solo usuarios ciudadanos logueados) */}
+      <Route
+        path="/tienda"
+        element={
+          usuario ? (
+            usuario.rol === "ciudadano" ? (
+              <Tienda />
+            ) : (
+              <Navigate to="/admin/intranet" />
+            )
+          ) : (
+            <Navigate to="/login" />
+          )
+        }
+      />
+
+      {/* INTRANET ADMIN */}
       <Route
         path="/admin/intranet"
         element={
@@ -105,14 +131,16 @@ function App() {
         }
       />
 
+      {/* PERFIL */}
       <Route
         path="/perfil"
         element={usuario ? <Perfil /> : <Navigate to="/login" />}
       />
 
+      {/* Calidad del aire */}
       <Route path="/calidad-aire" element={<CalidadAire />} />
 
-
+      {/* RUTA POR DEFECTO */}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
