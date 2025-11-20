@@ -5,7 +5,8 @@ usuarios/
     rol: "ciudadano"
     monedas:2,
     premios:["taza","gym"],
-    creadoEn: Timestamp
+    creadoEn: Timestamp,
+    distancia: 0
 
 nodos/
   nodo_001/
@@ -20,15 +21,7 @@ nodos/
       humedad: null
     }
 	
-    distanciaDiaria: ,?
     tiempo: Timestamp
-
-
-
-
-ciudadano_1762455176991_2349@test.com
-
-123456
 
 
 

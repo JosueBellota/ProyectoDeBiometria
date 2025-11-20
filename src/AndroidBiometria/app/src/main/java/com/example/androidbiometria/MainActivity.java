@@ -215,6 +215,16 @@
             uidGlobal = uid;
             distanciaManager = new DistanciaManager(this, findViewById(R.id.textoDistancia));
 
+            // ---------------------------------------------------------------------------
+            // Botón para resetear la distancia
+            // ---------------------------------------------------------------------------
+            Button botonResetear = findViewById(R.id.botonResetearDistancia);
+            botonResetear.setOnClickListener(v -> {
+                if (distanciaManager != null) {
+                    distanciaManager.resetearDistancia();
+                }
+            });
+
 
 
         } // onCreate()
