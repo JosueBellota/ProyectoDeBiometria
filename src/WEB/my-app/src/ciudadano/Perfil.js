@@ -216,7 +216,7 @@ function Perfil() {
       // Actualiza el estado local del usuario para reflejar el cambio
       setUsuario(prev => ({ ...prev, monedas: nuevasMonedas }));
 
-      alert("¡Has ganado 1 moneda! Vuelve mañana para conseguir más.");
+      window.location.reload();
     } catch (error) {
       alert(`❌ Error al reclamar la moneda: ${error.message}`);
     }

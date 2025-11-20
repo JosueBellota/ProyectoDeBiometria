@@ -2,69 +2,103 @@
 import React, { useEffect, useState } from "react";
 import HeaderRegistrado from "./templates/HeaderRegistrado";
 import { obtenerUsuarioLogueado } from "../logicaFake/auth";
+import { obtenerUsuarioCompleto } from "../logicaFake/logicaFake";
+import { recompensas, canjearRecompensa } from "../logicaFake/premios";
 import "./css/tienda.css";
-
-const recompensas = [
-  {
-    id: 1,
-    titulo: "Gimnasio Municipal de Gandia",
-    descripcion:
-      "Consigue un 20% de descuento durante un mes en la cuota del gimnasio municipal.",
-    costeMonedas: 5,
-    codigo: "GANDIA-GYM20",
-    img: "/gimnasio-gandia.jpeg", // pon aquí la imagen que tengas
-  },
-  {
-    id: 2,
-    titulo: "Entrada al Museo Local",
-    descripcion:
-      "Entrada gratuita para una persona al museo local de Gandia.",
-    costeMonedas: 3,
-    codigo: "MUSEO-GANDIA1",
-    img: "/museo_gandia.jpg",
-  },
-  {
-    id: 3,
-    titulo: "Descuento en transporte",
-    descripcion:
-      "10% de descuento en tu bono mensual de transporte público.",
-    costeMonedas: 4,
-    codigo: "BUS-GANDIA10",
-    img: "/transporte_gandia.jpg",
-  },
-];
 
 function Tienda() {
   const [usuario, setUsuario] = useState(null);
   const [desbloqueados, setDesbloqueados] = useState({});
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [selectedReward, setSelectedReward] = useState(null);
 
   useEffect(() => {
-    const user = obtenerUsuarioLogueado?.();
-    setUsuario(user || null);
+    const loadUser = async () => {
+      const user = obtenerUsuarioLogueado?.();
+      if (user) {
+        const fullUser = await obtenerUsuarioCompleto(user.uid);
+        setUsuario(fullUser);
+        // Initialize unlocked rewards based on user's prizes
+        const userPremios = fullUser.premios || [];
+        const unlocked = recompensas.reduce((acc, recompensa) => {
+          if (userPremios.includes(recompensa.codigo)) {
+            acc[recompensa.id] = true;
+          }
+          return acc;
+        }, {});
+        setDesbloqueados(unlocked);
+      }
+    };
+    loadUser();
   }, []);
 
   const monedas = usuario?.monedas ?? 0;
 
   const manejarClickRecompensa = (recompensa) => {
+    if (desbloqueados[recompensa.id]) {
+      alert("Ya has canjeado esta recompensa.");
+      return;
+    }
     if (monedas < recompensa.costeMonedas) {
       alert(
         `Necesitas ${recompensa.costeMonedas} monedas para canjear esta recompensa. Actualmente tienes ${monedas}.`
       );
       return;
     }
-
-    setDesbloqueados((prev) => ({
-      ...prev,
-      [recompensa.id]: true,
-    }));
-
-    // Aquí, si quieres, podrías llamar a una función tipo
-    // actualizarUsuario({ ...usuario, monedas: monedas - recompensa.costeMonedas })
-    // para guardar el nuevo saldo en tu "backend fake".
+    setSelectedReward(recompensa);
+    setShowConfirm(true);
   };
+
+  const confirmarCanje = async () => {
+    if (!selectedReward || !usuario) return;
+
+    const result = await canjearRecompensa(usuario.uid, selectedReward);
+
+    if (result.error) {
+      alert(`Error: ${result.error}`);
+    } else {
+      alert("¡Recompensa canjeada con éxito!");
+      setUsuario({
+        ...usuario,
+        monedas: result.monedas,
+        premios: result.premios,
+      });
+      setDesbloqueados((prev) => ({
+        ...prev,
+        [selectedReward.id]: true,
+      }));
+    }
+
+    setShowConfirm(false);
+    setSelectedReward(null);
+  };
+
+  const ConfirmationModal = () => (
+    <div className="modal-overlay">
+      <div className="modal-content">
+        <h2>Confirmar Compra</h2>
+        <p>
+          ¿Estás seguro de que quieres canjear "{selectedReward?.titulo}" por{" "}
+          {selectedReward?.costeMonedas} monedas?
+        </p>
+        <div className="modal-actions">
+          <button onClick={confirmarCanje} className="modal-confirm">
+            Confirmar
+          </button>
+          <button
+            onClick={() => setShowConfirm(false)}
+            className="modal-cancel"
+          >
+            Cancelar
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <div className="home-page">
+      {showConfirm && <ConfirmationModal />}
       <HeaderRegistrado />
 
       <main className="home-content tienda-page">
@@ -87,7 +121,9 @@ function Tienda() {
             return (
               <article
                 key={r.id}
-                className="tienda-card"
+                className={`tienda-card ${
+                  estaDesbloqueada ? "desbloqueada" : ""
+                }`}
                 onClick={() => manejarClickRecompensa(r)}
               >
                 <img
