@@ -72,6 +72,26 @@ export async function obtenerUsuarioCompleto(uid) {
   }
 }
 
+// ----------------------------------------------------------
+// actualizarDistanciaUsuario(idUsuario, distancia)
+// ----------------------------------------------------------
+export async function actualizarDistanciaUsuario(idUsuario, distancia) {
+  try {
+    const res = await fetch(`${API_BASE}/usuarios/${idUsuario}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ distancia }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+    return data;
+  } catch (error) {
+    console.error("❌ Error en actualizarDistanciaUsuario:", error);
+    return { error: error.message };
+  }
+}
 
 
 // ----------------------------------------------------------

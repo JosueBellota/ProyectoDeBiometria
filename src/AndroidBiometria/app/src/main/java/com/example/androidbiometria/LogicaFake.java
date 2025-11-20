@@ -205,4 +205,33 @@ public class LogicaFake {
             Log.e(">>>>>>", "Error JSON:", e);
         }
     }
+
+    public void borrarMediciones(String uid, okhttp3.Callback callback) {
+        RequestBody body = RequestBody.create(null, new byte[0]);
+        Request request = new Request.Builder()
+                .url(BASE_URL + "/borrarMediciones")
+                .post(body)
+                .build();
+        client.newCall(request).enqueue(callback);
+    }
+
+    public void actualizarDistancia(String idUsuario, int distancia, okhttp3.Callback callback) {
+        try {
+            JSONObject json = new JSONObject();
+            json.put("distancia", distancia);
+
+            RequestBody body = RequestBody.create(
+                    json.toString(),
+                    MediaType.parse("application/json; charset=utf-8")
+            );
+
+            Request request = new Request.Builder()
+                    .url(BASE_URL + "/usuarios/" + idUsuario)
+                    .put(body)
+                    .build();
+            client.newCall(request).enqueue(callback);
+        } catch (Exception e) {
+            Log.e(">>>>>>", "Error JSON:", e);
+        }
+    }
 }
