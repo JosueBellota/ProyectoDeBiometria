@@ -8,6 +8,7 @@ import IntranetAdmin from "./admin/Intranet";
 import Perfil from "./ciudadano/Perfil";
 import Autologin from "./Autologin";
 import Home from "./Home"; // <--- IMPORTANTE
+import CalidadAire from "./CalidadAire";
 import { escucharSesion } from "./logicaFake/auth";
 
 function App() {
@@ -108,6 +109,9 @@ function App() {
         path="/perfil"
         element={usuario ? <Perfil /> : <Navigate to="/login" />}
       />
+
+      <Route path="/calidad-aire" element={<CalidadAire />} />
+
 
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
