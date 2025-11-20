@@ -33,8 +33,8 @@ export default function HeaderNoRegistrado() {
           <Link to="/info" onClick={closeMenu}>
             INFORMACIÓN
           </Link>
-          <Link to="/incidencias" onClick={closeMenu}>
-            INCIDENCIAS
+          <Link to="/calidad-aire" onClick={closeMenu}>
+            CONTAMINANTES
           </Link>
           <Link to="/login" onClick={closeMenu}>
             INICIA SESIÓN
