@@ -2,8 +2,9 @@
 import React, { useEffect, useState } from "react";
 import HeaderRegistrado from "./templates/HeaderRegistrado";
 import { obtenerUsuarioLogueado } from "../logicaFake/auth";
-import { obtenerUsuarioCompleto } from "../logicaFake/logicaFake";
-import { recompensas, canjearRecompensa } from "../logicaFake/premios";
+import { obtenerUsuarioCompleto, actualizarDatosUsuario } from "../logicaFake/logicaFake";
+import { recompensas } from "../logicaFake/premios";
+import { useMonedas } from "../logicaFake/MonedasContext";
 import "./css/tienda.css";
 
 function Tienda() {
@@ -11,6 +12,7 @@ function Tienda() {
   const [desbloqueados, setDesbloqueados] = useState({});
   const [showConfirm, setShowConfirm] = useState(false);
   const [selectedReward, setSelectedReward] = useState(null);
+  const { monedas, setMonedas } = useMonedas();
 
   useEffect(() => {
     const loadUser = async () => {
@@ -18,7 +20,6 @@ function Tienda() {
       if (user) {
         const fullUser = await obtenerUsuarioCompleto(user.uid);
         setUsuario(fullUser);
-        // Initialize unlocked rewards based on user's prizes
         const userPremios = fullUser.premios || [];
         const unlocked = recompensas.reduce((acc, recompensa) => {
           if (userPremios.includes(recompensa.codigo)) {
@@ -31,8 +32,6 @@ function Tienda() {
     };
     loadUser();
   }, []);
-
-  const monedas = usuario?.monedas ?? 0;
 
   const manejarClickRecompensa = (recompensa) => {
     if (desbloqueados[recompensa.id]) {
@@ -52,25 +51,34 @@ function Tienda() {
   const confirmarCanje = async () => {
     if (!selectedReward || !usuario) return;
 
-    const result = await canjearRecompensa(usuario.uid, selectedReward);
+    const nuevasMonedas = monedas - selectedReward.costeMonedas;
+    const nuevosPremios = [...(usuario.premios || []), selectedReward.codigo];
 
-    if (result.error) {
-      alert(`Error: ${result.error}`);
-    } else {
-      alert("¡Recompensa canjeada con éxito!");
-      setUsuario({
-        ...usuario,
-        monedas: result.monedas,
-        premios: result.premios,
-      });
-      setDesbloqueados((prev) => ({
-        ...prev,
-        [selectedReward.id]: true,
-      }));
-    }
-
+    // Optimistic UI update
+    setMonedas(nuevasMonedas);
+    setUsuario({ ...usuario, monedas: nuevasMonedas, premios: nuevosPremios });
+    setDesbloqueados((prev) => ({
+      ...prev,
+      [selectedReward.id]: true,
+    }));
     setShowConfirm(false);
     setSelectedReward(null);
+
+    try {
+      await actualizarDatosUsuario(usuario.uid, {
+        monedas: nuevasMonedas,
+        premios: nuevosPremios,
+      });
+    } catch (error) {
+      alert(`Error: ${error.message}`);
+      // Revert UI change on error
+      setMonedas(monedas);
+      setUsuario(usuario);
+      setDesbloqueados((prev) => ({
+        ...prev,
+        [selectedReward.id]: false,
+      }));
+    }
   };
 
   const ConfirmationModal = () => (

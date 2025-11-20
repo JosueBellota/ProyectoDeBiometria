@@ -18,6 +18,7 @@ import {
   TIEMPO_REQUERIDO_ACTIVIDAD,
 } from "../logicaFake/monedas";
 import HeaderRegistrado from "./templates/HeaderRegistrado";
+import { useMonedas } from "../logicaFake/MonedasContext";
 
 // --- Estilos CSS en línea para simplicidad ---
 const styles = {
@@ -89,6 +90,7 @@ function Perfil() {
     repetirContraseña: "",
   });
   const [usuario, setUsuario] = useState(null);
+  const { setMonedas } = useMonedas();
 
   // --- Estados para la lógica de monedas ---
   const [tiempoActivo, setTiempoActivo] = useState(0);
@@ -107,14 +109,13 @@ function Perfil() {
     const datosCompletos = await obtenerUsuarioCompleto(user.uid);
     if (!datosCompletos.error) {
       setUsuario(datosCompletos);
-      // Actualiza solo los campos relevantes, evitando la dependencia de 'perfil'
-      setPerfil(prev => ({
+      setPerfil((prev) => ({
         ...prev,
         nombre: datosCompletos.nombre,
         correo: datosCompletos.correo,
       }));
     }
-  }, [navigate]); // Se elimina 'perfil' de las dependencias
+  }, [navigate]);
 
   useEffect(() => {
     cargarUsuario();
@@ -126,19 +127,17 @@ function Perfil() {
     let activityTimer;
     let cooldownTimer;
 
-    // 1. Cooldown
     if (!puedeReclamar) {
       cooldownTimer = setInterval(() => {
         const restante = obtenerTiempoRestante();
         setTiempoRestanteCooldown(restante);
         if (restante <= 0) {
           setPuedeReclamar(true);
-          setTiempoActivo(0); // Reinicia contador de actividad
+          setTiempoActivo(0);
         }
       }, 1000);
     }
 
-    // 2. Actividad
     if (puedeReclamar) {
       const handleVisibilityChange = () => {
         if (document.hidden) {
@@ -156,7 +155,7 @@ function Perfil() {
         }
       };
       
-      handleVisibilityChange(); // Inicia al cargar
+      handleVisibilityChange();
       document.addEventListener("visibilitychange", handleVisibilityChange);
       
       return () => {
@@ -182,7 +181,7 @@ function Perfil() {
     if (!perfil.contraseña) {
       return alert("Debes introducir tu contraseña actual para realizar cambios.");
     }
-    if (perfil.nuevaContraseña && perfil.nuevaContraseña !== perfil.repetirContraseña) { // Check only if new password is provided
+    if (perfil.nuevaContraseña && perfil.nuevaContraseña !== perfil.repetirContraseña) {
       return alert("Las nuevas contraseñas no coinciden.");
     }
 
@@ -191,7 +190,7 @@ function Perfil() {
       if (perfil.nuevaContraseña) {
         await actualizarPasswordConReautenticacion(perfil.contraseña, perfil.nuevaContraseña);
       }
-      if (usuario && (perfil.nombre !== usuario.nombre || perfil.correo !== usuario.correo)) { // Check if user exists before comparing
+      if (usuario && (perfil.nombre !== usuario.nombre || perfil.correo !== usuario.correo)) {
         await actualizarUsuario(usuario.uid, { nombre: perfil.nombre, correo: perfil.correo });
       }
       alert("✅ Perfil actualizado correctamente.");
@@ -204,24 +203,26 @@ function Perfil() {
   const handleReclamarMoneda = async () => {
     if (tiempoActivo < TIEMPO_REQUERIDO_ACTIVIDAD || !puedeReclamar || !usuario) return;
 
-    try {
-      const nuevasMonedas = (usuario.monedas || 0) + 1;
-      await actualizarMonedasUsuario(usuario.uid, nuevasMonedas);
-      
-      marcarMonedaReclamada();
-      setPuedeReclamar(false);
-      setTiempoRestanteCooldown(obtenerTiempoRestante());
-      setTiempoActivo(0);
-      
-      // Actualiza el estado local del usuario para reflejar el cambio
-      setUsuario(prev => ({ ...prev, monedas: nuevasMonedas }));
+    const nuevasMonedas = (usuario.monedas || 0) + 1;
+    
+    // Optimistic UI update
+    setMonedas(nuevasMonedas);
+    setUsuario(prev => ({ ...prev, monedas: nuevasMonedas }));
 
-      window.location.reload();
+    marcarMonedaReclamada();
+    setPuedeReclamar(false);
+    setTiempoRestanteCooldown(obtenerTiempoRestante());
+    setTiempoActivo(0);
+
+    try {
+      await actualizarMonedasUsuario(usuario.uid, nuevasMonedas);
     } catch (error) {
-      alert(`❌ Error al reclamar la moneda: ${error.message}`);
+      alert(`❌ Error al guardar la moneda: ${error.message}`);
+      // Revert UI change on error
+      setMonedas(usuario.monedas);
+      setUsuario(prev => ({ ...prev, monedas: usuario.monedas }));
     }
   };
-
 
   return (
     <>
@@ -292,4 +293,3 @@ function Perfil() {
 }
 
 export default Perfil;
-
