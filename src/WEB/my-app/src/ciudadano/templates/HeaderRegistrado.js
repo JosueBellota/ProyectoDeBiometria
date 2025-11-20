@@ -1,23 +1,51 @@
-import React from "react";
-import "../css/main.css";
+import React, { useState } from "react";
 import { Link } from "react-router-dom";
+import "../css/ciudadano.css";   // <-- CSS correcto
 
-export default function HeaderNoRegistrado() {
+export default function HeaderRegistrado({ monedas = 0 }) {
+  const [menuAbierto, setMenuAbierto] = useState(false);
+
+  const toggleMenu = () => setMenuAbierto(!menuAbierto);
+  const closeMenu = () => setMenuAbierto(false);
+
   return (
-    <header className="headerNR">
-      <div className="headerNR-left">
-        <img src="/logo.svg" alt="Logo" className="headerNR-logo" />
+    <header className="headerR">
+      {/* LOGO → INTRANET */}
+      <div className="headerR-left">
+        <Link to="/ciudadano/intranet" onClick={closeMenu}>
+          <img src="/logo.svg" alt="Logo" className="headerR-logo" />
+        </Link>
       </div>
 
-      <nav className="headerNR-nav">
-        <Link to="/info">INFORMACIÓN</Link>
-        <Link to="/incidencias">INCIDENCIAS</Link>
-        <Link to="/login">INICIA SESIÓN</Link>
-      </nav>
+      {/* BURGER (móvil) */}
+      <button
+        className={`headerR-burger ${menuAbierto ? "open" : ""}`}
+        onClick={toggleMenu}
+      >
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
 
-      <div className="headerNR-right">
-        <Link to="/register" className="headerNR-btn">
-          REGÍSTRATE
+      {/* MENÚ DERECHO */}
+      <div className={`headerR-right ${menuAbierto ? "open" : ""}`}>
+        <nav className="headerR-nav">
+          <Link to="/informacion" onClick={closeMenu}>INFORMACIÓN</Link>
+          <Link to="/incidencias" onClick={closeMenu}>INCIDENCIAS</Link>
+          <Link to="/mapa" onClick={closeMenu}>MAPA</Link>
+          <Link to="/graficas" onClick={closeMenu}>GRÁFICAS</Link>
+          <Link to="/recorrido" onClick={closeMenu}>RECORRIDO</Link>
+        </nav>
+
+        {/* MONEDAS → TIENDA */}
+        <Link to="/tienda" className="headerR-coins" onClick={closeMenu}>
+          <span className="headerR-coins-amount">{monedas}</span>
+          <img src="/moneda.png" alt="Moneda" className="headerR-moneda-img" />
+        </Link>
+
+        {/* PERFIL */}
+        <Link to="/perfil" className="headerR-profile-link" onClick={closeMenu}>
+          <div className="headerR-user-icon">👤</div>
         </Link>
       </div>
     </header>
