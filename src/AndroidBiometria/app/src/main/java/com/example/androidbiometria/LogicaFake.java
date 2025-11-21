@@ -17,7 +17,6 @@ public class LogicaFake {
     // -------------------------------------------------------------------------
     private static final long TIMEOUT_DETECCION_MS = 2000; // 2 segundos por sensor
     private static final long COOLDOWN_ENVIO_MS = 3000; // 3 segundos entre envíos
-    private static final long TIMEOUT_DESCONEXION_MS = 5000; // 5 segundos para detectar desconexión
 
     // Mapa para trackear los últimos tiempos de detección por major/minor
     private static final Map<String, Long> ultimaDeteccionPorSensor = new ConcurrentHashMap<>();
@@ -27,15 +26,6 @@ public class LogicaFake {
     // Variables para trackear el estado de los sensores
     private static boolean co2DetectadoRecientemente = false;
     private static boolean tempDetectadoRecientemente = false;
-    private static long ultimaDeteccionCo2 = 0;
-    private static long ultimaDeteccionTemp = 0;
-
-    // Interface para callback de notificaciones
-    public interface NotificacionCallback {
-        void onNodoDesconectado(String nombreNodo);
-    }
-
-    private static NotificacionCallback notificacionCallback;
 
     // -------------------------------------------------------------------------
     // VARIABLES EXISTENTES
@@ -86,13 +76,6 @@ public class LogicaFake {
     }
 
     // -------------------------------------------------------------------------
-    // MÉTODO PARA ESTABLECER CALLBACK DE NOTIFICACIONES
-    // -------------------------------------------------------------------------
-    public static void setNotificacionCallback(NotificacionCallback callback) {
-        notificacionCallback = callback;
-    }
-
-    // -------------------------------------------------------------------------
     // NUEVA LÓGICA DE DETECCIÓN CON TIMEOUT
     // -------------------------------------------------------------------------
     public void procesarDeteccionConTimeout() {
@@ -106,12 +89,10 @@ public class LogicaFake {
         if (major >= 2800 && major <= 2999) {
             valoresPendientes.put("co2", minor);
             co2DetectadoRecientemente = true;
-            ultimaDeteccionCo2 = tiempoActual;
             Log.d(">>>>>>", "CO₂ detectado: " + minor + " (Major: " + major + ")");
         } else if (major >= 3000 && major <= 4099) {
             valoresPendientes.put("temp", minor);
             tempDetectadoRecientemente = true;
-            ultimaDeteccionTemp = tiempoActual;
             Log.d(">>>>>>", "Temp detectada: " + minor + " (Major: " + major + ")");
         }
 
@@ -133,58 +114,6 @@ public class LogicaFake {
                 co2DetectadoRecientemente = false;
                 tempDetectadoRecientemente = false;
             }
-        }
-
-        // Programar verificación de timeout para desconexión
-        verificarSensoresDesconectados();
-    }
-
-    // -------------------------------------------------------------------------
-    // VERIFICAR SENSORES DESCONECTADOS
-    // -------------------------------------------------------------------------
-    private void verificarSensoresDesconectados() {
-        long tiempoActual = System.currentTimeMillis();
-
-        // Verificar si ha pasado el timeout desde la última detección de CO₂
-        if (co2DetectadoRecientemente && (tiempoActual - ultimaDeteccionCo2) > TIMEOUT_DESCONEXION_MS) {
-            co2DetectadoRecientemente = false;
-            Log.w(">>>>>>", "⚠️ Sensor CO₂ desconectado");
-            if (notificacionCallback != null) {
-                notificacionCallback.onNodoDesconectado(nombreNodo + " (Sensor CO₂)");
-            }
-        }
-
-        // Verificar si ha pasado el timeout desde la última detección de temperatura
-        if (tempDetectadoRecientemente && (tiempoActual - ultimaDeteccionTemp) > TIMEOUT_DESCONEXION_MS) {
-            tempDetectadoRecientemente = false;
-            Log.w(">>>>>>", "⚠️ Sensor Temperatura desconectado");
-            if (notificacionCallback != null) {
-                notificacionCallback.onNodoDesconectado(nombreNodo + " (Sensor Temp)");
-            }
-        }
-
-        // Verificar si ambos sensores están desconectados
-        if (!co2DetectadoRecientemente && !tempDetectadoRecientemente &&
-                (tiempoActual - Math.max(ultimaDeteccionCo2, ultimaDeteccionTemp)) > TIMEOUT_DESCONEXION_MS) {
-            Log.e(">>>>>>", "❌ Nodo completo desconectado: " + nombreNodo);
-            if (notificacionCallback != null) {
-                notificacionCallback.onNodoDesconectado(nombreNodo);
-            }
-        }
-    }
-
-    // -------------------------------------------------------------------------
-    // MÉTODO PARA FORZAR VERIFICACIÓN DE DESCONEXIÓN (desde MainActivity)
-    // -------------------------------------------------------------------------
-    public static void verificarEstadoSensores() {
-        // Esta función puede ser llamada periódicamente para verificar timeouts
-        long tiempoActual = System.currentTimeMillis();
-
-        if ((co2DetectadoRecientemente && (tiempoActual - ultimaDeteccionCo2) > TIMEOUT_DESCONEXION_MS) ||
-                (tempDetectadoRecientemente && (tiempoActual - ultimaDeteccionTemp) > TIMEOUT_DESCONEXION_MS)) {
-
-            // La verificación real se hace en verificarSensoresDesconectados()
-            // Este método es solo para forzar la verificación desde fuera
         }
     }
 
