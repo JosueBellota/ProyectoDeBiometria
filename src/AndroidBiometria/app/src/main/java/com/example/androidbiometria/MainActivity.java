@@ -871,16 +871,6 @@
         }
 
 
-        protected void onNewIntent(Intent intent) {
-            super.onNewIntent(intent);
-            if (intent.hasExtra("mensaje")) {
-                String mensaje = intent.getStringExtra("mensaje");
-                String color = intent.getStringExtra("color");
-                generarNotificacion(mensaje, color);
-            }
-        }
-
-
         @Override
         protected void onActivityResult(int requestCode, int resultCode, Intent data) {
             super.onActivityResult(requestCode, resultCode, data);
@@ -942,34 +932,22 @@
 
 
         private void solicitarNombreNodo() {
-            android.widget.EditText input = new android.widget.EditText(this);
-            new android.app.AlertDialog.Builder(this)
-                    .setTitle("Ponle un nombre a tu nodo de sensores")
-                    .setView(input)
-                    .setPositiveButton("Aceptar", (dialog, which) -> {
-                        nombreNodoUsuario = input.getText().toString().trim();
-                        if (!nombreNodoUsuario.isEmpty()) {
-                            Log.d(ETIQUETA_LOG, "📟 Nodo detectado: " + codigoNodoQR);
-                            Log.d(ETIQUETA_LOG, "📛 Nombre personalizado: " + nombreNodoUsuario);
+            nombreNodoUsuario = "nodo1";
+            Log.d(ETIQUETA_LOG, "📟 Nodo detectado: " + codigoNodoQR);
+            Log.d(ETIQUETA_LOG, "📛 Nombre automático: " + nombreNodoUsuario);
 
-                            // Crear dinámicamente el botón de búsqueda
-                            Button botonBuscar = new Button(this);
-                            botonBuscar.setText("Buscar " + nombreNodoUsuario);
-                            botonBuscar.setOnClickListener(this::botonBuscarDispositivoQR);
+            // Crear dinámicamente el botón de búsqueda
+            Button botonBuscar = new Button(this);
+            botonBuscar.setText("Buscar " + nombreNodoUsuario);
+            botonBuscar.setOnClickListener(this::botonBuscarDispositivoQR);
 
-                            ((android.widget.LinearLayout) findViewById(android.R.id.content)
-                                    .getRootView()
-                                    .findViewById(R.id.botonLeerQR)
-                                    .getParent())
-                                    .addView(botonBuscar);
+            ((android.widget.LinearLayout) findViewById(android.R.id.content)
+                    .getRootView()
+                    .findViewById(R.id.botonLeerQR)
+                    .getParent())
+                    .addView(botonBuscar);
 
-                            Toast.makeText(this, "✅ Nodo añadido: " + nombreNodoUsuario, Toast.LENGTH_SHORT).show();
-                        } else {
-                            Toast.makeText(this, "⚠️ Debes poner un nombre", Toast.LENGTH_SHORT).show();
-                        }
-                    })
-                    .setNegativeButton("Cancelar", null)
-                    .show();
+            Toast.makeText(this, "✅ Nodo añadido: " + nombreNodoUsuario, Toast.LENGTH_SHORT).show();
         }
 
 
