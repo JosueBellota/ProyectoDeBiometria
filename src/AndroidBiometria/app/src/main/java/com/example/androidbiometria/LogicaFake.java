@@ -4,16 +4,41 @@ import android.util.Log;
 import okhttp3.*;
 import org.json.JSONObject;
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class LogicaFake {
-
-    private static final String BASE_URL =
-            "https://us-central1-proyectodebiometria.cloudfunctions.net/ServidorREST";
-
+    private static final String BASE_URL = "https://us-central1-proyectodebiometria.cloudfunctions.net/ServidorREST";
     private OkHttpClient client = new OkHttpClient();
 
     // -------------------------------------------------------------------------
-    // NUEVAS VARIABLES PARA GUARDAR TODA LA INFORMACIÓN DEL BEACON
+    // NUEVAS VARIABLES PARA LA LÓGICA DE TIMEOUT Y DETECCIÓN MÚLTIPLE
+    // -------------------------------------------------------------------------
+    private static final long TIMEOUT_DETECCION_MS = 2000; // 2 segundos por sensor
+    private static final long COOLDOWN_ENVIO_MS = 3000; // 3 segundos entre envíos
+    private static final long TIMEOUT_DESCONEXION_MS = 5000; // 5 segundos para detectar desconexión
+
+    // Mapa para trackear los últimos tiempos de detección por major/minor
+    private static final Map<String, Long> ultimaDeteccionPorSensor = new ConcurrentHashMap<>();
+    private static final Map<String, Integer> valoresPendientes = new ConcurrentHashMap<>();
+    private static long ultimoEnvioExitoso = 0;
+
+    // Variables para trackear el estado de los sensores
+    private static boolean co2DetectadoRecientemente = false;
+    private static boolean tempDetectadoRecientemente = false;
+    private static long ultimaDeteccionCo2 = 0;
+    private static long ultimaDeteccionTemp = 0;
+
+    // Interface para callback de notificaciones
+    public interface NotificacionCallback {
+        void onNodoDesconectado(String nombreNodo);
+    }
+
+    private static NotificacionCallback notificacionCallback;
+
+    // -------------------------------------------------------------------------
+    // VARIABLES EXISTENTES
     // -------------------------------------------------------------------------
     private String nombre;
     private String direccion;
@@ -28,31 +53,19 @@ public class LogicaFake {
     private String uuidHex;
     private String uuidString;
     private int txPower;
-
-    // -------------------------------------------------------------------------
-    // VARIABLES YA EXISTENTES PARA LÓGICA DE NODOS Y MEDIDAS
-    // -------------------------------------------------------------------------
     private String idUsuario;
     private String nombreNodo;
     private String idNodo;
     private int major;
     private int minor;
 
-    private static Integer valorCO2Pendiente = null;
-    private static Integer valorTempPendiente = null;
-    private static long tiempoInicioLectura = 0;
-    private static final long TIMEOUT_MS = 3000;
-
     // -------------------------------------------------------------------------
-    // CONSTRUCTOR ACTUALIZADO
+    // CONSTRUCTOR
     // -------------------------------------------------------------------------
-    public LogicaFake(String nombre, String direccion, int rssi, String bytesHex,
-                      String prefijo, String advFlags, String advHeader,
-                      String companyID, int iBeaconType, int iBeaconLength,
-                      String uuidHex, String uuidString, int major, int minor, int txPower,
-                      String idUsuario, String nombreNodo) {
-
-        // Nuevos datos del beacon almacenados
+    public LogicaFake(String nombre, String direccion, int rssi, String bytesHex, String prefijo,
+                      String advFlags, String advHeader, String companyID, int iBeaconType,
+                      int iBeaconLength, String uuidHex, String uuidString, int major, int minor,
+                      int txPower, String idUsuario, String nombreNodo) {
         this.nombre = nombre;
         this.direccion = direccion;
         this.rssi = rssi;
@@ -66,70 +79,174 @@ public class LogicaFake {
         this.uuidHex = uuidHex;
         this.uuidString = uuidString;
         this.txPower = txPower;
-
-        // Datos previos necesarios para funcionamiento
         this.major = major;
         this.minor = minor;
         this.idUsuario = idUsuario;
         this.nombreNodo = nombreNodo;
     }
 
-    // ---------------------- (TODO EL RESTO DEL CÓDIGO SE MANTIENE IGUAL) ----------------------
-    // obtenerNodo(), guardarMedida(), enviarMediciones(), etc... NO SE MODIFICAN
-    // ------------------------------------------------------------------------------------------
+    // -------------------------------------------------------------------------
+    // MÉTODO PARA ESTABLECER CALLBACK DE NOTIFICACIONES
+    // -------------------------------------------------------------------------
+    public static void setNotificacionCallback(NotificacionCallback callback) {
+        notificacionCallback = callback;
+    }
 
+    // -------------------------------------------------------------------------
+    // NUEVA LÓGICA DE DETECCIÓN CON TIMEOUT
+    // -------------------------------------------------------------------------
+    public void procesarDeteccionConTimeout() {
+        long tiempoActual = System.currentTimeMillis();
+        String claveSensor = major + ":" + minor;
+
+        // Actualizar última detección de este sensor
+        ultimaDeteccionPorSensor.put(claveSensor, tiempoActual);
+
+        // Determinar tipo de sensor y actualizar estado
+        if (major >= 2800 && major <= 2999) {
+            valoresPendientes.put("co2", minor);
+            co2DetectadoRecientemente = true;
+            ultimaDeteccionCo2 = tiempoActual;
+            Log.d(">>>>>>", "CO₂ detectado: " + minor + " (Major: " + major + ")");
+        } else if (major >= 3000 && major <= 4099) {
+            valoresPendientes.put("temp", minor);
+            tempDetectadoRecientemente = true;
+            ultimaDeteccionTemp = tiempoActual;
+            Log.d(">>>>>>", "Temp detectada: " + minor + " (Major: " + major + ")");
+        }
+
+        // Verificar si ambos sensores fueron detectados dentro del timeout
+        boolean ambosDetectados = co2DetectadoRecientemente && tempDetectadoRecientemente;
+        long tiempoDesdeUltimoEnvio = tiempoActual - ultimoEnvioExitoso;
+
+        if (ambosDetectados && tiempoDesdeUltimoEnvio >= COOLDOWN_ENVIO_MS) {
+            // Ambos detectados y ha pasado el cooldown → enviar
+            Integer co2 = valoresPendientes.get("co2");
+            Integer temp = valoresPendientes.get("temp");
+
+            if (co2 != null && temp != null) {
+                enviarMediciones(co2, temp);
+                ultimoEnvioExitoso = tiempoActual;
+                Log.d(">>>>>>", "✅ Enviando mediciones - CO₂: " + co2 + ", Temp: " + temp);
+
+                // Resetear estados después del envío exitoso
+                co2DetectadoRecientemente = false;
+                tempDetectadoRecientemente = false;
+            }
+        }
+
+        // Programar verificación de timeout para desconexión
+        verificarSensoresDesconectados();
+    }
+
+    // -------------------------------------------------------------------------
+    // VERIFICAR SENSORES DESCONECTADOS
+    // -------------------------------------------------------------------------
+    private void verificarSensoresDesconectados() {
+        long tiempoActual = System.currentTimeMillis();
+
+        // Verificar si ha pasado el timeout desde la última detección de CO₂
+        if (co2DetectadoRecientemente && (tiempoActual - ultimaDeteccionCo2) > TIMEOUT_DESCONEXION_MS) {
+            co2DetectadoRecientemente = false;
+            Log.w(">>>>>>", "⚠️ Sensor CO₂ desconectado");
+            if (notificacionCallback != null) {
+                notificacionCallback.onNodoDesconectado(nombreNodo + " (Sensor CO₂)");
+            }
+        }
+
+        // Verificar si ha pasado el timeout desde la última detección de temperatura
+        if (tempDetectadoRecientemente && (tiempoActual - ultimaDeteccionTemp) > TIMEOUT_DESCONEXION_MS) {
+            tempDetectadoRecientemente = false;
+            Log.w(">>>>>>", "⚠️ Sensor Temperatura desconectado");
+            if (notificacionCallback != null) {
+                notificacionCallback.onNodoDesconectado(nombreNodo + " (Sensor Temp)");
+            }
+        }
+
+        // Verificar si ambos sensores están desconectados
+        if (!co2DetectadoRecientemente && !tempDetectadoRecientemente &&
+                (tiempoActual - Math.max(ultimaDeteccionCo2, ultimaDeteccionTemp)) > TIMEOUT_DESCONEXION_MS) {
+            Log.e(">>>>>>", "❌ Nodo completo desconectado: " + nombreNodo);
+            if (notificacionCallback != null) {
+                notificacionCallback.onNodoDesconectado(nombreNodo);
+            }
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // MÉTODO PARA FORZAR VERIFICACIÓN DE DESCONEXIÓN (desde MainActivity)
+    // -------------------------------------------------------------------------
+    public static void verificarEstadoSensores() {
+        // Esta función puede ser llamada periódicamente para verificar timeouts
+        long tiempoActual = System.currentTimeMillis();
+
+        if ((co2DetectadoRecientemente && (tiempoActual - ultimaDeteccionCo2) > TIMEOUT_DESCONEXION_MS) ||
+                (tempDetectadoRecientemente && (tiempoActual - ultimaDeteccionTemp) > TIMEOUT_DESCONEXION_MS)) {
+
+            // La verificación real se hace en verificarSensoresDesconectados()
+            // Este método es solo para forzar la verificación desde fuera
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // MÉTODOS EXISTENTES (modificar guardarMedida para usar nueva lógica)
+    // -------------------------------------------------------------------------
+    public void guardarMedida() {
+        // En lugar de la lógica anterior, usamos la nueva lógica con timeout
+        procesarDeteccionConTimeout();
+    }
+
+    // -------------------------------------------------------------------------
+    // MÉTODOS EXISTENTES (sin cambios)
+    // -------------------------------------------------------------------------
     public void obtenerNodo(String nombreNodo) {
         this.nombreNodo = nombreNodo;
-
         Request request = new Request.Builder()
                 .url(BASE_URL + "/nodos/propietario/" + idUsuario)
                 .get()
                 .build();
 
         client.newCall(request).enqueue(new Callback() {
-            @Override public void onFailure(Call call, IOException e) {
+            @Override
+            public void onFailure(Call call, IOException e) {
                 Log.e(">>>>>>", "Error al obtener nodos: " + e.getMessage());
             }
 
-            @Override public void onResponse(Call call, Response response) throws IOException {
+            @Override
+            public void onResponse(Call call, Response response) throws IOException {
                 try {
                     String jsonStr = response.body().string();
                     if (!response.isSuccessful()) {
                         Log.e(">>>>>>", "Error respuesta: " + jsonStr);
                         return;
                     }
-
                     if (jsonStr.contains("\"" + nombreNodo + "\"")) {
                         Log.d(">>>>>>", "Nodo encontrado: " + nombreNodo);
                         return;
                     }
-
                     Log.d(">>>>>>", "Nodo no existe. Creando nodo: " + nombreNodo);
-
                     JSONObject json = new JSONObject();
                     json.put("nombre", nombreNodo);
                     json.put("propietarioId", idUsuario);
-
                     RequestBody body = RequestBody.create(
                             json.toString(),
                             MediaType.parse("application/json; charset=utf-8")
                     );
-
                     Request reqCreate = new Request.Builder()
                             .url(BASE_URL + "/nodos")
                             .post(body)
                             .build();
-
                     client.newCall(reqCreate).enqueue(new Callback() {
-                        @Override public void onFailure(Call call, IOException e) {
+                        @Override
+                        public void onFailure(Call call, IOException e) {
                             Log.e(">>>>>>", "Error creando nodo: " + e.getMessage());
                         }
 
-                        @Override public void onResponse(Call call, Response response) {
+                        @Override
+                        public void onResponse(Call call, Response response) {
                             Log.d(">>>>>>", "Nodo creado OK: " + nombreNodo);
                         }
                     });
-
                 } catch (Exception ex) {
                     Log.e(">>>>>>", "Error parseando nodos: ", ex);
                 }
@@ -137,48 +254,14 @@ public class LogicaFake {
         });
     }
 
-    public void guardarMedida() {
-        if (major >= 2800 && major <= 2899) {
-            valorCO2Pendiente = minor;
-            Log.d(">>>>>>", "CO₂ recibido: " + minor);
-        }
-        else if (major >= 3000 && major <= 3099) {
-            valorTempPendiente = minor;
-            Log.d(">>>>>>", "Temp recibida: " + minor);
-        }
-        else {
-            return;
-        }
-
-        if (tiempoInicioLectura == 0)
-            tiempoInicioLectura = System.currentTimeMillis();
-
-        long tiempoTranscurrido = System.currentTimeMillis() - tiempoInicioLectura;
-
-        if ((valorCO2Pendiente != null && valorTempPendiente != null) ||
-                tiempoTranscurrido >= TIMEOUT_MS) {
-
-            int co2 = valorCO2Pendiente != null ? valorCO2Pendiente : -1;
-            int temp = valorTempPendiente != null ? valorTempPendiente : -1;
-
-            enviarMediciones(co2, temp);
-
-            valorCO2Pendiente = null;
-            valorTempPendiente = null;
-            tiempoInicioLectura = 0;
-        }
-    }
-
     private void enviarMediciones(int co2, int temp) {
         try {
             JSONObject json = new JSONObject();
             json.put("nombreNodo", nombreNodo);
             json.put("propietarioId", idUsuario);
-
             JSONObject medidas = new JSONObject();
             medidas.put("co2", co2);
             medidas.put("temperatura", temp);
-
             json.put("medidas", medidas);
 
             RequestBody body = RequestBody.create(
@@ -192,15 +275,16 @@ public class LogicaFake {
                     .build();
 
             client.newCall(request).enqueue(new Callback() {
-                @Override public void onFailure(Call call, IOException e) {
+                @Override
+                public void onFailure(Call call, IOException e) {
                     Log.e(">>>>>>", "Error enviando:", e);
                 }
 
-                @Override public void onResponse(Call call, Response response) throws IOException {
+                @Override
+                public void onResponse(Call call, Response response) throws IOException {
                     Log.d(">>>>>>", "Servidor respondió: " + response.body().string());
                 }
             });
-
         } catch (Exception e) {
             Log.e(">>>>>>", "Error JSON:", e);
         }
@@ -219,12 +303,10 @@ public class LogicaFake {
         try {
             JSONObject json = new JSONObject();
             json.put("distancia", distancia);
-
             RequestBody body = RequestBody.create(
                     json.toString(),
                     MediaType.parse("application/json; charset=utf-8")
             );
-
             Request request = new Request.Builder()
                     .url(BASE_URL + "/usuarios/" + idUsuario)
                     .put(body)

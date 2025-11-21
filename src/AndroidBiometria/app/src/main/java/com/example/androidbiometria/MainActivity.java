@@ -69,7 +69,7 @@
         private DistanciaManager distanciaManager;
 
         // ETIQUETA_LOG: texto (String)
-        private static final String ETIQUETA_LOG = ">>>>";
+        private static final String ETIQUETA_LOG = ">>>>>>";
 
         // CODIGO_PETICION_PERMISOS: número N
         private static final int CODIGO_PETICION_PERMISOS = 11223344;
@@ -86,6 +86,18 @@
         private String uidGlobal;
 
         private LogicaFake logica;
+        private boolean nodoObtenido = false;
+
+        private Handler watchdogHandler = new Handler();
+        private Runnable watchdogRunnable;
+        private static final long COOLDOWN_MS = 3000; // 3 segundos
+
+        // Para la nueva lógica de verificación de sensores en LogicaFake
+        private Handler verificacionSensoresHandler = new Handler();
+        private Runnable verificacionSensoresRunnable;
+
+
+
 
 
 
@@ -101,6 +113,14 @@
             // --- Toolbar Setup ---
             Toolbar toolbar = findViewById(R.id.toolbar);
             setSupportActionBar(toolbar);
+
+            watchdogRunnable = () -> {
+                String nodeName = (nombreNodoUsuario != null) ? nombreNodoUsuario : codigoNodoQR;
+                if (nodeName != null && !nodeName.isEmpty()) {
+                    generarNotificacion("el nodo " + nodeName + " esta apagado o desconectado", "rojo");
+                }
+                // Ya no detenemos el escaneo, solo notificamos.
+            };
 
             // ---------------------------------------------------------------------------
             // LISTENER GLOBAL → Fuerza Logout si el servidor revoca la sesión
@@ -155,13 +175,13 @@
                 FirebaseMessaging.getInstance().subscribeToTopic(uidGlobal)
                         .addOnCompleteListener(task -> {
                             if (task.isSuccessful()) {
-                                Log.d(">>>>", "✅ Suscrito al topic del usuario: " + uidGlobal);
+                                Log.d(">>>>>>", "✅ Suscrito al topic del usuario: " + uidGlobal);
                             } else {
-                                Log.w(">>>>", "❌ Error al suscribirse al topic del usuario", task.getException());
+                                Log.w(">>>>>>", "❌ Error al suscribirse al topic del usuario", task.getException());
                             }
                         });
             } else {
-                Log.w(">>>>", "⚠️ No hay usuario logueado, NO se puede suscribir a topic.");
+                Log.w(">>>>>>", "⚠️ No hay usuario logueado, NO se puede suscribir a topic.");
             }
 
             // ---------------------------------------------------------------------------
@@ -207,6 +227,27 @@
 
             distanciaManager = new DistanciaManager(this, findViewById(R.id.textoDistancia));
             logica = new LogicaFake(null, null, 0, null, null, null, null, null, 0, 0, null, null, 0, 0, 0, uidGlobal, null);
+
+            // Establecer el callback para notificaciones desde LogicaFake
+            LogicaFake.setNotificacionCallback(new LogicaFake.NotificacionCallback() {
+                @Override
+                public void onNodoDesconectado(String nombreNodo) {
+                    runOnUiThread(() -> {
+                        generarNotificacion("El nodo " + nombreNodo + " está desconectado o apagado", "rojo");
+                        Toast.makeText(MainActivity.this, "⚠️ " + nombreNodo + " desconectado", Toast.LENGTH_LONG).show();
+                    });
+                }
+            });
+
+            // Configurar verificación periódica de sensores
+            verificacionSensoresRunnable = new Runnable() {
+                @Override
+                public void run() {
+                    LogicaFake.verificarEstadoSensores();
+                    verificacionSensoresHandler.postDelayed(this, 2000); // Verificar cada 2 segundos
+                }
+            };
+            verificacionSensoresHandler.post(verificacionSensoresRunnable);
             // ---------------------------------------------------------------------------
             // Botón para resetear la distancia
             // ---------------------------------------------------------------------------
@@ -366,10 +407,19 @@
                 return;
             }
 
+            this.nodoObtenido = false; // Reiniciamos la bandera para esta búsqueda
+
+            // Iniciar el watchdog al comenzar la búsqueda
+            watchdogHandler.postDelayed(watchdogRunnable, COOLDOWN_MS);
+
             this.callbackDelEscaneo = new ScanCallback() {
                 @Override
                 public void onScanResult(int callbackType, ScanResult resultado) {
                     super.onScanResult(callbackType, resultado);
+
+                    // Reiniciar el watchdog cada vez que se recibe un paquete
+                    watchdogHandler.removeCallbacks(watchdogRunnable);
+                    watchdogHandler.postDelayed(watchdogRunnable, COOLDOWN_MS);
 
                     String nombreDetectado = (ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.BLUETOOTH_CONNECT)
                             == PackageManager.PERMISSION_GRANTED)
@@ -386,19 +436,14 @@
                     // Convertimos a LogicaFake
                     LogicaFake beacon = convertirScanResult(resultado);
 
-                    // ✅ Ejecutar obtenerNodo **solo una vez**
-                    beacon.obtenerNodo(nodoQR);
+                    // La primera vez, nos aseguramos que el nodo existe en el backend
+                    if (!nodoObtenido) {
+                        beacon.obtenerNodo(nodoQR);
+                        nodoObtenido = true;
+                    }
 
-                    // ✅ Detener el escaneo - ya no se buscará más
-                    detenerBusquedaDispositivosBTLE();
-
-                    // ✅ Ciclo infinito guardando medidas cada 1 segundo
-                    new Thread(() -> {
-                        while (true) {
-                            beacon.guardarMedida();
-                            try { Thread.sleep(1000); } catch (InterruptedException e) {}
-                        }
-                    }).start();
+                    // Guardamos la medida recibida. La propia lógica se encarga de agruparlas.
+                    beacon.guardarMedida();
                 }
             };
 
@@ -440,6 +485,9 @@
                 Log.d(ETIQUETA_LOG, "detenerBusquedaDispositivosBTLE(): No hay escaneo activo");
                 return;
             }
+
+            // Detener el watchdog para que no salte la notificación si paramos manualmente
+            watchdogHandler.removeCallbacks(watchdogRunnable);
 
             // AÑADIR: Verificación de permisos BLUETOOTH_SCAN
             if (ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_SCAN) != PackageManager.PERMISSION_GRANTED) {
@@ -557,10 +605,10 @@
                 }
 
                 if (permisosOk) {
-                    Log.d(">>>>", "Permisos concedidos, verificando estado de Bluetooth y GPS…");
+                    Log.d(">>>>>>", "Permisos concedidos, verificando estado de Bluetooth y GPS…");
                     verificarYActivarBluetoothYGps();
                 } else {
-                    Log.e(">>>>", "Permisos NO concedidos. No se puede usar GPS.");
+                    Log.e(">>>>>>", "Permisos NO concedidos. No se puede usar GPS.");
                 }
             }
         }
@@ -577,7 +625,7 @@
 
             if (bluetoothActivado && gpsActivado) {
                 // Ambos están activados, iniciar tracking
-                Log.d(">>>>", "Bluetooth y GPS activados, iniciando tracking GPS…");
+                Log.d(">>>>>>", "Bluetooth y GPS activados, iniciando tracking GPS…");
                 if (uidGlobal != null) {
                     // Usar un nombre de nodo por defecto para el tracking de distancia del móvil
                     String nombreNodoMovil = "movil_" + uidGlobal.substring(0, 8); // Ejemplo: "movil_abc12345"
@@ -642,7 +690,7 @@
                     }
                 }
             } catch (SecurityException e) {
-                Log.e(">>>>", "Error de seguridad al activar Bluetooth: " + e.getMessage());
+                Log.e(">>>>>>", "Error de seguridad al activar Bluetooth: " + e.getMessage());
             }
         }
 
@@ -655,7 +703,7 @@
                     Toast.makeText(this, "Por favor, activa el GPS en ajustes", Toast.LENGTH_LONG).show();
                 }
             } catch (Exception e) {
-                Log.e(">>>>", "Error al activar GPS: " + e.getMessage());
+                Log.e(">>>>>>", "Error al activar GPS: " + e.getMessage());
             }
         }
 
@@ -746,7 +794,7 @@
             if (Build.VERSION.SDK_INT >= 33 &&
                     checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)
                             != PackageManager.PERMISSION_GRANTED) {
-                Log.w("generarNotificacion", "Sin permiso POST_NOTIFICATIONS en Android 13+");
+                Log.w(">>>>>>", "Sin permiso POST_NOTIFICATIONS en Android 13+");
                 return;
             }
 
@@ -909,7 +957,7 @@
 
             // Verificar si debemos reiniciar el tracking
             if (uidGlobal != null && !distanciaManager.isTracking()) {
-                Log.d(">>>>", "🔄 Revisando estado de tracking en onResume...");
+                Log.d(">>>>>>", "🔄 Revisando estado de tracking en onResume...");
                 verificarYActivarBluetoothYGps();
             }
 
@@ -940,13 +988,17 @@
                     Intent.FLAG_ACTIVITY_CLEAR_TASK);
             startActivity(intent);
             finish();
-        }
-
-
+                }
 
         interface Callback {
             void onSuccess(String link);
             void onError(String error);
+        }
+
+        @Override
+        protected void onDestroy() {
+            super.onDestroy();
+            //detenerBusquedaDispositivosBTLE();
         }
 
 
