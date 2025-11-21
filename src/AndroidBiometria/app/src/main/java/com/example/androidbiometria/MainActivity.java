@@ -90,15 +90,14 @@
 
         private Handler watchdogHandler = new Handler();
         private Runnable watchdogRunnable;
-        private static final long COOLDOWN_MS = 3000; // 3 segundos
+        private String dispositivoBuscadoActual = null;
 
-        // Para la nueva lógica de verificación de sensores en LogicaFake
-        private Handler verificacionSensoresHandler = new Handler();
-        private Runnable verificacionSensoresRunnable;
-
-
-
-
+        private static final long TIMEOUT_BEACON_MS = 5000; // 5 segundos para detectar desconexión
+        private static final long COOLDOWN_NOTIFICACION_MS = 3000; // 3 segundos entre notificaciones
+        private long ultimaDeteccionBeacon = 0;
+        private boolean beaconConectado = false;
+        private long ultimaNotificacion = 0;
+        private boolean escaneoActivo = false;
 
 
         // ---------------------------------------------------------------------------
@@ -114,12 +113,58 @@
             Toolbar toolbar = findViewById(R.id.toolbar);
             setSupportActionBar(toolbar);
 
-            watchdogRunnable = () -> {
-                String nodeName = (nombreNodoUsuario != null) ? nombreNodoUsuario : codigoNodoQR;
-                if (nodeName != null && !nodeName.isEmpty()) {
-                    generarNotificacion("el nodo " + nodeName + " esta apagado o desconectado", "rojo");
+            // WATCHDOG CORREGIDO - VERSIÓN MEJORADA
+            watchdogRunnable = new Runnable() {
+                @Override
+                public void run() {
+                    if (!escaneoActivo) {
+                        return; // No hacer nada si no hay escaneo activo
+                    }
+
+                    long tiempoActual = System.currentTimeMillis();
+                    long tiempoDesdeUltimaDeteccion = ultimaDeteccionBeacon > 0 ?
+                            tiempoActual - ultimaDeteccionBeacon : Long.MAX_VALUE;
+                    long tiempoDesdeUltimaNotificacion = tiempoActual - ultimaNotificacion;
+
+                    // Solo notificar si alguna vez se detectó el beacon (ultimaDeteccionBeacon > 0)
+                    boolean algunaVezDetectado = ultimaDeteccionBeacon > 0;
+
+                    // Si ha pasado más de 5 segundos desde la última detección Y alguna vez se detectó
+                    if (algunaVezDetectado && tiempoDesdeUltimaDeteccion > TIMEOUT_BEACON_MS) {
+                        // Y ha pasado el cooldown desde la última notificación
+                        if (tiempoDesdeUltimaNotificacion > COOLDOWN_NOTIFICACION_MS) {
+                            String nodeName = (nombreNodoUsuario != null) ? nombreNodoUsuario : codigoNodoQR;
+                            if (nodeName != null && !nodeName.isEmpty()) {
+                                generarNotificacion("El nodo " + nodeName + " está apagado o desconectado", "rojo");
+                                ultimaNotificacion = tiempoActual;
+                                beaconConectado = false;
+                                Log.w(ETIQUETA_LOG, "⚠️ Watchdog: Beacon desconectado - " + nodeName);
+
+                                // Opcional: Toast de desconexión
+                                runOnUiThread(() ->
+                                        Toast.makeText(MainActivity.this, "⚠️ " + nodeName + " desconectado",
+                                                Toast.LENGTH_LONG).show()
+                                );
+                            }
+                        }
+                    } else if (algunaVezDetectado) {
+                        // El beacon está conectado
+                        if (!beaconConectado) {
+                            beaconConectado = true;
+                            String nodeName = (nombreNodoUsuario != null) ? nombreNodoUsuario : codigoNodoQR;
+                            Log.d(ETIQUETA_LOG, "✅ Watchdog: Beacon conectado - " + nodeName);
+
+                            // Opcional: Toast de reconexión
+                            runOnUiThread(() ->
+                                    Toast.makeText(MainActivity.this, "✅ " + nodeName + " conectado",
+                                            Toast.LENGTH_SHORT).show()
+                            );
+                        }
+                    }
+
+                    // Programar siguiente verificación en 1 segundo
+                    watchdogHandler.postDelayed(this, 1000);
                 }
-                // Ya no detenemos el escaneo, solo notificamos.
             };
 
             // ---------------------------------------------------------------------------
@@ -228,26 +273,6 @@
             distanciaManager = new DistanciaManager(this, findViewById(R.id.textoDistancia));
             logica = new LogicaFake(null, null, 0, null, null, null, null, null, 0, 0, null, null, 0, 0, 0, uidGlobal, null);
 
-            // Establecer el callback para notificaciones desde LogicaFake
-            LogicaFake.setNotificacionCallback(new LogicaFake.NotificacionCallback() {
-                @Override
-                public void onNodoDesconectado(String nombreNodo) {
-                    runOnUiThread(() -> {
-                        generarNotificacion("El nodo " + nombreNodo + " está desconectado o apagado", "rojo");
-                        Toast.makeText(MainActivity.this, "⚠️ " + nombreNodo + " desconectado", Toast.LENGTH_LONG).show();
-                    });
-                }
-            });
-
-            // Configurar verificación periódica de sensores
-            verificacionSensoresRunnable = new Runnable() {
-                @Override
-                public void run() {
-                    LogicaFake.verificarEstadoSensores();
-                    verificacionSensoresHandler.postDelayed(this, 2000); // Verificar cada 2 segundos
-                }
-            };
-            verificacionSensoresHandler.post(verificacionSensoresRunnable);
             // ---------------------------------------------------------------------------
             // Botón para resetear la distancia
             // ---------------------------------------------------------------------------
@@ -399,6 +424,9 @@
         // -->
         // void (sin valor de retorno)
         // --------------------------------------------------------------
+        // --------------------------------------------------------------------------------
+        // BUSCAR DISPOSITIVO - VERSIÓN CORREGIDA
+        // --------------------------------------------------------------------------------
         private void buscarEsteDispositivoBTLE(final String dispositivoBuscado) {
             Log.d(ETIQUETA_LOG, "buscarEsteDispositivoBTLE(): empieza");
 
@@ -407,19 +435,17 @@
                 return;
             }
 
-            this.nodoObtenido = false; // Reiniciamos la bandera para esta búsqueda
+            this.nodoObtenido = false;
+            this.escaneoActivo = true;
+            this.dispositivoBuscadoActual = dispositivoBuscado;
 
-            // Iniciar el watchdog al comenzar la búsqueda
-            watchdogHandler.postDelayed(watchdogRunnable, COOLDOWN_MS);
+            // INICIAR WATCHDOG
+            iniciarWatchdog();
 
             this.callbackDelEscaneo = new ScanCallback() {
                 @Override
                 public void onScanResult(int callbackType, ScanResult resultado) {
                     super.onScanResult(callbackType, resultado);
-
-                    // Reiniciar el watchdog cada vez que se recibe un paquete
-                    watchdogHandler.removeCallbacks(watchdogRunnable);
-                    watchdogHandler.postDelayed(watchdogRunnable, COOLDOWN_MS);
 
                     String nombreDetectado = (ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.BLUETOOTH_CONNECT)
                             == PackageManager.PERMISSION_GRANTED)
@@ -427,7 +453,23 @@
                             : null;
 
                     if (nombreDetectado == null || !nombreDetectado.equals(dispositivoBuscado)) {
-                        return;
+                        return; // No es el dispositivo que buscamos
+                    }
+
+                    // ✅ DISPOSITIVO CORRECTO DETECTADO - Actualizar timestamp y estado
+                    ultimaDeteccionBeacon = System.currentTimeMillis();
+
+                    // Si es la primera detección o estaba desconectado, actualizar estado
+                    if (!beaconConectado) {
+                        beaconConectado = true;
+                        String nodeName = (nombreNodoUsuario != null) ? nombreNodoUsuario : codigoNodoQR;
+                        Log.d(ETIQUETA_LOG, "✅ Beacon conectado: " + nodeName);
+
+                        // Opcional: Mostrar toast de reconexión
+                        runOnUiThread(() ->
+                                Toast.makeText(MainActivity.this, "✅ " + nodeName + " conectado",
+                                        Toast.LENGTH_SHORT).show()
+                        );
                     }
 
                     String nodoQR = (nombreNodoUsuario != null) ? nombreNodoUsuario :
@@ -442,8 +484,23 @@
                         nodoObtenido = true;
                     }
 
-                    // Guardamos la medida recibida. La propia lógica se encarga de agruparlas.
+                    // Guardamos la medida recibida
                     beacon.guardarMedida();
+                }
+
+                @Override
+                public void onScanFailed(int errorCode) {
+                    super.onScanFailed(errorCode);
+                    Log.e(ETIQUETA_LOG, "Error en escaneo: " + errorCode);
+
+                    // Opcional: Reiniciar escaneo en caso de error
+                    new Handler().postDelayed(() -> {
+                        if (escaneoActivo) {
+                            Log.d(ETIQUETA_LOG, "Reintentando escaneo después de error...");
+                            detenerBusquedaDispositivosBTLE();
+                            buscarEsteDispositivoBTLE(dispositivoBuscadoActual);
+                        }
+                    }, 2000);
                 }
             };
 
@@ -459,12 +516,12 @@
                 elEscanner.startScan(Arrays.asList(filtro), settings, callbackDelEscaneo);
                 Log.d(ETIQUETA_LOG, "Escaneando específicamente: " + dispositivoBuscado);
             } catch (Exception e) {
+                Log.e(ETIQUETA_LOG, "Error iniciando escaneo filtrado: " + e.getMessage());
+                // Fallback a escaneo general
                 elEscanner.startScan(callbackDelEscaneo);
                 Log.d(ETIQUETA_LOG, "Escaneo general activado");
             }
         }
-
-
 
         // --------------------------------------------------------------------------------
         // Sin parámetros de entrada
@@ -988,7 +1045,23 @@
                     Intent.FLAG_ACTIVITY_CLEAR_TASK);
             startActivity(intent);
             finish();
-                }
+        }
+
+        // --------------------------------------------------------------------------------
+        private void iniciarWatchdog() {
+            // NO inicializar ultimaDeteccionBeacon aquí
+            // Debe ser actualizado SOLO cuando realmente se detecte el beacon
+
+            beaconConectado = false; // Empezamos asumiendo que NO está conectado
+            ultimaNotificacion = 0;
+
+            // Limpiar cualquier watchdog previo
+            watchdogHandler.removeCallbacks(watchdogRunnable);
+            // Iniciar watchdog
+            watchdogHandler.post(watchdogRunnable);
+
+            Log.d(ETIQUETA_LOG, "🔍 Watchdog iniciado - Esperando primera detección...");
+        }
 
         interface Callback {
             void onSuccess(String link);
