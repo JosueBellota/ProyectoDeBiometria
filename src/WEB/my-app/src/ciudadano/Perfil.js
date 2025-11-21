@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from "react";
+
+import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   obtenerUsuarioLogueado,
@@ -6,184 +7,278 @@ import {
   reautenticarUsuario,
   actualizarPasswordConReautenticacion,
 } from "../logicaFake/auth";
+import { obtenerUsuarioCompleto } from "../logicaFake/logicaFake";
+import { formatTime } from "../logicaFake/monedas";
 import HeaderRegistrado from "./templates/HeaderRegistrado";
+import { useMonedas } from "../logicaFake/MonedasContext";
+
+// --- Estilos CSS en línea para simplicidad ---
+const styles = {
+  pageContainer: {
+    display: "flex",
+    flexWrap: "wrap",
+    gap: "24px",
+    padding: "20px",
+    maxWidth: "1200px",
+    margin: "0 auto",
+  },
+  card: {
+    flex: 1,
+    minWidth: "350px",
+    background: "var(--color-surface)",
+    padding: "24px",
+    borderRadius: "var(--radius-card)",
+    border: "1px solid var(--color-border)",
+  },
+  form: {
+    display: "flex",
+    flexDirection: "column",
+  },
+  inputGroup: { marginBottom: "16px" },
+  label: { marginBottom: "4px", display: "block" },
+  input: {
+    width: "100%",
+    padding: "10px 12px",
+    border: "1px solid var(--color-border)",
+    borderRadius: "6px",
+    boxSizing: "border-box",
+  },
+  button: {
+    padding: "12px 16px",
+    backgroundColor: "var(--color-primary)",
+    color: "white",
+    border: "none",
+    borderRadius: "var(--radius-button)",
+    cursor: "pointer",
+  },
+  disabledButton: {
+    backgroundColor: "#ccc",
+    cursor: "not-allowed",
+  },
+  timerContainer: {
+    textAlign: "center",
+  },
+  timerText: {
+    fontSize: "2rem",
+    fontWeight: "bold",
+    color: "var(--color-primary)",
+    margin: "16px 0",
+  },
+  infoText: {
+    textAlign: "center",
+    fontSize: "0.9rem",
+    color: "#666",
+  },
+};
+// --- Fin de Estilos ---
 
 function Perfil() {
   const navigate = useNavigate();
-  const [usuario, setUsuario] = useState({
+  const [perfil, setPerfil] = useState({
     nombre: "",
     correo: "",
     contraseña: "",
     nuevaContraseña: "",
     repetirContraseña: "",
   });
-  const [usuarioOriginal, setUsuarioOriginal] = useState(null);
+  const [usuario, setUsuario] = useState(null);
 
-  useEffect(() => {
+  // --- Estados y lógica de monedas desde el Context ---
+  const {
+    tiempoActivo,
+    puedeReclamar,
+    tiempoRestanteCooldown,
+    reclamarMoneda,
+    TIEMPO_REQUERIDO_ACTIVIDAD,
+  } = useMonedas();
+
+  // --- Carga inicial del usuario ---
+  const cargarUsuario = useCallback(async () => {
     const user = obtenerUsuarioLogueado();
     if (!user) {
       navigate("/login");
-    } else {
-      setUsuario({
-        nombre: user.nombre || "",
-        correo: user.correo || "",
-        contraseña: "",
-        nuevaContraseña: "",
-        repetirContraseña: "",
-      });
-      setUsuarioOriginal(user);
+      return;
+    }
+    const datosCompletos = await obtenerUsuarioCompleto(user.uid);
+    if (!datosCompletos.error) {
+      setUsuario(datosCompletos);
+      setPerfil((prev) => ({
+        ...prev,
+        nombre: datosCompletos.nombre,
+        correo: datosCompletos.correo,
+      }));
     }
   }, [navigate]);
 
+  useEffect(() => {
+    cargarUsuario();
+  }, [cargarUsuario]);
+
+  // --- Handlers ---
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setUsuario({ ...usuario, [name]: value });
+    setPerfil({ ...perfil, [name]: value });
   };
 
-  const handleSubmit = async (e) => {
+  const handleProfileSubmit = async (e) => {
     e.preventDefault();
-
-    if (!usuario.contraseña) {
-      alert("Debes introducir tu contraseña actual para realizar cambios.");
-      return;
+    if (!perfil.contraseña) {
+      return alert(
+        "Debes introducir tu contraseña actual para realizar cambios."
+      );
     }
-
-    if (usuario.nuevaContraseña !== usuario.repetirContraseña) {
-      alert("Las nuevas contraseñas no coinciden.");
-      return;
+    if (
+      perfil.nuevaContraseña &&
+      perfil.nuevaContraseña !== perfil.repetirContraseña
+    ) {
+      return alert("Las nuevas contraseñas no coinciden.");
     }
 
     try {
-      const usuarioLocal = obtenerUsuarioLogueado();
-      if (!usuarioLocal) {
-        alert("Error: no hay usuario logueado.");
-        navigate("/login");
-        return;
-      }
-
-      let somethingChanged = false;
-
-      // 1. Manejar el cambio de contraseña
-      if (usuario.nuevaContraseña) {
-        somethingChanged = true;
+      await reautenticarUsuario(perfil.contraseña);
+      if (perfil.nuevaContraseña) {
         await actualizarPasswordConReautenticacion(
-          usuario.contraseña,
-          usuario.nuevaContraseña
+          perfil.contraseña,
+          perfil.nuevaContraseña
         );
-        console.log("✅ Contraseña actualizada con éxito.");
       }
-
-      // 2. Manejar el cambio de nombre o correo
-      const hasProfileDataChanged =
-        usuario.nombre !== usuarioOriginal.nombre ||
-        usuario.correo !== usuarioOriginal.correo;
-
-      if (hasProfileDataChanged) {
-        somethingChanged = true;
-        console.log("🟨 Actualizando nombre/correo...");
-
-        // Si la contraseña no se cambió en el paso 1, necesitamos reautenticar igualmente
-        if (!usuario.nuevaContraseña) {
-          await reautenticarUsuario(usuario.contraseña);
-        }
-
-        const nuevosDatos = {
-          nombre: usuario.nombre,
-          correo: usuario.correo,
-        };
-        await actualizarUsuario(usuarioLocal.uid, nuevosDatos);
-        console.log("✅ Datos del perfil (nombre/correo) actualizados.");
+      if (
+        usuario &&
+        (perfil.nombre !== usuario.nombre || perfil.correo !== usuario.correo)
+      ) {
+        await actualizarUsuario(usuario.uid, {
+          nombre: perfil.nombre,
+          correo: perfil.correo,
+        });
       }
-      
-      if (!somethingChanged) {
-        alert("No has modificado ningún dato.");
-        return;
-      }
-
       alert("✅ Perfil actualizado correctamente.");
-      navigate("/intranet");
-
+      cargarUsuario();
+      navigate("/ciudadano/intranet");
     } catch (error) {
-      console.error("❌ Error al actualizar:", error);
-      let errorMessage = "❌ No se pudo actualizar el perfil. ";
-      if (error.code === 'auth/wrong-password') {
-        errorMessage += "La contraseña actual es incorrecta.";
-      } else {
-        errorMessage += error.message;
-      }
-      alert(errorMessage);
+      alert(`❌ Error: ${error.message}`);
     }
   };
 
   return (
     <>
-    <HeaderRegistrado />
-    <div className="container">
-     
-      <h1>Perfil del Usuario</h1>
-      <form onSubmit={handleSubmit} className="perfil-form">
-        <div>
-          <label>Nombre:</label>
-          <input
-            type="text"
-            name="nombre"
-            value={usuario.nombre}
-            onChange={handleChange}
-            required
-          />
+      <HeaderRegistrado />
+      <div style={styles.pageContainer}>
+        {/* --- Card de Perfil --- */}
+        <div style={styles.card}>
+          <h2>Perfil de Usuario</h2>
+          <form onSubmit={handleProfileSubmit} style={styles.form}>
+            <div style={styles.inputGroup}>
+              <label style={styles.label}>Nombre:</label>
+              <input
+                type="text"
+                name="nombre"
+                value={perfil.nombre}
+                onChange={handleChange}
+                required
+                style={styles.input}
+              />
+            </div>
+            <div style={styles.inputGroup}>
+              <label style={styles.label}>Correo:</label>
+              <input
+                type="email"
+                name="correo"
+                value={perfil.correo}
+                onChange={handleChange}
+                required
+                style={styles.input}
+              />
+            </div>
+            <div style={styles.inputGroup}>
+              <label style={styles.label}>
+                Contraseña Actual (obligatoria):
+              </label>
+              <input
+                type="password"
+                name="contraseña"
+                value={perfil.contraseña}
+                onChange={handleChange}
+                required
+                style={styles.input}
+              />
+            </div>
+            <div style={styles.inputGroup}>
+              <label style={styles.label}>Nueva Contraseña:</label>
+              <input
+                type="password"
+                name="nuevaContraseña"
+                value={perfil.nuevaContraseña}
+                onChange={handleChange}
+                placeholder="Dejar en blanco para no cambiar"
+                style={styles.input}
+              />
+            </div>
+            <div style={styles.inputGroup}>
+              <label style={styles.label}>Repetir Nueva Contraseña:</label>
+              <input
+                type="password"
+                name="repetirContraseña"
+                value={perfil.repetirContraseña}
+                onChange={handleChange}
+                style={styles.input}
+              />
+            </div>
+            <hr />
+
+            <button type="submit" style={styles.button}>
+              Actualizar Perfil
+            </button>
+          </form>
         </div>
 
-        <div>
-          <label>Correo:</label>
-          <input
-            type="email"
-            name="correo"
-            value={usuario.correo}
-            onChange={handleChange}
-            required
-          />
+        {/* --- Card de Monedas --- */}
+        <div style={styles.card}>
+          <h2>Gana Monedas</h2>
+          <div style={styles.timerContainer}>
+            {puedeReclamar ? (
+              <>
+                <h3>Tiempo de Actividad</h3>
+                <p style={styles.timerText}>
+                  {formatTime(tiempoActivo, false)} /{" "}
+                  {formatTime(TIEMPO_REQUERIDO_ACTIVIDAD, false)}
+                </p>
+                <p style={styles.infoText}>
+                  Mantente activo en la página para ganar una moneda.
+                </p>
+                <button
+                  onClick={reclamarMoneda}
+                  style={
+                    tiempoActivo >= TIEMPO_REQUERIDO_ACTIVIDAD
+                      ? styles.button
+                      : { ...styles.button, ...styles.disabledButton }
+                  }
+                  disabled={tiempoActivo < TIEMPO_REQUERIDO_ACTIVIDAD}
+                >
+                  Reclamar 1 Moneda
+                </button>
+              </>
+            ) : (
+              <>
+                <h3>Próxima Recompensa</h3>
+                <p style={styles.timerText}>
+                  {formatTime(tiempoRestanteCooldown)}
+                </p>
+                <p style={styles.infoText}>
+                  Ya ganaste tu moneda diaria.
+                </p>
+                <button
+                  style={{ ...styles.button, ...styles.disabledButton }}
+                  disabled
+                >
+                  Esperando...
+                </button>
+              </>
+            )}
+          </div>
         </div>
-
-        <div>
-          <label>Nueva Contraseña:</label>
-          <input
-            type="password"
-            name="nuevaContraseña"
-            value={usuario.nuevaContraseña}
-            onChange={handleChange}
-            placeholder="Dejar en blanco para no cambiar"
-          />
-        </div>
-        
-        <div>
-          <label>Repetir Nueva Contraseña:</label>
-          <input
-            type="password"
-            name="repetirContraseña"
-            value={usuario.repetirContraseña}
-            onChange={handleChange}
-          />
-        </div>
-
-        <hr />
-
-        <div>
-          <label>Contraseña Actual (obligatoria para cualquier cambio):</label>
-          <input
-            type="password"
-            name="contraseña"
-            value={usuario.contraseña}
-            onChange={handleChange}
-            required
-          />
-        </div>
-
-        <button type="submit">Actualizar</button>
-      </form>
-    </div>
+      </div>
     </>
   );
 }
 
 export default Perfil;
-

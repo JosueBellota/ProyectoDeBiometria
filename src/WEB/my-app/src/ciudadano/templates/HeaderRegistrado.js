@@ -1,13 +1,15 @@
 import React, { useState, useEffect } from "react";
 import "../../css/main.css";
 import { Link, useNavigate } from "react-router-dom";
-import { obtenerUsuarioCompleto } from "../../logicaFake/logicaFake";
 import { cerrarSesion, obtenerUsuarioLogueado } from "../../logicaFake/auth";
+import { useMonedas } from "../../logicaFake/MonedasContext";
 import AccountCircle from "@mui/icons-material/AccountCircle";
 import MonetizationOn from "@mui/icons-material/MonetizationOn";
+import { obtenerUsuarioCompleto } from "../../logicaFake/logicaFake";
 
 export default function HeaderRegistrado() {
   const [menuAbierto, setMenuAbierto] = useState(false);
+  const { monedas, loading } = useMonedas();
   const [usuario, setUsuario] = useState(null);
   const navigate = useNavigate();
 
@@ -75,10 +77,10 @@ export default function HeaderRegistrado() {
             to="/ciudadano/tienda"
             onClick={closeMenu}
             className="header-registrado-monedas-link"
-            aria-label={`Ir a la tienda. Tienes ${usuario?.monedas ?? 0} monedas`}
+            aria-label={`Ir a la tienda. Tienes ${loading ? "..." : monedas} monedas`}
           >
-            <MonetizationOn sx={{ fontSize: 24 }} />
-            <span>{usuario?.monedas ?? 0}</span>
+            <MonetizationOn sx={{ fontSize: 24, color: 'white' }} />
+            <span>{loading ? "..." : monedas}</span>
           </Link>
         </nav>
 

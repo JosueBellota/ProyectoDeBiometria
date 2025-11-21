@@ -2,69 +2,111 @@
 import React, { useEffect, useState } from "react";
 import HeaderRegistrado from "./templates/HeaderRegistrado";
 import { obtenerUsuarioLogueado } from "../logicaFake/auth";
+import { obtenerUsuarioCompleto, actualizarDatosUsuario } from "../logicaFake/logicaFake";
+import { recompensas } from "../logicaFake/premios";
+import { useMonedas } from "../logicaFake/MonedasContext";
 import "./css/tienda.css";
-
-const recompensas = [
-  {
-    id: 1,
-    titulo: "Gimnasio Municipal de Gandia",
-    descripcion:
-      "Consigue un 20% de descuento durante un mes en la cuota del gimnasio municipal.",
-    costeMonedas: 5,
-    codigo: "GANDIA-GYM20",
-    img: "/gimnasio-gandia.jpeg", // pon aquí la imagen que tengas
-  },
-  {
-    id: 2,
-    titulo: "Entrada al Museo Local",
-    descripcion:
-      "Entrada gratuita para una persona al museo local de Gandia.",
-    costeMonedas: 3,
-    codigo: "MUSEO-GANDIA1",
-    img: "/museo_gandia.jpg",
-  },
-  {
-    id: 3,
-    titulo: "Descuento en transporte",
-    descripcion:
-      "10% de descuento en tu bono mensual de transporte público.",
-    costeMonedas: 4,
-    codigo: "BUS-GANDIA10",
-    img: "/transporte_gandia.jpg",
-  },
-];
 
 function Tienda() {
   const [usuario, setUsuario] = useState(null);
   const [desbloqueados, setDesbloqueados] = useState({});
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [selectedReward, setSelectedReward] = useState(null);
+  const { monedas, setMonedas } = useMonedas();
 
   useEffect(() => {
-    const user = obtenerUsuarioLogueado?.();
-    setUsuario(user || null);
+    const loadUser = async () => {
+      const user = obtenerUsuarioLogueado?.();
+      if (user) {
+        const fullUser = await obtenerUsuarioCompleto(user.uid);
+        setUsuario(fullUser);
+        const userPremios = fullUser.premios || [];
+        const unlocked = recompensas.reduce((acc, recompensa) => {
+          if (userPremios.includes(recompensa.codigo)) {
+            acc[recompensa.id] = true;
+          }
+          return acc;
+        }, {});
+        setDesbloqueados(unlocked);
+      }
+    };
+    loadUser();
   }, []);
 
-  const monedas = usuario?.monedas ?? 0;
-
   const manejarClickRecompensa = (recompensa) => {
+    if (desbloqueados[recompensa.id]) {
+      alert("Ya has canjeado esta recompensa.");
+      return;
+    }
     if (monedas < recompensa.costeMonedas) {
       alert(
         `Necesitas ${recompensa.costeMonedas} monedas para canjear esta recompensa. Actualmente tienes ${monedas}.`
       );
       return;
     }
+    setSelectedReward(recompensa);
+    setShowConfirm(true);
+  };
 
+  const confirmarCanje = async () => {
+    if (!selectedReward || !usuario) return;
+
+    const nuevasMonedas = monedas - selectedReward.costeMonedas;
+    const nuevosPremios = [...(usuario.premios || []), selectedReward.codigo];
+
+    // Optimistic UI update
+    setMonedas(nuevasMonedas);
+    setUsuario({ ...usuario, monedas: nuevasMonedas, premios: nuevosPremios });
     setDesbloqueados((prev) => ({
       ...prev,
-      [recompensa.id]: true,
+      [selectedReward.id]: true,
     }));
+    setShowConfirm(false);
+    setSelectedReward(null);
 
-    // Aquí, si quieres, podrías llamar a una función tipo
-    // actualizarUsuario({ ...usuario, monedas: monedas - recompensa.costeMonedas })
-    // para guardar el nuevo saldo en tu "backend fake".
+    try {
+      await actualizarDatosUsuario(usuario.uid, {
+        monedas: nuevasMonedas,
+        premios: nuevosPremios,
+      });
+    } catch (error) {
+      alert(`Error: ${error.message}`);
+      // Revert UI change on error
+      setMonedas(monedas);
+      setUsuario(usuario);
+      setDesbloqueados((prev) => ({
+        ...prev,
+        [selectedReward.id]: false,
+      }));
+    }
   };
+
+  const ConfirmationModal = () => (
+    <div className="modal-overlay">
+      <div className="modal-content">
+        <h2>Confirmar Compra</h2>
+        <p>
+          ¿Estás seguro de que quieres canjear "{selectedReward?.titulo}" por{" "}
+          {selectedReward?.costeMonedas} monedas?
+        </p>
+        <div className="modal-actions">
+          <button onClick={confirmarCanje} className="modal-confirm">
+            Confirmar
+          </button>
+          <button
+            onClick={() => setShowConfirm(false)}
+            className="modal-cancel"
+          >
+            Cancelar
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <div className="home-page">
+      {showConfirm && <ConfirmationModal />}
       <HeaderRegistrado />
 
       <main className="home-content tienda-page">
@@ -87,7 +129,9 @@ function Tienda() {
             return (
               <article
                 key={r.id}
-                className="tienda-card"
+                className={`tienda-card ${
+                  estaDesbloqueada ? "desbloqueada" : ""
+                }`}
                 onClick={() => manejarClickRecompensa(r)}
               >
                 <img

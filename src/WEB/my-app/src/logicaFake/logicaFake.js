@@ -93,6 +93,49 @@ export async function actualizarDistanciaUsuario(idUsuario, distancia) {
   }
 }
 
+// ----------------------------------------------------------
+// actualizarDatosUsuario(idUsuario, datos)
+// ----------------------------------------------------------
+export async function actualizarDatosUsuario(idUsuario, datos) {
+  try {
+    const res = await fetch(`${API_BASE}/usuarios/${idUsuario}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(datos),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+    return data;
+  } catch (error) {
+    console.error("❌ Error en actualizarDatosUsuario:", error);
+    return { error: error.message };
+  }
+}
+
+// ----------------------------------------------------------
+// actualizarMonedasUsuario(idUsuario, monedas)
+// ----------------------------------------------------------
+export async function actualizarMonedasUsuario(idUsuario, monedas) {
+  try {
+    const res = await fetch(`${API_BASE}/usuarios/${idUsuario}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ monedas }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+    return data;
+  } catch (error) {
+    console.error("❌ Error en actualizarMonedasUsuario:", error);
+    return { error: error.message };
+  }
+}
+
+
 
 // ----------------------------------------------------------
 // main()  → Ciudadano
