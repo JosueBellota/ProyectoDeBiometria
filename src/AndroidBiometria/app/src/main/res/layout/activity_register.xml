@@ -5,11 +5,19 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
+    <ImageView
+        android:id="@+id/logo"
+        android:layout_width="100dp"
+        android:layout_height="100dp"
+        android:src="@drawable/logo"
+        android:layout_marginBottom="24dp"/>
+
     <TextView android:text="Registro de Usuario"
         android:textSize="22sp"
         android:layout_marginBottom="16dp"
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content" />
+        android:layout_height="wrap_content"
+        android:textColor="@color/colorText"/>
 
     <EditText android:id="@+id/name"
         android:hint="Nombre completo"
@@ -29,8 +37,10 @@
         android:layout_height="wrap_content" />
 
     <Button android:id="@+id/registerButton"
-        android:text="Registrar cuenta"
+        android:text="REGISTRAR CUENTA"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="16dp" />
+        android:layout_marginTop="16dp"
+        android:backgroundTint="@color/colorPrimary"
+        android:textColor="@color/white"/>
 </LinearLayout>
