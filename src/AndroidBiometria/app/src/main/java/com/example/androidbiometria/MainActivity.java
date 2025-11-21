@@ -871,16 +871,6 @@
         }
 
 
-        protected void onNewIntent(Intent intent) {
-            super.onNewIntent(intent);
-            if (intent.hasExtra("mensaje")) {
-                String mensaje = intent.getStringExtra("mensaje");
-                String color = intent.getStringExtra("color");
-                generarNotificacion(mensaje, color);
-            }
-        }
-
-
         @Override
         protected void onActivityResult(int requestCode, int resultCode, Intent data) {
             super.onActivityResult(requestCode, resultCode, data);
