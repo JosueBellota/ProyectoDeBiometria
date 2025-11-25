@@ -1,0 +1,19 @@
+1.4
+
+1.6
+
+
+
+
+
+informe de estado del nodo si esta activo incativo y la ultima fecha de modificacion
+
+cuando el nodo deja de enviar informacion a la base de datos
+
+hace 1 hora o 1 dia pase inactivo
+
+poder ordenar ordenarlos para una deteccion facil
+
+mismos contaminantes de informacion adicional con los umbrales de datos reocomendado
+
+la calidad del aire por cualquier contaminantes
