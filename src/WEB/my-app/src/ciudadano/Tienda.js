@@ -1,4 +1,11 @@
-// src/ciudadano/Tienda.js
+// --------------------------------------------------------------------------
+// Fichero: Tienda.js
+// Responsable: Josue Bellota Ichaso
+//
+// Descripción:
+// Este fichero contiene la tienda de la aplicación.
+// --------------------------------------------------------------------------
+
 import React, { useEffect, useState } from "react";
 import HeaderRegistrado from "./templates/HeaderRegistrado";
 import { obtenerUsuarioLogueado } from "../logicaFake/auth";

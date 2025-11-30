@@ -1,3 +1,11 @@
+// --------------------------------------------------------------------------
+// Fichero: Menu.js
+// Responsable: Josue Bellota Ichaso
+//
+// Descripción:
+// Este fichero contiene el menú de navegación del administrador.
+// --------------------------------------------------------------------------
+
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { cerrarSesion } from "./../../logicaFake/auth";

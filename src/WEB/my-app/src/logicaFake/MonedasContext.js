@@ -1,3 +1,11 @@
+// --------------------------------------------------------------------------
+// Fichero: MonedasContext.js
+// Responsable: Josue Bellota Ichaso
+//
+// Descripción:
+// Este fichero contiene el contexto de las monedas.
+// --------------------------------------------------------------------------
+
 import React, {
   createContext,
   useState,

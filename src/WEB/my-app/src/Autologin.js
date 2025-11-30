@@ -1,9 +1,20 @@
-// src/Autologin.js
+// --------------------------------------------------------------------------
+// Fichero: Autologin.js
+// Responsable: Josue Bellota Ichaso
+//
+// Descripción:
+// Este fichero se encarga de gestionar el inicio de sesión automático
+// a través de un token personalizado.
+// --------------------------------------------------------------------------
+
 import React, { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { getAuth, signInWithCustomToken } from "firebase/auth";
 import { obtenerUsuarioCompleto } from "./logicaFake/logicaFake";
 
+// --------------------------------------------------------------------------
+// ✅ Componente Autologin
+// --------------------------------------------------------------------------
 function Autologin() {
   const navigate = useNavigate();
 

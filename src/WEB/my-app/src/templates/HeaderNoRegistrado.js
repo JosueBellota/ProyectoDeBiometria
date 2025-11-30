@@ -1,3 +1,11 @@
+// --------------------------------------------------------------------------
+// Fichero: HeaderNoRegistrado.js
+// Responsable: Josue Bellota Ichaso
+//
+// Descripción:
+// Este fichero contiene el header para los usuarios no registrados.
+// --------------------------------------------------------------------------
+
 import React, { useState } from "react";
 import "../css/main.css";
 import { Link } from "react-router-dom";

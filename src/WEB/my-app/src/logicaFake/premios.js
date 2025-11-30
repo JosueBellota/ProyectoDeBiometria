@@ -1,4 +1,11 @@
-// src/logicaFake/premios.js
+// --------------------------------------------------------------------------
+// Fichero: premios.js
+// Responsable: Josue Bellota Ichaso
+//
+// Descripción:
+// Este fichero contiene la lógica para la gestión de premios.
+// --------------------------------------------------------------------------
+
 import { obtenerUsuarioCompleto, actualizarMonedasUsuario, actualizarDatosUsuario } from "./logicaFake";
 
 export const recompensas = [

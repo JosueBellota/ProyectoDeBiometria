@@ -1,8 +1,31 @@
 // --------------------------------------------------------------------------
+// Fichero: test.js
+// Responsable: Josue Bellota Ichaso
+//
+// Descripción:
+// Este fichero contiene las pruebas automáticas para el servidor REST.
+// Simula el comportamiento de un cliente para verificar que los endpoints
+// de la API funcionan como se espera.
+// --------------------------------------------------------------------------
+
+// --------------------------------------------------------------------------
 // 🔧 URL base del servidor REST desplegado en Firebase
 // --------------------------------------------------------------------------
 const BASE_URL = "https://us-central1-proyectodebiometria.cloudfunctions.net/ServidorREST";
 
+// -----------------------------------------------------------------------------------
+// callAPI(metodo, ruta, body)
+//
+// Función de ayuda para realizar llamadas a la API REST.
+//
+// Parámetros:
+//   - metodo: Método HTTP (GET, POST, PUT, DELETE).
+//   - ruta: Ruta del endpoint (ej. "/usuarios").
+//   - body: Objeto con los datos para el cuerpo de la solicitud (opcional).
+//
+// Retorno:
+//   - Un objeto con el resultado de la llamada o un error.
+// -----------------------------------------------------------------------------------
 async function callAPI(metodo, ruta, body = null) {
   try {
     const res = await fetch(`${BASE_URL}${ruta}`, {
@@ -21,8 +44,23 @@ async function callAPI(metodo, ruta, body = null) {
 }
 
 /* -------------------------------------------------------------------------- */
-/* ✅ USUARIOS                                                                */
+/* ✅ PRUEBAS DE GESTIÓN DE USUARIOS                                          */
 /* -------------------------------------------------------------------------- */
+// -----------------------------------------------------------------------------------
+// testUsuarios()
+//
+// Realiza un flujo de pruebas sobre los endpoints de usuarios:
+//   1. Crea un usuario "ciudadano".
+//   2. Crea un usuario "admin".
+//   3. Crea un usuario extra para pruebas de eliminación.
+//   4. Obtiene un usuario por su UID.
+//   5. Obtiene la lista completa de usuarios (como admin).
+//   6. Actualiza los datos de un usuario.
+//   7. Elimina el usuario extra.
+//
+// Retorno:
+//   - Un objeto con los resultados, y los IDs y datos únicos generados.
+// -----------------------------------------------------------------------------------
 async function testUsuarios() {
   const resultados = [];
   const unique = `${Date.now()}_${Math.floor(Math.random() * 10000)}`;
@@ -90,8 +128,21 @@ async function testUsuarios() {
 }
 
 /* -------------------------------------------------------------------------- */
-/* ✅ TOKEN AUTOLOGIN Y LOGOUT                                                */
+/* ✅ PRUEBAS DE AUTENTICACIÓN (AUTOLOGIN Y LOGOUT)                           */
 /* -------------------------------------------------------------------------- */
+// -----------------------------------------------------------------------------------
+// testAutenticacion(idCiudadano)
+//
+// Verifica la funcionalidad de autenticación:
+//   1. Genera un token de autologin para un usuario.
+//   2. Revoca la sesión del mismo usuario para forzar el logout.
+//
+// Parámetros:
+//   - idCiudadano: ID del usuario para las pruebas.
+//
+// Retorno:
+//   - Un array con los resultados de las pruebas.
+// -----------------------------------------------------------------------------------
 async function testAutenticacion(idCiudadano) {
   const resultados = [];
   if (!idCiudadano) return resultados;
@@ -127,8 +178,27 @@ async function testAutenticacion(idCiudadano) {
 }
 
 /* -------------------------------------------------------------------------- */
-/* ✅ NODOS + MEDICIONES (solo ciudadano)                                     */
+/* ✅ PRUEBAS DE NODOS Y MEDICIONES                                           */
 /* -------------------------------------------------------------------------- */
+// -----------------------------------------------------------------------------------
+// testNodos(idCiudadano, unique)
+//
+// Realiza pruebas sobre la gestión de nodos y mediciones:
+//   1. Crea dos nodos para un usuario.
+//   2. Registra mediciones normales en un nodo.
+//   3. Registra mediciones con CO2 elevado para probar notificaciones.
+//   4. Obtiene las mediciones de un nodo.
+//   5. Obtiene todos los nodos de un propietario.
+//   6. Actualiza la ubicación de un nodo.
+//   7. Elimina uno de los nodos.
+//
+// Parámetros:
+//   - idCiudadano: ID del propietario de los nodos.
+//   - unique: Sufijo único para los nombres de los nodos.
+//
+// Retorno:
+//   - Un array con los resultados de las pruebas.
+// -----------------------------------------------------------------------------------
 async function testNodos(idCiudadano, unique) {
   const resultados = [];
 
@@ -194,8 +264,21 @@ async function testNodos(idCiudadano, unique) {
 }
 
 /* -------------------------------------------------------------------------- */
-/* ✅ NOTIFICACIÓN                                                            */
+/* ✅ PRUEBAS DE NOTIFICACIONES                                               */
 /* -------------------------------------------------------------------------- */
+// -----------------------------------------------------------------------------------
+// testNotificacion(idCiudadano)
+//
+// Envía notificaciones para verificar el endpoint correspondiente.
+//   1. Envía una notificación de prueba a un usuario específico.
+//   2. Envía una notificación de alerta a un tópico general.
+//
+// Parámetros:
+//   - idCiudadano: ID del usuario para enviar la notificación (usado como tópico).
+//
+// Retorno:
+//   - Un array con los resultados de las pruebas.
+// -----------------------------------------------------------------------------------
 async function testNotificacion(idCiudadano) {
   const resultados = [];
 
@@ -221,8 +304,23 @@ async function testNotificacion(idCiudadano) {
 }
 
 /* -------------------------------------------------------------------------- */
-/* ✅ EJECUCIÓN GENERAL                                                       */
+/* ✅ EJECUCIÓN GENERAL DE LAS PRUEBAS AUTOMÁTICAS                             */
 /* -------------------------------------------------------------------------- */
+// -----------------------------------------------------------------------------------
+// pruebaAutomatica()
+//
+// Función principal que orquesta la ejecución de todas las pruebas en secuencia.
+//
+// Lógica:
+//   1. Ejecuta las pruebas de usuarios.
+//   2. Ejecuta las pruebas de autenticación.
+//   3. Ejecuta las pruebas de nodos y mediciones.
+//   4. Ejecuta las pruebas de notificaciones.
+//   5. Agrupa y devuelve todos los resultados.
+//
+// Retorno:
+//   - Un array con todos los resultados de las pruebas.
+// -----------------------------------------------------------------------------------
 export async function pruebaAutomatica() {
   const resultados = [];
 

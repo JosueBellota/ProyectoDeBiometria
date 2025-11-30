@@ -1,4 +1,12 @@
-// src/logicaFake/auth.js
+// --------------------------------------------------------------------------
+// Fichero: auth.js
+// Responsable: Josue Bellota Ichaso
+//
+// Descripción:
+// Este fichero contiene funciones para la autenticación de usuarios en la
+// aplicación web.
+// --------------------------------------------------------------------------
+
 import { API_BASE, firebaseConfig } from "./config";
 import { initializeApp } from "firebase/app";
 import {
@@ -17,8 +25,21 @@ import { obtenerUsuarioCompleto } from "./logicaFake";
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 
+// --------------------------------------------------------------------------
+// 🔄 Reautenticación y Actualización
+// --------------------------------------------------------------------------
+
 // ---------------------------------------------------------
-// Reautenticar usuario
+// reautenticarUsuario(currentPassword)
+//
+// Reautentica al usuario actual con su contraseña.
+// Necesario para operaciones sensibles como cambiar la contraseña.
+//
+// Parámetros:
+//   - currentPassword: Contraseña actual del usuario.
+//
+// Lanza:
+//   - Error: Si no hay usuario autenticado o la reautenticación falla.
 // ---------------------------------------------------------
 export async function reautenticarUsuario(currentPassword) {
   const user = auth.currentUser;
@@ -31,7 +52,16 @@ export async function reautenticarUsuario(currentPassword) {
 }
 
 // ---------------------------------------------------------
-// Reautenticar y actualizar contraseña
+// actualizarPasswordConReautenticacion(currentPassword, newPassword)
+//
+// Reautentica al usuario y actualiza su contraseña en Firebase Auth.
+//
+// Parámetros:
+//   - currentPassword: Contraseña actual del usuario.
+//   - newPassword: Nueva contraseña del usuario.
+//
+// Lanza:
+//   - Error: Si la reautenticación falla o la actualización de contraseña falla.
 // ---------------------------------------------------------
 export async function actualizarPasswordConReautenticacion(currentPassword, newPassword) {
   try {
@@ -45,8 +75,24 @@ export async function actualizarPasswordConReautenticacion(currentPassword, newP
   }
 }
 
+// --------------------------------------------------------------------------
+// 🚀 Registro y Verificación
+// --------------------------------------------------------------------------
+
 // ---------------------------------------------------------
-// Registrar ciudadano
+// registrarCiudadano(nombre, correo, password)
+//
+// Registra un nuevo usuario con rol "ciudadano" en el backend
+// y lo autentica en Firebase. También envía un correo de verificación.
+//
+// Parámetros:
+//   - nombre: Nombre del usuario.
+//   - correo: Correo electrónico del usuario.
+//   - password: Contraseña del usuario.
+//
+// Retorno:
+//   - string: El UID del usuario si el registro fue exitoso.
+//   - null: Si ocurrió un error.
 // ---------------------------------------------------------
 export async function registrarCiudadano(nombre, correo, password) {
   try {
@@ -95,7 +141,12 @@ export async function registrarCiudadano(nombre, correo, password) {
 }
 
 // ---------------------------------------------------------
-// Enviar email de verificación (independiente del registro)
+// enviarVerificacionCorreo()
+//
+// Envía un correo electrónico de verificación al usuario actualmente autenticado.
+//
+// Retorno:
+//   - { ok: boolean, error?: string }: Objeto indicando el resultado de la operación.
 // ---------------------------------------------------------
 export async function enviarVerificacionCorreo() {
   try {
@@ -117,9 +168,22 @@ export async function enviarVerificacionCorreo() {
   }
 }
 
+// --------------------------------------------------------------------------
+// 🚪 Inicio y Cierre de Sesión
+// --------------------------------------------------------------------------
 
 // ---------------------------------------------------------
-// Iniciar sesión
+// loginUsuario(correo, password)
+//
+// Inicia sesión de un usuario en Firebase Authentication.
+//
+// Parámetros:
+//   - correo: Correo electrónico del usuario.
+//   - password: Contraseña del usuario.
+//
+// Retorno:
+//   - string: El UID del usuario si el inicio de sesión fue exitoso.
+//   - null: Si ocurrió un error.
 // ---------------------------------------------------------
 export async function loginUsuario(correo, password) {
   try {
@@ -146,7 +210,56 @@ export async function loginUsuario(correo, password) {
 }
 
 // ---------------------------------------------------------
-// (las demás funciones igual)
+// cerrarSesion()
+//
+// Cierra la sesión del usuario actual en Firebase y en el backend
+// (revocando tokens) y limpia localStorage.
+//
+// Retorno:
+//   - Promise<void>
+// ---------------------------------------------------------
+export async function cerrarSesion() {
+  try {
+    const usuario = obtenerUsuarioLogueado();
+    if (usuario?.uid) {
+      console.log("🟠 Enviando revocación de sesión al backend…");
+
+      // 🔥 Llamar al nuevo endpoint que revoca la sesión en Firebase Auth
+      await fetch(`${API_BASE}/logout/${usuario.uid}`, {
+        method: "GET"
+      });
+    }
+
+    console.log("🟠 Cerrando sesión localmente en Firebase…");
+    await signOut(auth);
+
+  } catch (e) {
+    console.error("⚠️ Error cerrando sesión:", e);
+  }
+
+  // 🔥 Limpieza final
+  localStorage.removeItem("usuario");
+}
+
+// --------------------------------------------------------------------------
+// ✨ Gestión de Datos de Usuario
+// --------------------------------------------------------------------------
+
+// ---------------------------------------------------------
+// actualizarUsuario(idUsuario, nuevosDatos)
+//
+// Actualiza los datos de un usuario en el backend.
+//
+// Parámetros:
+//   - idUsuario: ID del usuario a actualizar.
+//   - nuevosDatos: Objeto con los datos a actualizar.
+//
+// Retorno:
+//   - Object: El objeto usuario actualizado.
+//
+// Lanza:
+//   - Error: Si la actualización en el backend falla.
+// ---------------------------------------------------------
 export async function actualizarUsuario(idUsuario, nuevosDatos) {
   try {
     console.log(`🟨 Actualizando usuario ${idUsuario} en ServidorREST...`);
@@ -176,6 +289,24 @@ export async function actualizarUsuario(idUsuario, nuevosDatos) {
   }
 }
 
+// --------------------------------------------------------------------------
+// 👂 Escucha y Obtención de Sesión
+// --------------------------------------------------------------------------
+
+// ---------------------------------------------------------
+// escucharSesion(callback)
+//
+// Escucha cambios en el estado de autenticación de Firebase.
+// Cuando detecta una sesión, intenta obtener los datos completos del usuario
+// desde el backend y los guarda en localStorage.
+//
+// Parámetros:
+//   - callback: Función a ejecutar cuando cambia el estado de la sesión,
+//               recibiendo el objeto usuario o null.
+//
+// Retorno:
+//   - Función para cancelar la suscripción al listener.
+// ---------------------------------------------------------
 export function escucharSesion(callback) {
   return onAuthStateChanged(auth, async (user) => {
     if (user) {
@@ -219,31 +350,16 @@ export function escucharSesion(callback) {
   });
 }
 
+// ---------------------------------------------------------
+// obtenerUsuarioLogueado()
+//
+// Obtiene la información del usuario logueado desde localStorage.
+//
+// Retorno:
+//   - Object: El objeto usuario si existe, o null.
+// ---------------------------------------------------------
 export function obtenerUsuarioLogueado() {
   const user = localStorage.getItem("usuario");
   return user ? JSON.parse(user) : null;
-}
-
-export async function cerrarSesion() {
-  try {
-    const usuario = obtenerUsuarioLogueado();
-    if (usuario?.uid) {
-      console.log("🟠 Enviando revocación de sesión al backend…");
-
-      // 🔥 Llamar al nuevo endpoint que revoca la sesión en Firebase Auth
-      await fetch(`${API_BASE}/logout/${usuario.uid}`, {
-        method: "GET"
-      });
-    }
-
-    console.log("🟠 Cerrando sesión localmente en Firebase…");
-    await signOut(auth);
-
-  } catch (e) {
-    console.error("⚠️ Error cerrando sesión:", e);
-  }
-
-  // 🔥 Limpieza final
-  localStorage.removeItem("usuario");
 }
 

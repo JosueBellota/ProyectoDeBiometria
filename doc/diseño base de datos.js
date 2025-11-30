@@ -1,4 +1,15 @@
 
+// =============================
+// ==== AUTHENTICATION =========
+// =============================
+// {
+//   "authId": "texto", 
+//   "uid_usuario": "texto",
+//   "correo": "texto", 
+//   "contraseña": "hash-texto",
+//   "creadoEn": "timestamp",
+//   "ultimoLogin": "timestamp | null"
+// }
 
 
 
@@ -12,6 +23,7 @@
 //   "rol": "texto",     
 //   "monedas": "número",
 //   "premios": ["texto"],
+//   "distancia": "número",
 //   "creadoEn": "timestamp"
 // }
 
@@ -46,6 +58,7 @@
 //   correo: texto (único)  
 //   rol: texto (ej: "admin", "usuario")     
 //   monedas: número
+//   distancia: número
 //   creado_en: timestamp
 
 //   usuarios 1 ── N premios

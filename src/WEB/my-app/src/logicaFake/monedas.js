@@ -1,4 +1,10 @@
-// src/logicaFake/monedas.js
+// --------------------------------------------------------------------------
+// Fichero: monedas.js
+// Responsable: Josue Bellota Ichaso
+//
+// Descripción:
+// Este fichero contiene la lógica para la gestión de monedas.
+// --------------------------------------------------------------------------
 
 // Cooldown de 2 minutos (en milisegundos) para simular un día
 export const COOLDOWN_DIARIO = 2 * 60 * 1000; 

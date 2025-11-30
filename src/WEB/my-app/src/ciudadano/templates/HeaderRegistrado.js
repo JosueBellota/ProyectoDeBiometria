@@ -1,3 +1,11 @@
+// --------------------------------------------------------------------------
+// Fichero: HeaderRegistrado.js
+// Responsable: Josue Bellota Ichaso
+//
+// Descripción:
+// Este fichero contiene el header para los usuarios registrados.
+// --------------------------------------------------------------------------
+
 import React, { useState, useEffect } from "react";
 import "../../css/main.css";
 import { Link, useNavigate } from "react-router-dom";

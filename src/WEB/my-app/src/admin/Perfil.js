@@ -1,3 +1,11 @@
+// --------------------------------------------------------------------------
+// Fichero: Perfil.js
+// Responsable: Josue Bellota Ichaso
+//
+// Descripción:
+// Este fichero contiene el perfil del administrador.
+// --------------------------------------------------------------------------
+
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { obtenerUsuarioLogueado, actualizarUsuario } from "../logicaFake/auth";

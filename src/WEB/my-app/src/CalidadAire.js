@@ -1,4 +1,11 @@
-// src/CalidadAire.js
+// --------------------------------------------------------------------------
+// Fichero: CalidadAire.js
+// Responsable: Josue Bellota Ichaso
+//
+// Descripción:
+// Este fichero contiene la información sobre la calidad del aire.
+// --------------------------------------------------------------------------
+
 import React from "react";
 import "./css/main.css";
 import HeaderNoRegistrado from "./templates/HeaderNoRegistrado";
