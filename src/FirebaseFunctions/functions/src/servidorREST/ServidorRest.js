@@ -39,6 +39,32 @@ exports.ServidorREST = functions.https.onRequest((req, res) => {
       // ===================================================================================
 
       // -----------------------------------------------------------------------------------
+      // GET /buscar-lecturas
+      //
+      // Busca lecturas en toda la colección con filtros opcionales.
+      // Acepta: ?fechaInicio=...&fechaFin=...&latitud=...&longitud=...&radio=... (en metros)
+      // -----------------------------------------------------------------------------------
+      if (req.method === "GET" && rutaLower === "/buscar-lecturas") {
+        const opciones = {};
+        // Filtros de fecha
+        if (req.query.fechaInicio) {
+            opciones.fechaInicio = new Date(req.query.fechaInicio);
+        }
+        if (req.query.fechaFin) {
+            opciones.fechaFin = new Date(req.query.fechaFin);
+        }
+        // Filtros de ubicación
+        if (req.query.latitud && req.query.longitud && req.query.radio) {
+            opciones.latitud = parseFloat(req.query.latitud);
+            opciones.longitud = parseFloat(req.query.longitud);
+            opciones.radio = parseFloat(req.query.radio);
+        }
+
+        const resultado = await logica.buscarLecturas(opciones);
+        return res.status(200).json(resultado);
+      }
+
+      // -----------------------------------------------------------------------------------
       // GET /lecturas/:propietarioId/:nombreNodo
       //
       // Obtiene las lecturas de un nodo específico.
@@ -283,3 +309,6 @@ exports.ServidorREST = functions.https.onRequest((req, res) => {
     }
   });
 });
+
+
+// gcloud functions deploy ServidorREST --region=us-central1 --runtime=nodejs22 --trigger-http --service-account=proyectodebiometria@appspot.gserviceaccount.com --allow-unauthenticated

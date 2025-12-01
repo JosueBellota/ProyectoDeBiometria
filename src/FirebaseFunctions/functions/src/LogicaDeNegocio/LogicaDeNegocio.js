@@ -85,36 +85,34 @@ class LogicaDeNegocio {
         return [];
       }
 
-      let query = this.#db.collection("lecturas").where("id_nodo", "==", nodo.id);
+      // 1. Obtener todas las lecturas solo por id_nodo para evitar la necesidad de índices compuestos.
+      const query = this.#db.collection("lecturas").where("id_nodo", "==", nodo.id);
+      
+      const snapshot = await query.get();
+      let lecturas = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
+      // 2. Aplicar los filtros en la memoria del servidor.
+      if (opciones.tipoSensor) {
+        lecturas = lecturas.filter(l => l.tipo_sensor === opciones.tipoSensor);
+      }
       if (opciones.fechaInicio) {
-        query = query.where("timestamp", ">=", opciones.fechaInicio);
+        lecturas = lecturas.filter(l => l.timestamp.toDate() >= opciones.fechaInicio);
       }
       if (opciones.fechaFin) {
-        query = query.where("timestamp", "<=", opciones.fechaFin);
-      }
-      if (opciones.tipoSensor) {
-        query = query.where("tipo_sensor", "==", opciones.tipoSensor);
+        lecturas = lecturas.filter(l => l.timestamp.toDate() <= opciones.fechaFin);
       }
 
+      // Si no hay opciones, replicar la lógica original de "obtener el último lote" en memoria.
       if (Object.keys(opciones).length === 0) {
-        const ultimaLecturaSnapshot = await this.#db.collection("lecturas")
-          .where("id_nodo", "==", nodo.id)
-          .orderBy("timestamp", "desc")
-          .limit(1)
-          .get();
-
-        if (ultimaLecturaSnapshot.empty) {
-          return [];
+        if (lecturas.length === 0) {
+            return [];
         }
-        const ultimoTimestamp = ultimaLecturaSnapshot.docs[0].data().timestamp;
-        query = query.where("timestamp", "==", ultimoTimestamp);
-      } else {
-        query = query.orderBy("timestamp", "desc");
+        // Ordenar para encontrar el más reciente.
+        lecturas.sort((a, b) => b.timestamp.toMillis() - a.timestamp.toMillis());
+        const ultimoTimestamp = lecturas[0].timestamp;
+        // Filtrar para quedarse solo con las lecturas de ese timestamp.
+        lecturas = lecturas.filter(l => l.timestamp.isEqual(ultimoTimestamp));
       }
-
-      const snapshot = await query.get();
-      const lecturas = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
       functions.logger.info(`✅ Encontradas ${lecturas.length} lecturas para el nodo "${nombreNodo}"`);
       return lecturas;
@@ -165,6 +163,58 @@ class LogicaDeNegocio {
 
     } catch (error) {
       functions.logger.error("❌ Error en eliminarLecturas:", error);
+      throw error;
+    }
+  }
+
+  _haversineDistance(lat1, lon1, lat2, lon2) {
+    const R = 6371e3; // Radio de la Tierra en metros
+    const φ1 = lat1 * Math.PI / 180;
+    const φ2 = lat2 * Math.PI / 180;
+    const Δφ = (lat2 - lat1) * Math.PI / 180;
+    const Δλ = (lon2 - lon1) * Math.PI / 180;
+
+    const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+              Math.cos(φ1) * Math.cos(φ2) *
+              Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+    return R * c; // en metros
+  }
+
+  async buscarLecturas(opciones = {}) {
+    try {
+      // Advertencia: Obtener todos los documentos puede ser ineficiente.
+      const snapshot = await this.#db.collection("lecturas").get();
+      let lecturas = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+      // Filtrado por fecha
+      if (opciones.fechaInicio) {
+        lecturas = lecturas.filter(l => l.timestamp.toDate() >= opciones.fechaInicio);
+      }
+      if (opciones.fechaFin) {
+        lecturas = lecturas.filter(l => l.timestamp.toDate() <= opciones.fechaFin);
+      }
+
+      // Filtrado por ubicación y radio
+      if (opciones.latitud && opciones.longitud && opciones.radio) {
+        lecturas = lecturas.filter(l => {
+          if (l.latitud === undefined || l.longitud === undefined) {
+            return false;
+          }
+          const distancia = this._haversineDistance(
+            opciones.latitud, opciones.longitud,
+            l.latitud, l.longitud
+          );
+          return distancia <= opciones.radio;
+        });
+      }
+
+      functions.logger.info(`✅ Búsqueda completada, encontradas ${lecturas.length} lecturas.`);
+      return lecturas;
+
+    } catch (error) {
+      functions.logger.error("❌ Error en buscarLecturas:", error);
       throw error;
     }
   }

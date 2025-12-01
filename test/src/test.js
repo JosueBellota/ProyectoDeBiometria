@@ -102,7 +102,7 @@ async function testNodosYLecturas(idCiudadano, unique) {
   const nombreNodoPrincipal = `NodoPrincipal_${unique}`;
   const nombreNodoEliminar = `NodoEliminar_${unique}`;
 
-  // 1. Crear nodos (nueva API sin ubicación)
+  // 1. Crear nodos
   resultados.push(
     await callAPI("POST", "/nodos", {
       nombre: nombreNodoPrincipal,
@@ -134,7 +134,10 @@ async function testNodosYLecturas(idCiudadano, unique) {
   );
 
   // Pausa para asegurar un timestamp diferente
-  await new Promise(resolve => setTimeout(resolve, 1000));
+  await new Promise(resolve => setTimeout(resolve, 1200));
+  const fechaInicioBatch2 = new Date();
+  await new Promise(resolve => setTimeout(resolve, 100));
+
 
   // 2. Guardar lecturas (Batch 2 - más reciente y con CO2 elevado)
   const lecturasRecientes = [
@@ -151,6 +154,10 @@ async function testNodosYLecturas(idCiudadano, unique) {
       longitud: -74.0061,
     })
   );
+  
+  await new Promise(resolve => setTimeout(resolve, 100));
+  const fechaFinBatch2 = new Date();
+
 
   // 3. Obtener lecturas (sin filtro, debe devolver el Batch 2)
   resultados.push(
@@ -193,8 +200,38 @@ async function testNodosYLecturas(idCiudadano, unique) {
     })
   );
 
-  return resultados;
+  return { resultados, fechaInicioBatch2, fechaFinBatch2 };
 }
+
+/* -------------------------------------------------------------------------- */
+/* ✅ PRUEBAS DE BÚSQUEDA DE LECTURAS                                          */
+/* -------------------------------------------------------------------------- */
+async function testBusquedaLecturas({ fechaInicio, fechaFin }) {
+    const resultados = [];
+    resultados.push({ paso: "🧪 Test BÚSQUEDA LECTURAS" });
+
+    // Test 1: Búsqueda por ubicación (debe encontrar el primer batch, 3 lecturas)
+    const lat1 = 40.7128;
+    const lon1 = -74.0060;
+    const radio = 10; // metros
+    resultados.push(
+        await callAPI("GET", `/buscar-lecturas?latitud=${lat1}&longitud=${lon1}&radio=${radio}`)
+    );
+
+    // Test 2: Búsqueda por fecha (debe encontrar el segundo batch, 3 lecturas)
+    resultados.push(
+        await callAPI("GET", `/buscar-lecturas?fechaInicio=${fechaInicio.toISOString()}&fechaFin=${fechaFin.toISOString()}`)
+    );
+
+    // Test 3: Búsqueda por fecha y ubicación (debe encontrar 0 lecturas)
+    // Fecha del batch 2, pero ubicación del batch 1 con radio pequeño
+    resultados.push(
+        await callAPI("GET", `/buscar-lecturas?fechaInicio=${fechaInicio.toISOString()}&fechaFin=${fechaFin.toISOString()}&latitud=${lat1}&longitud=${lon1}&radio=${radio}`)
+    );
+    
+    return resultados;
+}
+
 
 /* -------------------------------------------------------------------------- */
 /* ✅ EJECUCIÓN GENERAL DE LAS PRUEBAS AUTOMÁTICAS                             */
@@ -206,15 +243,11 @@ export async function pruebaAutomatica() {
   const { resultados: resUsuarios, idCiudadano, idAdmin, unique } = await testUsuarios();
   resultados.push(...resUsuarios);
 
-  // Los tests de autenticación y notificaciones se omiten por ahora para centrarse en CRUD
-  // resultados.push({ paso: "🧪 Test TOKEN AUTOLOGIN Y LOGOUT" });
-  // resultados.push(...await testAutenticacion(idCiudadano));
-
   resultados.push({ paso: "🧪 Test NODOS y LECTURAS (ciudadano)" });
-  resultados.push(...await testNodosYLecturas(idCiudadano, unique));
+  const { resultados: resNodos, fechaInicioBatch2, fechaFinBatch2 } = await testNodosYLecturas(idCiudadano, unique);
+  resultados.push(...resNodos);
 
-  // resultados.push({ paso: "🧪 Test NOTIFICACIONES" });
-  // resultados.push(...await testNotificacion(idCiudadano));
+  resultados.push(...await testBusquedaLecturas({ fechaInicio: fechaInicioBatch2, fechaFin: fechaFinBatch2 }));
 
   resultados.push({ paso: "✅ Prueba completada correctamente" });
   return resultados;
