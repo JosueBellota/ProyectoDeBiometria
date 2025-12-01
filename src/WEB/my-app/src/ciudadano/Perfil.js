@@ -1,3 +1,10 @@
+// --------------------------------------------------------------------------
+// Fichero: Perfil.js
+// Responsable: Josue Bellota Ichaso
+//
+// Descripción:
+// Este fichero contiene el perfil del ciudadano.
+// --------------------------------------------------------------------------
 
 import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";

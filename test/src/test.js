@@ -1,8 +1,23 @@
 // --------------------------------------------------------------------------
+// Fichero: test.js
+// Responsable: Josue Bellota Ichaso
+//
+// Descripción:
+// Este fichero contiene las pruebas automáticas para el servidor REST.
+// Simula el comportamiento de un cliente para verificar que los endpoints
+// de la API funcionan como se espera.
+// --------------------------------------------------------------------------
+
+// --------------------------------------------------------------------------
 // 🔧 URL base del servidor REST desplegado en Firebase
 // --------------------------------------------------------------------------
 const BASE_URL = "https://us-central1-proyectodebiometria.cloudfunctions.net/ServidorREST";
 
+// -----------------------------------------------------------------------------------
+// callAPI(metodo, ruta, body)
+//
+// Función de ayuda para realizar llamadas a la API REST.
+// -----------------------------------------------------------------------------------
 async function callAPI(metodo, ruta, body = null) {
   try {
     const res = await fetch(`${BASE_URL}${ruta}`, {
@@ -21,7 +36,7 @@ async function callAPI(metodo, ruta, body = null) {
 }
 
 /* -------------------------------------------------------------------------- */
-/* ✅ USUARIOS                                                                */
+/* ✅ PRUEBAS DE GESTIÓN DE USUARIOS                                          */
 /* -------------------------------------------------------------------------- */
 async function testUsuarios() {
   const resultados = [];
@@ -60,29 +75,18 @@ async function testUsuarios() {
   resultados.push(resCiudadanoExtra);
   const idCiudadanoExtra = resCiudadanoExtra.resultado?.idUsuario;
 
-  // ✅ Obtener usuario por UID estándar
-  if (idCiudadano) resultados.push(await callAPI("GET", `/usuarios/${idCiudadano}`));
-
-  // ✅ Obtener usuario completo (nueva ruta universal)
-  if (idCiudadano)
-    resultados.push(await callAPI("GET", `/usuarios/completo/${idCiudadano}`));
-
-  // ✅ Obtener lista de usuarios desde admin
+  if (idCiudadano) resultados.push(await callAPI("GET", `/usuarios/completo/${idCiudadano}`));
   if (idAdmin) resultados.push(await callAPI("GET", `/usuarios/admin/${idAdmin}`));
 
-  // ✅ Actualizar usuario con nuevos campos
   if (idCiudadano) {
     resultados.push(
       await callAPI("PUT", `/usuarios/${idCiudadano}`, {
         nombre: `Ciudadano_${unique}_Actualizado`,
         monedas: 150,
-        distancia: 8.5,
-        premios: ["premio_bronce"]
       })
     );
   }
 
-  // 🗑️ Eliminar usuario extra
   if (idCiudadanoExtra)
     resultados.push(await callAPI("DELETE", `/usuarios/${idCiudadanoExtra}`));
 
@@ -90,55 +94,18 @@ async function testUsuarios() {
 }
 
 /* -------------------------------------------------------------------------- */
-/* ✅ TOKEN AUTOLOGIN Y LOGOUT                                                */
+/* ✅ PRUEBAS DE NODOS Y LECTURAS                                             */
 /* -------------------------------------------------------------------------- */
-async function testAutenticacion(idCiudadano) {
-  const resultados = [];
-  if (!idCiudadano) return resultados;
-
-  resultados.push({ paso: "🧪 Generando token autologin" });
-  const res = await callAPI("GET", `/autologin/${idCiudadano}`);
-  resultados.push(res);
-
-  if (res.resultado?.link) {
-    resultados.push({
-      paso: "🔗 Enlace autologin generado correctamente",
-      resultado: res.resultado.link,
-    });
-  } else {
-    resultados.push({ paso: "❌ Fallo al generar enlace autologin" });
-  }
-
-  // ⛔ Test logout (nuevo método)
-  resultados.push({ paso: "🧪 Revocando sesión (logout)" });
-  const resLogout = await callAPI("GET", `/logout/${idCiudadano}`);
-  resultados.push(resLogout);
-
-  if (resLogout.resultado?.mensaje) {
-    resultados.push({
-      paso: "⛔ Sesión revocada correctamente",
-      resultado: resLogout.resultado.mensaje,
-    });
-  } else {
-    resultados.push({ paso: "❌ Fallo al revocar sesión" });
-  }
-
-  return resultados;
-}
-
-/* -------------------------------------------------------------------------- */
-/* ✅ NODOS + MEDICIONES (solo ciudadano)                                     */
-/* -------------------------------------------------------------------------- */
-async function testNodos(idCiudadano, unique) {
+async function testNodosYLecturas(idCiudadano, unique) {
   const resultados = [];
 
   const nombreNodoPrincipal = `NodoPrincipal_${unique}`;
   const nombreNodoEliminar = `NodoEliminar_${unique}`;
 
+  // 1. Crear nodos
   resultados.push(
     await callAPI("POST", "/nodos", {
       nombre: nombreNodoPrincipal,
-      ubicacion: "Ubicación Principal Test",
       propietarioId: idCiudadano,
     })
   );
@@ -146,43 +113,86 @@ async function testNodos(idCiudadano, unique) {
   resultados.push(
     await callAPI("POST", "/nodos", {
       nombre: nombreNodoEliminar,
-      ubicacion: "Ubicación Secundaria Test",
       propietarioId: idCiudadano,
     })
   );
 
-  // Test mediciones normales
+  // 2. Guardar lecturas (Batch 1 - simula ser más antiguo)
+  const lecturasAntiguas = [
+      { tipo: "temperatura", valor: 18.5 },
+      { tipo: "co2", valor: 50 },
+      { tipo: "humedad", valor: 65 },
+  ];
   resultados.push(
-    await callAPI("POST", "/mediciones", {
+    await callAPI("POST", "/lecturas", {
       nombreNodo: nombreNodoPrincipal,
       propietarioId: idCiudadano,
-      medidas: { temperatura: 22.5, co2: 40, humedad: 55 },
+      lecturas: lecturasAntiguas,
+      latitud: 40.7128,
+      longitud: -74.0060,
     })
   );
 
-  // Test mediciones con CO2 elevado para trigger de notificación
+  // Pausa para asegurar un timestamp diferente
+  await new Promise(resolve => setTimeout(resolve, 1200));
+  const fechaInicioBatch2 = new Date();
+  await new Promise(resolve => setTimeout(resolve, 100));
+
+
+  // 2. Guardar lecturas (Batch 2 - más reciente y con CO2 elevado)
+  const lecturasRecientes = [
+    { tipo: "temperatura", valor: 25.1 },
+    { tipo: "co2", valor: 150 },
+    { tipo: "humedad", valor: 70 },
+  ];
   resultados.push(
-    await callAPI("POST", "/mediciones", {
+    await callAPI("POST", "/lecturas", {
       nombreNodo: nombreNodoPrincipal,
       propietarioId: idCiudadano,
-      medidas: { temperatura: 23.1, co2: 120, humedad: 60 },
+      lecturas: lecturasRecientes,
+      latitud: 40.7129,
+      longitud: -74.0061,
     })
   );
+  
+  await new Promise(resolve => setTimeout(resolve, 100));
+  const fechaFinBatch2 = new Date();
 
+
+  // 3. Obtener lecturas (sin filtro, debe devolver el Batch 2)
   resultados.push(
-    await callAPI("GET", `/mediciones/${idCiudadano}/${nombreNodoPrincipal}`)
+    await callAPI("GET", `/lecturas/${idCiudadano}/${nombreNodoPrincipal}`)
   );
 
-  resultados.push(await callAPI("GET", `/nodos/propietario/${idCiudadano}`));
+  // 3. Obtener lecturas (con filtro de tipoSensor, debe devolver 2 lecturas de co2)
+  resultados.push(
+    await callAPI("GET", `/lecturas/${idCiudadano}/${nombreNodoPrincipal}?tipoSensor=co2`)
+  );
 
+  // 4. Actualizar nodo (cambiar nombre)
+  const nuevoNombre = `NodoPrincipal_Actualizado_${unique}`;
   resultados.push(
     await callAPI("PUT", "/nodos", {
       nombreNodo: nombreNodoPrincipal,
       propietarioId: idCiudadano,
-      datos: { ubicacion: "Ubicación Actualizada Test" },
+      datos: { nombre: nuevoNombre },
     })
   );
 
+  // 5. Eliminar lecturas (eliminar todas las de temperatura)
+  resultados.push({ paso: "🧪 Eliminando lecturas de temperatura..." });
+  resultados.push(
+      await callAPI("POST", "/lecturas/delete", {
+          nombreNodo: nuevoNombre, // Usamos el nuevo nombre
+          propietarioId: idCiudadano,
+          opciones: { tipoSensor: "temperatura" }
+      })
+  );
+
+  // 6. Obtener todos los nodos del propietario (verificar adaptador)
+  resultados.push(await callAPI("GET", `/nodos/propietario/${idCiudadano}`));
+
+  // 7. Eliminar un nodo
   resultados.push(
     await callAPI("DELETE", "/nodos", {
       nombreNodo: nombreNodoEliminar,
@@ -190,38 +200,41 @@ async function testNodos(idCiudadano, unique) {
     })
   );
 
-  return resultados;
+  return { resultados, fechaInicioBatch2, fechaFinBatch2 };
 }
 
 /* -------------------------------------------------------------------------- */
-/* ✅ NOTIFICACIÓN                                                            */
+/* ✅ PRUEBAS DE BÚSQUEDA DE LECTURAS                                          */
 /* -------------------------------------------------------------------------- */
-async function testNotificacion(idCiudadano) {
-  const resultados = [];
+async function testBusquedaLecturas({ fechaInicio, fechaFin }) {
+    const resultados = [];
+    resultados.push({ paso: "🧪 Test BÚSQUEDA LECTURAS" });
 
-  // Test notificación manual
-  resultados.push(
-    await callAPI("POST", "/notificar", {
-      mensaje: "Prueba automática de notificación",
-      color: "#27F531",
-      topic: idCiudadano,
-    })
-  );
+    // Test 1: Búsqueda por ubicación (debe encontrar el primer batch, 3 lecturas)
+    const lat1 = 40.7128;
+    const lon1 = -74.0060;
+    const radio = 10; // metros
+    resultados.push(
+        await callAPI("GET", `/buscar-lecturas?latitud=${lat1}&longitud=${lon1}&radio=${radio}`)
+    );
 
-  // Test notificación con color rojo
-  resultados.push(
-    await callAPI("POST", "/notificar", {
-      mensaje: "Notificación de alerta CO2 elevado",
-      color: "rojo",
-      topic: "general",
-    })
-  );
+    // Test 2: Búsqueda por fecha (debe encontrar el segundo batch, 3 lecturas)
+    resultados.push(
+        await callAPI("GET", `/buscar-lecturas?fechaInicio=${fechaInicio.toISOString()}&fechaFin=${fechaFin.toISOString()}`)
+    );
 
-  return resultados;
+    // Test 3: Búsqueda por fecha y ubicación (debe encontrar 0 lecturas)
+    // Fecha del batch 2, pero ubicación del batch 1 con radio pequeño
+    resultados.push(
+        await callAPI("GET", `/buscar-lecturas?fechaInicio=${fechaInicio.toISOString()}&fechaFin=${fechaFin.toISOString()}&latitud=${lat1}&longitud=${lon1}&radio=${radio}`)
+    );
+    
+    return resultados;
 }
 
+
 /* -------------------------------------------------------------------------- */
-/* ✅ EJECUCIÓN GENERAL                                                       */
+/* ✅ EJECUCIÓN GENERAL DE LAS PRUEBAS AUTOMÁTICAS                             */
 /* -------------------------------------------------------------------------- */
 export async function pruebaAutomatica() {
   const resultados = [];
@@ -230,14 +243,11 @@ export async function pruebaAutomatica() {
   const { resultados: resUsuarios, idCiudadano, idAdmin, unique } = await testUsuarios();
   resultados.push(...resUsuarios);
 
-  resultados.push({ paso: "🧪 Test TOKEN AUTOLOGIN Y LOGOUT" });
-  resultados.push(...await testAutenticacion(idCiudadano));
+  resultados.push({ paso: "🧪 Test NODOS y LECTURAS (ciudadano)" });
+  const { resultados: resNodos, fechaInicioBatch2, fechaFinBatch2 } = await testNodosYLecturas(idCiudadano, unique);
+  resultados.push(...resNodos);
 
-  resultados.push({ paso: "🧪 Test NODOS y MEDICIONES (ciudadano)" });
-  resultados.push(...await testNodos(idCiudadano, unique));
-
-  resultados.push({ paso: "🧪 Test NOTIFICACIONES" });
-  resultados.push(...await testNotificacion(idCiudadano));
+  resultados.push(...await testBusquedaLecturas({ fechaInicio: fechaInicioBatch2, fechaFin: fechaFinBatch2 }));
 
   resultados.push({ paso: "✅ Prueba completada correctamente" });
   return resultados;

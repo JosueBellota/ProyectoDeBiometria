@@ -12,9 +12,8 @@
 // Funcionalidades principales:
 //  - Gestión de usuarios (crear, obtener, actualizar, eliminar)
 //  - Gestión de nodos (crear, obtener, actualizar, eliminar)
-//  - Registro y actualización de medidas (en el documento del nodo)
-//  - Vinculación y desvinculación de nodos con usuarios
-//  - Envío de notificaciones (placeholder)
+//  - Gestión de lecturas de sensores (guardar, obtener, eliminar)
+//  - Envío de notificaciones
 // -----------------------------------------------------------------------------------
 
 const admin = require("firebase-admin");
@@ -22,21 +21,9 @@ const functions = require("firebase-functions");
 
 class LogicaDeNegocio {
 
-  //------------------------------------------------------------------------------------
-  // Atributos privados:
-  //  - #db: referencia a la base de datos Firestore
-  //  - #admin: instancia de Firebase Admin SDK
-  //------------------------------------------------------------------------------------
   #db;
   #admin;
 
-  //------------------------------------------------------------------------------------
-  // sin parámetros (de entrada)
-  // -->
-  // constructor() --> (inicializa Firebase y obtiene referencia a Firestore)
-  // -->
-  // objeto LogicaDeNegocio
-  //------------------------------------------------------------------------------------
   constructor() {
     if (!admin.apps.length) {
       admin.initializeApp();
@@ -46,78 +33,189 @@ class LogicaDeNegocio {
   }
 
   // ===================================================================================
-  // =============================== MÉTODOS DE MEDICIONES ==============================
+  // =============================== MÉTODOS DE LECTURAS ===============================
   // ===================================================================================
 
-  //------------------------------------------------------------------------------------
-  // nombreNodo: texto, propietarioId: texto,
-  // medidas: objeto { co2: número, temperatura: número, humedad: número }
-  // -->
-  // guardarMedidas() --> guarda mediciones en el nodo correspondiente
-  //------------------------------------------------------------------------------------
-  async guardarMedidas(nombreNodo, propietarioId, medidas) {
+  async GuardarLecturas(nombreNodo, propietarioId, lecturas, latitud, longitud) {
     try {
-      const nodo = await this.obtenerNodo(nombreNodo, propietarioId);
-      if (!nodo) throw new Error(`Nodo "${nombreNodo}" no encontrado para el propietario ${propietarioId}`);
-
-      const nodoRef = this.#db.collection("nodos").doc(nodo.id);
-      const sensores = nodo.sensores || {};
-      const nuevasMedidas = { ...sensores };
-
-      for (const [clave, valor] of Object.entries(medidas)) {
-        nuevasMedidas[clave] = valor !== undefined ? valor : sensores[clave] ?? null;
+      const nodo = await this._obtenerNodoBasico(nombreNodo, propietarioId);
+      if (!nodo) {
+        throw new Error(`Nodo "${nombreNodo}" no encontrado para el propietario ${propietarioId}`);
       }
 
-      await nodoRef.update({
-        sensores: nuevasMedidas,
-        tiempo: this.#admin.firestore.Timestamp.now(),
+      const batch = this.#db.batch();
+      const timestamp = this.#admin.firestore.Timestamp.now();
+      let co2elevado = null;
+
+      lecturas.forEach((lectura) => {
+        const lecturaRef = this.#db.collection("lecturas").doc();
+        batch.set(lecturaRef, {
+          id_nodo: nodo.id,
+          tipo_sensor: lectura.tipo,
+          valor: lectura.valor,
+          latitud: latitud,
+          longitud: longitud,
+          timestamp: timestamp,
+        });
+
+        if (lectura.tipo === "co2" && lectura.valor >= 100) {
+          co2elevado = lectura.valor;
+        }
       });
 
-      functions.logger.info(`✅ Medidas actualizadas en nodo "${nombreNodo}":`, medidas);
+      await batch.commit();
+      functions.logger.info(`✅ ${lecturas.length} lecturas guardadas para el nodo "${nombreNodo}"`);
 
-      if (nuevasMedidas.co2 !== null && nuevasMedidas.co2 >= 100) {
-        const mensaje = `⚠️ CO₂ elevado en nodo "${nombreNodo}". Valor: ${nuevasMedidas.co2}`;
+      if (co2elevado !== null) {
+        const mensaje = `⚠️ CO₂ elevado en nodo "${nombreNodo}". Valor: ${co2elevado}`;
         await this.enviarNotificacion(mensaje, "rojo", propietarioId);
       }
 
     } catch (error) {
-      functions.logger.error("❌ Error en guardarMedidas:", error);
+      functions.logger.error("❌ Error en GuardarLecturas:", error);
+      throw error;
     }
   }
 
-  //------------------------------------------------------------------------------------
-  // nombreNodo: texto, propietarioId: texto
-  // -->
-  // obtenerMedidas() --> devuelve las medidas actuales del nodo correspondiente
-  // -->
-  // - Busca el nodo por nombre + propietario
-  // - Devuelve { sensores, tiempo } o null si no existe
-  // {
-  //   sensores:{                 
-  //       co2: número,                   
-  //       temperatura: número,           
-  //       humedad: número               
-  //   },
-  //   tiempo: timestamp                 
-  // }
-  //
-  //------------------------------------------------------------------------------------
-  async obtenerMedidas(nombreNodo, propietarioId) {
+  async obtenerLecturas(nombreNodo, propietarioId, opciones = {}) {
     try {
-      const nodo = await this.obtenerNodo(nombreNodo, propietarioId);
+      const nodo = await this._obtenerNodoBasico(nombreNodo, propietarioId);
       if (!nodo) {
-        functions.logger.warn(`⚠️ Nodo "${nombreNodo}" no encontrado para el propietario ${propietarioId}`);
-        return null;
+        // Devolvemos un array vacío si el nodo no existe para ser consistentes.
+        return [];
       }
 
-      const sensores = nodo.sensores || {};
-      const tiempo = nodo.tiempo || null;
+      // 1. Obtener todas las lecturas solo por id_nodo para evitar la necesidad de índices compuestos.
+      const query = this.#db.collection("lecturas").where("id_nodo", "==", nodo.id);
+      
+      const snapshot = await query.get();
+      let lecturas = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-      return { sensores, tiempo };
+      // 2. Aplicar los filtros en la memoria del servidor.
+      if (opciones.tipoSensor) {
+        lecturas = lecturas.filter(l => l.tipo_sensor === opciones.tipoSensor);
+      }
+      if (opciones.fechaInicio) {
+        lecturas = lecturas.filter(l => l.timestamp.toDate() >= opciones.fechaInicio);
+      }
+      if (opciones.fechaFin) {
+        lecturas = lecturas.filter(l => l.timestamp.toDate() <= opciones.fechaFin);
+      }
+
+      // Si no hay opciones, replicar la lógica original de "obtener el último lote" en memoria.
+      if (Object.keys(opciones).length === 0) {
+        if (lecturas.length === 0) {
+            return [];
+        }
+        // Ordenar para encontrar el más reciente.
+        lecturas.sort((a, b) => b.timestamp.toMillis() - a.timestamp.toMillis());
+        const ultimoTimestamp = lecturas[0].timestamp;
+        // Filtrar para quedarse solo con las lecturas de ese timestamp.
+        lecturas = lecturas.filter(l => l.timestamp.isEqual(ultimoTimestamp));
+      }
+
+      functions.logger.info(`✅ Encontradas ${lecturas.length} lecturas para el nodo "${nombreNodo}"`);
+      return lecturas;
 
     } catch (error) {
-      functions.logger.error("❌ Error en obtenerMedidas:", error);
-      return null;
+      functions.logger.error("❌ Error en obtenerLecturas:", error);
+      throw error;
+    }
+  }
+
+  async eliminarLecturas(nombreNodo, propietarioId, opciones) {
+    try {
+      if (!opciones || Object.keys(opciones).length === 0) {
+        throw new Error("Se requiere al menos un filtro para eliminar lecturas.");
+      }
+
+      const nodo = await this._obtenerNodoBasico(nombreNodo, propietarioId);
+      if (!nodo) {
+        throw new Error(`Nodo "${nombreNodo}" no encontrado para el propietario ${propietarioId}`);
+      }
+
+      let query = this.#db.collection("lecturas").where("id_nodo", "==", nodo.id);
+
+      if (opciones.fechaInicio) {
+        query = query.where("timestamp", ">=", opciones.fechaInicio);
+      }
+      if (opciones.fechaFin) {
+        query = query.where("timestamp", "<=", opciones.fechaFin);
+      }
+      if (opciones.tipoSensor) {
+        query = query.where("tipo_sensor", "==", opciones.tipoSensor);
+      }
+
+      const snapshot = await query.get();
+      if (snapshot.empty) {
+        functions.logger.info(`ℹ️ No se encontraron lecturas para eliminar con los filtros proporcionados.`);
+        return 0;
+      }
+
+      const batch = this.#db.batch();
+      snapshot.docs.forEach(doc => {
+        batch.delete(doc.ref);
+      });
+
+      await batch.commit();
+      functions.logger.info(`🗑️ ${snapshot.size} lecturas eliminadas para el nodo "${nombreNodo}"`);
+      return snapshot.size;
+
+    } catch (error) {
+      functions.logger.error("❌ Error en eliminarLecturas:", error);
+      throw error;
+    }
+  }
+
+  _haversineDistance(lat1, lon1, lat2, lon2) {
+    const R = 6371e3; // Radio de la Tierra en metros
+    const φ1 = lat1 * Math.PI / 180;
+    const φ2 = lat2 * Math.PI / 180;
+    const Δφ = (lat2 - lat1) * Math.PI / 180;
+    const Δλ = (lon2 - lon1) * Math.PI / 180;
+
+    const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+              Math.cos(φ1) * Math.cos(φ2) *
+              Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+    return R * c; // en metros
+  }
+
+  async buscarLecturas(opciones = {}) {
+    try {
+      // Advertencia: Obtener todos los documentos puede ser ineficiente.
+      const snapshot = await this.#db.collection("lecturas").get();
+      let lecturas = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+      // Filtrado por fecha
+      if (opciones.fechaInicio) {
+        lecturas = lecturas.filter(l => l.timestamp.toDate() >= opciones.fechaInicio);
+      }
+      if (opciones.fechaFin) {
+        lecturas = lecturas.filter(l => l.timestamp.toDate() <= opciones.fechaFin);
+      }
+
+      // Filtrado por ubicación y radio
+      if (opciones.latitud && opciones.longitud && opciones.radio) {
+        lecturas = lecturas.filter(l => {
+          if (l.latitud === undefined || l.longitud === undefined) {
+            return false;
+          }
+          const distancia = this._haversineDistance(
+            opciones.latitud, opciones.longitud,
+            l.latitud, l.longitud
+          );
+          return distancia <= opciones.radio;
+        });
+      }
+
+      functions.logger.info(`✅ Búsqueda completada, encontradas ${lecturas.length} lecturas.`);
+      return lecturas;
+
+    } catch (error) {
+      functions.logger.error("❌ Error en buscarLecturas:", error);
+      throw error;
     }
   }
 
@@ -125,120 +223,83 @@ class LogicaDeNegocio {
   // =============================== MÉTODOS DE USUARIOS ===============================
   // ===================================================================================
 
-  //------------------------------------------------------------------------------------
-  // nombre: texto, correo: texto, rol: texto, password: texto
-  // -->
-  // crearUsuario() --> (crea un nuevo usuario en Authentication y Firestore)
-  // - Crea usuario en Authentication con correo y contraseña
-  // - Guarda documento en 'usuarios' con array vacío 'nodos'
-  // - Devuelve uid del usuario creado
-  // -->
-  // id del usuario creado
-  //------------------------------------------------------------------------------------
-async crearUsuario(nombre, correo, rol, password) {
-  try {
-    const userRecord = await this.#admin.auth().createUser({
-      email: correo,
-      password,
-      displayName: nombre,
-    });
-
-    const nuevoUsuario = {
-      uid: userRecord.uid,
-      nombre,
-      correo,
-      rol,
-      monedas: 0,           
-      premios: [],
-      distancia: 0,           
-      creadoEn: this.#admin.firestore.Timestamp.now(),
-    };
-
-    await this.#db.collection("usuarios").doc(userRecord.uid).set(nuevoUsuario);
-    functions.logger.info(`✅ Usuario creado correctamente: ${userRecord.uid}`);
-    return userRecord.uid;
-
-  } catch (error) {
-    functions.logger.error("❌ Error en crearUsuario:", error);
-    return null;
-  }
-}
-
-
-  //------------------------------------------------------------------------------------
-  // idUsuario (entrada)
-  // -->
-  // obtenerUsuario() --> (devuelve los datos de un usuario específico)
-  // -->
-  // objeto con datos del usuario o null
-  //------------------------------------------------------------------------------------
-  async obtenerUsuario(idUsuario) {
-  try {
-    const doc = await this.#db.collection("usuarios").doc(idUsuario).get();
-    if (doc.exists) {
-      const usuarioData = doc.data();
-      // Asegurar que el campo distancia existe, si no establecerlo a 0
-      if (usuarioData.distancia === undefined) {
-        usuarioData.distancia = 0;
-      }
-      return usuarioData;
-    }
-    return null;
-  } catch (error) {
-    functions.logger.error("❌ Error en obtenerUsuario:", error);
-    return null;
-  }
-}
-
-// ------------------------------------------------------------------------------------
-// idUsuario: texto, datos: objeto (campos a actualizar)
-// -->
-// actualizarUsuario(idUsuario, datos)
-// -->
-// - Actualiza los campos especificados del usuario en Firestore
-// ------------------------------------------------------------------------------------
-async actualizarUsuario(idUsuario, datos) {
-  try {
-    const usuarioRef = this.#db.collection("usuarios").doc(idUsuario);
-    const usuarioDoc = await usuarioRef.get();
-
-    if (!usuarioDoc.exists) {
-      throw new Error(`Usuario con ID ${idUsuario} no encontrado`);
-    }
-
-    // Preparar datos para actualización (excluir campos que no se deben actualizar)
-    const datosActualizacion = { ...datos };
-    delete datosActualizacion.uid; // No permitir cambiar el UID
-    delete datosActualizacion.creadoEn; // No permitir cambiar la fecha de creación
-
-    // Si se intenta actualizar el correo, actualizarlo también en Authentication
-    if (datos.correo && datos.correo !== usuarioDoc.data().correo) {
-      await this.#admin.auth().updateUser(idUsuario, {
-        email: datos.correo
+  async crearUsuario(nombre, correo, rol, password) {
+    try {
+      const userRecord = await this.#admin.auth().createUser({
+        email: correo,
+        password,
+        displayName: nombre,
       });
+
+      const nuevoUsuario = {
+        uid: userRecord.uid,
+        nombre,
+        correo,
+        rol,
+        monedas: 0,
+        premios: [],
+        distancia: 0,
+        creadoEn: this.#admin.firestore.Timestamp.now(),
+      };
+
+      await this.#db.collection("usuarios").doc(userRecord.uid).set(nuevoUsuario);
+      functions.logger.info(`✅ Usuario creado correctamente: ${userRecord.uid}`);
+      return userRecord.uid;
+
+    } catch (error) {
+      functions.logger.error("❌ Error en crearUsuario:", error);
+      return null;
     }
-
-    // Actualizar en Firestore
-    await usuarioRef.update(datosActualizacion);
-
-    functions.logger.info(`✅ Usuario ${idUsuario} actualizado correctamente`);
-    return true;
-
-  } catch (error) {
-    functions.logger.error("❌ Error en actualizarUsuario:", error);
-    throw error;
   }
-}
 
-  //------------------------------------------------------------------------------------
-  // idUsuario, datos (entrada)
-  // -->
-  // obtenerUsuariosDesdeAdmin() --> (modifica los datos de un usuario existente)
-  // -->
-  // void
-  //------------------------------------------------------------------------------------
+  async obtenerUsuario(idUsuario) {
+    try {
+      const doc = await this.#db.collection("usuarios").doc(idUsuario).get();
+      if (doc.exists) {
+        const usuarioData = doc.data();
+        if (usuarioData.distancia === undefined) {
+          usuarioData.distancia = 0;
+        }
+        return usuarioData;
+      }
+      return null;
+    } catch (error) {
+      functions.logger.error("❌ Error en obtenerUsuario:", error);
+      return null;
+    }
+  }
+
+  async actualizarUsuario(idUsuario, datos) {
+    try {
+      const usuarioRef = this.#db.collection("usuarios").doc(idUsuario);
+      const usuarioDoc = await usuarioRef.get();
+
+      if (!usuarioDoc.exists) {
+        throw new Error(`Usuario con ID ${idUsuario} no encontrado`);
+      }
+
+      const datosActualizacion = { ...datos };
+      delete datosActualizacion.uid;
+      delete datosActualizacion.creadoEn;
+
+      if (datos.correo && datos.correo !== usuarioDoc.data().correo) {
+        await this.#admin.auth().updateUser(idUsuario, {
+          email: datos.correo
+        });
+      }
+
+      await usuarioRef.update(datosActualizacion);
+
+      functions.logger.info(`✅ Usuario ${idUsuario} actualizado correctamente`);
+      return true;
+
+    } catch (error) {
+      functions.logger.error("❌ Error en actualizarUsuario:", error);
+      throw error;
+    }
+  }
+
   async obtenerUsuariosDesdeAdmin(idAdmin) {
-    
     try {
       const adminDoc = await this.#db.collection("usuarios").doc(idAdmin).get();
 
@@ -254,7 +315,6 @@ async actualizarUsuario(idUsuario, datos) {
       const snapshot = await this.#db.collection("usuarios").get();
       const usuarios = snapshot.docs.map((doc) => {
         const usuarioData = doc.data();
-        // Asegurar que el campo distancia existe, si no establecerlo a 0
         if (usuarioData.distancia === undefined) {
           usuarioData.distancia = 0;
         }
@@ -271,11 +331,7 @@ async actualizarUsuario(idUsuario, datos) {
       return null;
     }
   }
-  //------------------------------------------------------------------------------------
-  // idUsuario (entrada)
-  // -->
-  // eliminarUsuario() --> elimina usuario, sus nodos y su cuenta de Authentication
-  //------------------------------------------------------------------------------------
+
   async eliminarUsuario(idUsuario) {
     try {
       const usuarioRef = this.#db.collection("usuarios").doc(idUsuario);
@@ -286,23 +342,20 @@ async actualizarUsuario(idUsuario, datos) {
         return;
       }
 
-      // Eliminar todos los nodos del usuario
       const nodosSnapshot = await this.#db.collection("nodos")
         .where("propietarioId", "==", idUsuario)
         .get();
 
       for (const nodoDoc of nodosSnapshot.docs) {
-        await this.eliminarNodo(nodoDoc.id);
+        await this.eliminarNodo(nodoDoc.data().nombre, idUsuario);
       }
 
-      // Intentar eliminar usuario de Authentication
       try {
         await this.#admin.auth().deleteUser(idUsuario);
       } catch (authError) {
         functions.logger.warn(`⚠️ Usuario ${idUsuario} no encontrado en Authentication`);
       }
 
-      // Finalmente eliminar documento en Firestore
       await usuarioRef.delete();
       functions.logger.info(`🗑️ Usuario ${idUsuario} eliminado correctamente`);
     } catch (error) {
@@ -310,63 +363,27 @@ async actualizarUsuario(idUsuario, datos) {
     }
   }
 
-  // ------------------------------------------------------------------------------------
-  // obtenerUsuariosDesdeAdmin(idAdmin)
-  // -->
-  // [
-  // {
-  //   id: texto,                        
-  //   uid: texto,                        
-  //   nombre: texto,                     
-  //   correo: texto,                    
-  //   rol: texto,                        
-  //   monedas: número,                   
-  //   premios: array de texto,           
-  //   creadoEn: timestamp,               
-  // },
-  // ...
-  // ]
-  // ------------------------------------------------------------------------------------
-  async obtenerUsuariosDesdeAdmin(idAdmin) {
-    try {
-      const adminDoc = await this.#db.collection("usuarios").doc(idAdmin).get();
-
-      if (!adminDoc.exists) {
-        throw new Error(`Usuario admin no encontrado (${idAdmin})`);
-      }
-
-      const adminData = adminDoc.data();
-      if (adminData.rol !== "admin") {
-        throw new Error(`El usuario ${idAdmin} no tiene permisos de administrador`);
-      }
-
-      const snapshot = await this.#db.collection("usuarios").get();
-      const usuarios = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
-
-      functions.logger.info(`✅ Usuario admin ${idAdmin} obtuvo lista de ${usuarios.length} usuarios`);
-      return usuarios;
-    } catch (error) {
-      functions.logger.error("❌ Error en obtenerUsuariosDesdeAdmin:", error);
-      return null;
-    }
-  }
-
   // ===================================================================================
   // ================================ MÉTODOS DE NODOS =================================
   // ===================================================================================
 
-  //------------------------------------------------------------------------------------
-  // nombre: texto, ubicacion: texto, propietarioId: texto
-  // -->
-  // crearNodo() --> crea nuevo nodo, pero si el propietario ya tiene un nodo
-  // con ese nombre → ERROR
-  //------------------------------------------------------------------------------------
-  async crearNodo(nombre, ubicacion, propietarioId) {
+  async _obtenerNodoBasico(nombre, propietarioId) {
+    const snapshot = await this.#db
+      .collection("nodos")
+      .where("nombre", "==", nombre)
+      .where("propietarioId", "==", propietarioId)
+      .limit(1)
+      .get();
+
+    if (snapshot.empty) return null;
+    
+    const doc = snapshot.docs[0];
+    return { id: doc.id, ...doc.data() };
+  }
+
+  async crearNodo(nombre, propietarioId) {
     try {
-      const existente = await this.obtenerNodo(nombre, propietarioId);
+      const existente = await this._obtenerNodoBasico(nombre, propietarioId);
       if (existente) {
         throw new Error(`El propietario ${propietarioId} ya tiene un nodo llamado "${nombre}".`);
       }
@@ -374,9 +391,7 @@ async actualizarUsuario(idUsuario, datos) {
       const nuevoNodo = {
         propietarioId,
         nombre,
-        ubicacion,
-        sensores: { co2: null, temperatura: null, humedad: null }, // cada uno: número o null
-        tiempo: this.#admin.firestore.Timestamp.now(),
+        creadoEn: this.#admin.firestore.Timestamp.now(),
       };
 
       await this.#db.collection("nodos").add(nuevoNodo);
@@ -390,37 +405,29 @@ async actualizarUsuario(idUsuario, datos) {
     }
   }
 
-  //------------------------------------------------------------------------------------
-  // nombre: texto, propietarioId: texto
-  // -->
-  // obtenerNodo() --> devuelve el nodo del propietario cuyo nombre coincida
-  // -->
-  // {
-  //   id: texto,                          
-  //   propietarioId: texto,               
-  //   nombre: texto,                      
-  //   ubicacion: texto,                   
-  //   sensores: {                         
-  //       co2: número,                    
-  //       temperatura: número,            
-  //       humedad: número                 
-  //   },
-  //   tiempo: timestamp                   
-  // }
-  // ------------------------------------------------------------------------------------
   async obtenerNodo(nombre, propietarioId) {
     try {
-      const snapshot = await this.#db
-        .collection("nodos")
-        .where("nombre", "==", nombre)
-        .where("propietarioId", "==", propietarioId)
-        .limit(1)
-        .get();
+      const nodoBasico = await this._obtenerNodoBasico(nombre, propietarioId);
 
-      if (snapshot.empty) return null;
+      if (!nodoBasico) return null;
 
-      const doc = snapshot.docs[0];
-      return { id: doc.id, ...doc.data() };
+      const lecturasRecientes = await this.obtenerLecturas(nombre, propietarioId);
+
+      const sensores = {};
+      let tiempo = null;
+
+      if (lecturasRecientes.length > 0) {
+        tiempo = lecturasRecientes[0].timestamp;
+        lecturasRecientes.forEach(lectura => {
+          sensores[lectura.tipo_sensor] = lectura.valor;
+        });
+      }
+
+      return {
+        ...nodoBasico,
+        sensores,
+        tiempo,
+      };
 
     } catch (error) {
       functions.logger.error("❌ Error en obtenerNodo:", error);
@@ -428,124 +435,110 @@ async actualizarUsuario(idUsuario, datos) {
     }
   }
 
-  // ------------------------------------------------------------------------------------
-  // propietarioId: texto
-  // -->
-  // obtenerNodos(idPropietario)
-  // -->
-  // [
-  //   {
-  //     id: texto,                          
-  //     propietarioId: texto,               
-  //     nombre: texto,                      
-  //     ubicacion: texto,                   
-  //     sensores: {                         
-  //         co2: número,                    
-  //         temperatura: número,            
-  //         humedad: número                 
-  //     },
-  //     tiempo: timestamp                   
-  //   },
-  //   ...
-  // ]
-  // ------------------------------------------------------------------------------------
   async obtenerNodos(idPropietario) {
     try {
-      const snapshot = await this.#db
+      const nodosSnapshot = await this.#db
         .collection("nodos")
         .where("propietarioId", "==", idPropietario)
         .get();
 
-      if (snapshot.empty) {
-        functions.logger.warn(`⚠️ No se encontraron nodos para propietario ${idPropietario}`);
+      if (nodosSnapshot.empty) {
         return [];
       }
 
-      const nodos = snapshot.docs.map((doc) => ({
+      const nodos = nodosSnapshot.docs.map((doc) => ({
         id: doc.id,
         ...doc.data(),
       }));
 
-      functions.logger.info(`✅ Se encontraron ${nodos.length} nodo(s) para propietario ${idPropietario}`);
-      return nodos;
+      const nodosConLecturas = await Promise.all(
+        nodos.map(async (nodo) => {
+          const lecturasRecientes = await this.obtenerLecturas(nodo.nombre, nodo.propietarioId);
+          const sensores = {};
+          let tiempo = null;
+
+          if (lecturasRecientes.length > 0) {
+            tiempo = lecturasRecientes[0].timestamp;
+            lecturasRecientes.forEach(lectura => {
+              sensores[lectura.tipo_sensor] = lectura.valor;
+            });
+          }
+          
+          return { ...nodo, sensores, tiempo };
+        })
+      );
+
+      functions.logger.info(`✅ Se encontraron ${nodosConLecturas.length} nodo(s) para propietario ${idPropietario}`);
+      return nodosConLecturas;
+
     } catch (error) {
-      functions.logger.error("❌ Error en obtenerNodo (por propietario):", error);
+      functions.logger.error("❌ Error en obtenerNodos (por propietario):", error);
       return [];
     }
   }
 
-  // ------------------------------------------------------------------------------------
-  // nombreNodo: texto, propietarioId: texto, datos: objeto (campos a actualizar)
-  // -->
-  // actualizarNodo(nombreNodo, propietarioId, datos)
-  // -->
-  // {
-  //   id: texto,                          
-  //   propietarioId: texto,               
-  //   nombre: texto,                      
-  //   ubicacion: texto,                   
-  //   sensores: {                         
-  //       co2: número,                    
-  //       temperatura: número,            
-  //       humedad: número                 
-  //   },
-  //   tiempo: timestamp                   
-  // }
-  // ----------------------------------------------------------------------------------
   async actualizarNodo(nombreNodo, propietarioId, datos) {
     try {
-      const nodo = await this.obtenerNodo(nombreNodo, propietarioId);
-      if (!nodo) throw new Error(`Nodo "${nombreNodo}" no encontrado para el propietario ${propietarioId}`);
+      const nodo = await this._obtenerNodoBasico(nombreNodo, propietarioId);
+      if (!nodo) {
+        throw new Error(`Nodo "${nombreNodo}" no encontrado para el propietario ${propietarioId}`);
+      }
 
-      await this.#db.collection("nodos").doc(nodo.id).update(datos);
+      const datosValidos = { ...datos };
+      delete datosValidos.ubicacion;
+      delete datosValidos.sensores;
+      delete datosValidos.tiempo;
+
+      await this.#db.collection("nodos").doc(nodo.id).update(datosValidos);
 
       functions.logger.info(`✅ Nodo actualizado: ${nombreNodo} (${propietarioId})`);
 
     } catch (error) {
       functions.logger.error("❌ Error en actualizarNodo:", error);
+      throw error;
     }
   }
 
-  //------------------------------------------------------------------------------------
-  // nombreNodo: texto, propietarioId: texto
-  // -->
-  // eliminarNodo() --> elimina el nodo de Firestore y lo desvincula de todos los usuarios
-  //------------------------------------------------------------------------------------
   async eliminarNodo(nombreNodo, propietarioId) {
     try {
-      const nodo = await this.obtenerNodo(nombreNodo, propietarioId);
-      if (!nodo) return;
+      const nodo = await this._obtenerNodoBasico(nombreNodo, propietarioId);
+      if (!nodo) {
+        functions.logger.warn(`⚠️ Nodo a eliminar no encontrado: "${nombreNodo}"`);
+        return;
+      }
+
+      const lecturasSnapshot = await this.#db.collection("lecturas").where("id_nodo", "==", nodo.id).get();
+      if (!lecturasSnapshot.empty) {
+        const batch = this.#db.batch();
+        lecturasSnapshot.docs.forEach(doc => {
+          batch.delete(doc.ref);
+        });
+        await batch.commit();
+        functions.logger.info(`🗑️ ${lecturasSnapshot.size} lecturas eliminadas para el nodo "${nombreNodo}"`);
+      }
 
       await this.#db.collection("nodos").doc(nodo.id).delete();
 
-      functions.logger.info(`🗑️ Nodo eliminado: "${nombreNodo}" (${nodo.id})`);
+      functions.logger.info(`🗑️ Nodo principal eliminado: "${nombreNodo}" (${nodo.id})`);
     } catch (error) {
       functions.logger.error("❌ Error en eliminarNodo:", error);
+      throw error;
     }
   }
 
 
-  // ------------------------------------------------------------------------------------
-  // uid: texto
-  // -->
-  // generarTokenAutologin(uid)
-  // -->
-  // - Verifica que el usuario exista en Firebase Authentication
-  // - Obtiene el rol desde los claims personalizados del usuario
-  // - Genera un token personalizado válido para autologin
-  // - Construye y devuelve un link de acceso automático
-  // -->
-  // ------------------------------------------------------------------------------------
+  // ===================================================================================
+  // ============================ AUTENTICACIÓN Y OTROS ==============================
+  // ===================================================================================
+
   async generarTokenAutologin(uid) {
     try {
-      // Verificar si el usuario existe en Firebase Auth
       const userRecord = await this.#admin.auth().getUser(uid);
       if (!userRecord) {
         functions.logger.warn(`⚠️ Usuario con UID ${uid} no encontrado en Firebase Auth`);
         return null;
       }
 
-      // Obtener el rol desde los claims personalizados, si existen
       const rol = userRecord.customClaims?.rol || "usuario";
       const token = await this.#admin.auth().createCustomToken(uid, { rol });
       const link = `https://proyectodebiometria.web.app/autologin?token=${token}`;
@@ -558,24 +551,6 @@ async actualizarUsuario(idUsuario, datos) {
       return null;
     }
   }
-
-  // ------------------------------------------------------------------------------------
-  // mensaje: texto, color: texto, topic: texto
-  // -->
-  // enviarNotificacion(mensaje, color, topic)
-  // -->
-  // {
-  //   notification: {
-  //     title: texto,
-  //     body: texto
-  //   },
-  //   data: {
-  //     mensaje: texto,
-  //     color: texto
-  //   },
-  //   topic: texto
-  // }
-  // ------------------------------------------------------------------------------------
 
   async enviarNotificacion(mensaje, color, topic) {
     try {
@@ -599,18 +574,6 @@ async actualizarUsuario(idUsuario, datos) {
     }
   }
 
-
-  // ------------------------------------------------------------------------------------
-  // uid: texto
-  // -->
-  // revocarSesion(uid)
-  // -->
-  // - Fuerza el cierre de sesión del usuario revocando sus refresh tokens
-  // - En el cliente Android/WebView la sesión caduca en cuanto el token sea revalidado
-  // - Este es el método recomendado por Firebase para forzar logout remoto
-  // -->
-  // true si se revoca correctamente, false si ocurre un error
-  // ------------------------------------------------------------------------------------
   async revocarSesion(uid) {
     try {
       await this.#admin.auth().revokeRefreshTokens(uid);

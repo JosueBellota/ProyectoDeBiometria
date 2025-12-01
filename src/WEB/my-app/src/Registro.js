@@ -1,4 +1,11 @@
-// src/Registro.js
+// --------------------------------------------------------------------------
+// Fichero: Registro.js
+// Responsable: Josue Bellota Ichaso
+//
+// Descripción:
+// Este fichero contiene la página de registro de la aplicación.
+// --------------------------------------------------------------------------
+
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { registrarCiudadano } from "./logicaFake/auth";

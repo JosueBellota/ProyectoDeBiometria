@@ -1,3 +1,14 @@
+// --------------------------------------------------------------------------
+// Fichero: test.js
+// Responsable: Josue Bellota Ichaso
+//
+// Descripción:
+// Este fichero contiene la interfas de las pruebas automáticas para el servidor REST.
+// Simula el comportamiento de un cliente para verificar que los endpoints
+// de la API funcionan como se espera.
+// --------------------------------------------------------------------------
+
+
 import React, { useEffect, useState } from "react";
 import { pruebaAutomatica } from "./test";
 

@@ -1,3 +1,11 @@
+// --------------------------------------------------------------------------
+// Fichero: index.js
+// Responsable: Josue Bellota Ichaso
+//
+// Descripción:
+// Este fichero es el punto de entrada de la aplicación React.
+// --------------------------------------------------------------------------
+
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";

@@ -1,3 +1,11 @@
+// --------------------------------------------------------------------------
+// Fichero: Informacion.js
+// Responsable: Josue Bellota Ichaso
+//
+// Descripción:
+// Este fichero contiene la información para el ciudadano.
+// --------------------------------------------------------------------------
+
 import React, { useState } from "react";
 import HeaderRegistrado from "./templates/HeaderRegistrado";
 import "../css/main.css";

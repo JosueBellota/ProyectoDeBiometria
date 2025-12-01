@@ -1,3 +1,11 @@
+// --------------------------------------------------------------------------
+// Fichero: Intranet.js
+// Responsable: Josue Bellota Ichaso
+//
+// Descripción:
+// Este fichero contiene la intranet del ciudadano.
+// --------------------------------------------------------------------------
+
 import React, { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { obtenerUsuarioLogueado } from "./../logicaFake/auth";

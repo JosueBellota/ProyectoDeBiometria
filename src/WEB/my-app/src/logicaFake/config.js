@@ -1,7 +1,10 @@
-// -----------------------------------------------------------------------------------
+// --------------------------------------------------------------------------
 // Fichero: config.js
 // Responsable: Josue Bellota Ichaso
-// -----------------------------------------------------------------------------------
+//
+// Descripción:
+// Este fichero contiene la configuración de la aplicación.
+// --------------------------------------------------------------------------
 
 // URL base del Servidor REST
 export const API_BASE = "https://us-central1-proyectodebiometria.cloudfunctions.net/ServidorREST";

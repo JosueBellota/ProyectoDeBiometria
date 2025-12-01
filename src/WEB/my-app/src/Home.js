@@ -1,3 +1,11 @@
+// --------------------------------------------------------------------------
+// Fichero: Home.js
+// Responsable: Josue Bellota Ichaso
+//
+// Descripción:
+// Este fichero contiene la página de inicio de la aplicación.
+// --------------------------------------------------------------------------
+
 import React, { useState } from "react";
 import HeaderNoRegistrado from "./templates/HeaderNoRegistrado";
 
