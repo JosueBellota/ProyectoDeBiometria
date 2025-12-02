@@ -18,6 +18,7 @@ function Registro() {
   const [password, setPassword] = useState("");
   const [password2, setPassword2] = useState("");
   const [error, setError] = useState(null);
+  const [exito, setExito] = useState(null);
 
   const validarCorreo = (correo) => {
     const regexCorreo = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -53,8 +54,10 @@ function Registro() {
     const resultado = await registrarCiudadano(nombre, correo, password);
 
     if (resultado) {
-      alert("Registro completado. Se ha enviado un correo de verificación.");
-      navigate("/intranet");
+      setExito("Registro completado. Se ha enviado un correo de verificación.");
+      setTimeout(() => {
+        navigate("/login");
+      }, 3000);
     } else {
       setError("El correo ya está registrado o hubo un error en el registro.");
     }
@@ -95,6 +98,19 @@ function Registro() {
           <h1 style={{ textAlign: "center", marginBottom: "8px" }}>
             Registro de Ciudadano
           </h1>
+
+          {exito && (
+            <p
+              style={{
+                color: "green",
+                marginTop: "4px",
+                marginBottom: "12px",
+                fontSize: "0.9rem",
+              }}
+            >
+              {exito}
+            </p>
+          )}
 
           <p
             style={{

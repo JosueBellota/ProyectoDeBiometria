@@ -63,30 +63,6 @@ async function obtenerNodosPorPropietario(idUsuario) {
 }
 
 // ----------------------------------------------------------
-// obtenerMediciones(nombreNodo, propietarioId)
-//
-// Obtiene las últimas mediciones de un nodo específico.
-//
-// Parámetros:
-//   - nombreNodo: Nombre del nodo.
-//   - propietarioId: ID del propietario del nodo.
-//
-// Retorno:
-//   - Object: Objeto con las mediciones del nodo ({ sensores, tiempo }).
-//   - { error: string }: Objeto con mensaje de error si falla la operación.
-// ----------------------------------------------------------
-async function obtenerMediciones(nombreNodo, propietarioId) {
-  try {
-    const res = await fetch(`${API_BASE}/mediciones/${propietarioId}/${nombreNodo}`);
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error);
-    return data;
-  } catch (error) {
-    return { error: error.message };
-  }
-}
-
-// ----------------------------------------------------------
 // obtenerUsuarioCompleto(uid)
 //
 // Obtiene los datos completos de un usuario, incluyendo su rol,
@@ -221,46 +197,44 @@ export async function actualizarMonedasUsuario(idUsuario, monedas) {
 // main()
 //
 // Función principal para usuarios con rol de "ciudadano".
-// Obtiene los nodos del usuario logueado y sus mediciones.
+// Obtiene los nodos del usuario logueado, que ya incluyen sus
+// mediciones más recientes gracias a la lógica del backend.
 //
 // Retorno:
-//   - Array<Object>: Resultados de las operaciones (nodos y mediciones).
+//   - Array<Object>: Lista de nodos con sus datos y sensores.
 // ----------------------------------------------------------
 export async function main() {
   try {
     const usuario = obtenerUsuarioLogueado();
     const idUsuario = usuario?.uid || usuario?.id || usuario?.idUsuario;
-    if (!idUsuario) return [{ paso: "AUTENTICACIÓN", error: "No hay usuario logueado" }];
-
-    const nodos = await obtenerNodosPorPropietario(idUsuario);
-    if (nodos.error) return [{ paso: "GET /nodos/propietario", error: nodos.error }];
-
-    if (!Array.isArray(nodos) || nodos.length === 0)
-      return [{ paso: "GET /nodos/propietario", resultado: "El usuario no tiene nodos registrados." }];
-
-    const resultados = [];
-    for (const nodo of nodos) {
-      const nombreNodo = nodo.nombre;
-      if (!nombreNodo) continue;
-
-      const mediciones = await obtenerMediciones(nombreNodo, idUsuario);
-      if (mediciones.error) {
-        resultados.push({ paso: `GET /mediciones/${idUsuario}/${nombreNodo}`, error: mediciones.error });
-        continue;
-      }
-
-      resultados.push({
-        paso: "GET /mediciones",
-        resultado: {
-          nodo: nombreNodo,
-          datos: mediciones,
-        },
-      });
+    if (!idUsuario) {
+      return [{ paso: "AUTENTICACIÓN", error: "No hay usuario logueado" }];
     }
 
-    return resultados.length > 0
-      ? resultados
-      : [{ paso: "GET /mediciones", resultado: "Sin mediciones registradas." }];
+    const nodos = await obtenerNodosPorPropietario(idUsuario);
+    if (nodos.error) {
+      return [{ paso: "GET /nodos/propietario", error: nodos.error }];
+    }
+
+    if (!Array.isArray(nodos) || nodos.length === 0) {
+      return [{ 
+        paso: "GET /nodos/propietario", 
+        resultado: "El usuario no tiene nodos registrados." 
+      }];
+    }
+
+    // El backend ahora devuelve los nodos con sus sensores y tiempo,
+    // así que no necesitamos hacer más llamadas.
+    return nodos.map(nodo => ({
+      paso: "GET /nodos/propietario",
+      resultado: {
+        nodo: nodo.nombre,
+        datos: {
+          sensores: nodo.sensores || {},
+          tiempo: nodo.tiempo || null
+        }
+      }
+    }));
   } catch (error) {
     return [{ paso: "main()", error: error.message }];
   }
