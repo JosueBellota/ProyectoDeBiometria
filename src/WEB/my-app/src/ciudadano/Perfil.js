@@ -18,66 +18,12 @@ import { obtenerUsuarioCompleto } from "../logicaFake/logicaFake";
 import { formatTime } from "../logicaFake/monedas";
 import HeaderRegistrado from "./templates/HeaderRegistrado";
 import { useMonedas } from "../logicaFake/MonedasContext";
+import "./css/perfil.css";
 
-// --- Estilos CSS en línea para simplicidad ---
-const styles = {
-  pageContainer: {
-    display: "flex",
-    flexWrap: "wrap",
-    gap: "24px",
-    padding: "20px",
-    maxWidth: "1200px",
-    margin: "0 auto",
-  },
-  card: {
-    flex: 1,
-    minWidth: "350px",
-    background: "var(--color-surface)",
-    padding: "24px",
-    borderRadius: "var(--radius-card)",
-    border: "1px solid var(--color-border)",
-  },
-  form: {
-    display: "flex",
-    flexDirection: "column",
-  },
-  inputGroup: { marginBottom: "16px" },
-  label: { marginBottom: "4px", display: "block" },
-  input: {
-    width: "100%",
-    padding: "10px 12px",
-    border: "1px solid var(--color-border)",
-    borderRadius: "6px",
-    boxSizing: "border-box",
-  },
-  button: {
-    padding: "12px 16px",
-    backgroundColor: "var(--color-primary)",
-    color: "white",
-    border: "none",
-    borderRadius: "var(--radius-button)",
-    cursor: "pointer",
-  },
-  disabledButton: {
-    backgroundColor: "#ccc",
-    cursor: "not-allowed",
-  },
-  timerContainer: {
-    textAlign: "center",
-  },
-  timerText: {
-    fontSize: "2rem",
-    fontWeight: "bold",
-    color: "var(--color-primary)",
-    margin: "16px 0",
-  },
-  infoText: {
-    textAlign: "center",
-    fontSize: "0.9rem",
-    color: "#666",
-  },
+const validarPassword = (password) => {
+  const regexPassword = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/;
+  return regexPassword.test(password);
 };
-// --- Fin de Estilos ---
 
 function Perfil() {
   const navigate = useNavigate();
@@ -89,6 +35,8 @@ function Perfil() {
     repetirContraseña: "",
   });
   const [usuario, setUsuario] = useState(null);
+  const [mensaje, setMensaje] = useState("");
+
 
   // --- Estados y lógica de monedas desde el Context ---
   const {
@@ -129,16 +77,25 @@ function Perfil() {
 
   const handleProfileSubmit = async (e) => {
     e.preventDefault();
+    setMensaje(""); // Limpiar mensajes previos
+
     if (!perfil.contraseña) {
-      return alert(
-        "Debes introducir tu contraseña actual para realizar cambios."
-      );
+      setMensaje("Debes introducir tu contraseña actual para realizar cambios.");
+      return;
     }
     if (
       perfil.nuevaContraseña &&
       perfil.nuevaContraseña !== perfil.repetirContraseña
     ) {
-      return alert("Las nuevas contraseñas no coinciden.");
+      setMensaje("Las nuevas contraseñas no coinciden.");
+      return;
+    }
+
+    if (perfil.nuevaContraseña && !validarPassword(perfil.nuevaContraseña)) {
+      setMensaje(
+        "La nueva contraseña debe tener al menos 8 caracteres, incluyendo una letra mayúscula, una letra minúscula y un número."
+      );
+      return;
     }
 
     try {
@@ -158,46 +115,54 @@ function Perfil() {
           correo: perfil.correo,
         });
       }
-      alert("✅ Perfil actualizado correctamente.");
-      cargarUsuario();
-      navigate("/ciudadano/intranet");
+      setMensaje("✅ Perfil actualizado correctamente.");
+      cargarUsuario(); // Recargar datos
     } catch (error) {
-      alert(`❌ Error: ${error.message}`);
+      setMensaje(`❌ Error: ${error.message}`);
     }
   };
 
   return (
     <>
       <HeaderRegistrado />
-      <div style={styles.pageContainer}>
+      <div className="page-container">
         {/* --- Card de Perfil --- */}
-        <div style={styles.card}>
+        <div className="card">
           <h2>Perfil de Usuario</h2>
-          <form onSubmit={handleProfileSubmit} style={styles.form}>
-            <div style={styles.inputGroup}>
-              <label style={styles.label}>Nombre:</label>
+          {mensaje && (
+            <div
+              className={`mensaje ${
+                mensaje.startsWith("✅") ? "exito" : "error"
+              }`}
+            >
+              {mensaje}
+            </div>
+          )}
+          <form onSubmit={handleProfileSubmit} className="form">
+            <div className="input-group">
+              <label className="label">Nombre:</label>
               <input
                 type="text"
                 name="nombre"
                 value={perfil.nombre}
                 onChange={handleChange}
                 required
-                style={styles.input}
+                className="input"
               />
             </div>
-            <div style={styles.inputGroup}>
-              <label style={styles.label}>Correo:</label>
+            <div className="input-group">
+              <label className="label">Correo:</label>
               <input
                 type="email"
                 name="correo"
                 value={perfil.correo}
                 onChange={handleChange}
                 required
-                style={styles.input}
+                className="input"
               />
             </div>
-            <div style={styles.inputGroup}>
-              <label style={styles.label}>
+            <div className="input-group">
+              <label className="label">
                 Contraseña Actual (obligatoria):
               </label>
               <input
@@ -206,58 +171,56 @@ function Perfil() {
                 value={perfil.contraseña}
                 onChange={handleChange}
                 required
-                style={styles.input}
+                className="input"
               />
             </div>
-            <div style={styles.inputGroup}>
-              <label style={styles.label}>Nueva Contraseña:</label>
+            <div className="input-group">
+              <label className="label">Nueva Contraseña:</label>
               <input
                 type="password"
                 name="nuevaContraseña"
                 value={perfil.nuevaContraseña}
                 onChange={handleChange}
                 placeholder="Dejar en blanco para no cambiar"
-                style={styles.input}
+                className="input"
               />
             </div>
-            <div style={styles.inputGroup}>
-              <label style={styles.label}>Repetir Nueva Contraseña:</label>
+            <div className="input-group">
+              <label className="label">Repetir Nueva Contraseña:</label>
               <input
                 type="password"
                 name="repetirContraseña"
                 value={perfil.repetirContraseña}
                 onChange={handleChange}
-                style={styles.input}
+                className="input"
               />
             </div>
             <hr />
 
-            <button type="submit" style={styles.button}>
+            <button type="submit" className="button">
               Actualizar Perfil
             </button>
           </form>
         </div>
 
         {/* --- Card de Monedas --- */}
-        <div style={styles.card}>
+        <div className="card">
           <h2>Gana Monedas</h2>
-          <div style={styles.timerContainer}>
+          <div className="timer-container">
             {puedeReclamar ? (
               <>
-                <h3>Tiempo de Actividad</h3>
-                <p style={styles.timerText}>
+                <p className="timer-text">
                   {formatTime(tiempoActivo, false)} /{" "}
                   {formatTime(TIEMPO_REQUERIDO_ACTIVIDAD, false)}
                 </p>
-                <p style={styles.infoText}>
-                  Mantente activo en la página para ganar una moneda.
+                <p className="info-text">
                 </p>
                 <button
                   onClick={reclamarMoneda}
-                  style={
+                  className={
                     tiempoActivo >= TIEMPO_REQUERIDO_ACTIVIDAD
-                      ? styles.button
-                      : { ...styles.button, ...styles.disabledButton }
+                      ? "button"
+                      : "button disabled-button"
                   }
                   disabled={tiempoActivo < TIEMPO_REQUERIDO_ACTIVIDAD}
                 >
@@ -267,14 +230,14 @@ function Perfil() {
             ) : (
               <>
                 <h3>Próxima Recompensa</h3>
-                <p style={styles.timerText}>
+                <p className="timer-text">
                   {formatTime(tiempoRestanteCooldown)}
                 </p>
-                <p style={styles.infoText}>
+                <p className="info-text">
                   Ya ganaste tu moneda diaria.
                 </p>
                 <button
-                  style={{ ...styles.button, ...styles.disabledButton }}
+                  className="button disabled-button"
                   disabled
                 >
                   Esperando...
