@@ -18,6 +18,7 @@
 
 const admin = require("firebase-admin");
 const functions = require("firebase-functions");
+const geofire = require("geofire-common");
 
 class LogicaDeNegocio {
 
@@ -47,6 +48,9 @@ class LogicaDeNegocio {
       const timestamp = this.#admin.firestore.Timestamp.now();
       let co2elevado = null;
 
+      // Calcula el geohash para la ubicación de este lote de lecturas
+      const hash = geofire.geohashForLocation([latitud, longitud]);
+
       lecturas.forEach((lectura) => {
         const lecturaRef = this.#db.collection("lecturas").doc();
         batch.set(lecturaRef, {
@@ -56,6 +60,7 @@ class LogicaDeNegocio {
           latitud: latitud,
           longitud: longitud,
           timestamp: timestamp,
+          geohash: hash, // Añadimos el geohash al documento
         });
 
         if (lectura.tipo === "co2" && lectura.valor >= 100) {
@@ -64,7 +69,7 @@ class LogicaDeNegocio {
       });
 
       await batch.commit();
-      functions.logger.info(`✅ ${lecturas.length} lecturas guardadas para el nodo "${nombreNodo}"`);
+      functions.logger.info(`✅ ${lecturas.length} lecturas guardadas para el nodo "${nombreNodo}" con geohash ${hash}`);
 
       if (co2elevado !== null) {
         const mensaje = `⚠️ CO₂ elevado en nodo "${nombreNodo}". Valor: ${co2elevado}`;
@@ -77,45 +82,81 @@ class LogicaDeNegocio {
     }
   }
 
-  async obtenerLecturas(nombreNodo, propietarioId, opciones = {}) {
+  async obtenerLecturas(opciones = {}) {
     try {
-      const nodo = await this._obtenerNodoBasico(nombreNodo, propietarioId);
-      if (!nodo) {
-        // Devolvemos un array vacío si el nodo no existe para ser consistentes.
-        return [];
+      // Validar que al menos un filtro esté presente
+      if (Object.keys(opciones).length === 0) {
+        throw new Error("Se requiere al menos un filtro para obtener lecturas.");
+      }
+      // Validar que nombreNodo y propietarioId vengan juntos
+      if ((opciones.nombreNodo && !opciones.propietarioId) || (!opciones.nombreNodo && opciones.propietarioId)) {
+        throw new Error("Si se proporciona nombreNodo o propietarioId, el otro también es requerido.");
       }
 
-      // 1. Obtener todas las lecturas solo por id_nodo para evitar la necesidad de índices compuestos.
-      const query = this.#db.collection("lecturas").where("id_nodo", "==", nodo.id);
+      let lecturas = [];
+      let consultaRealizada = false;
+
+      // Estrategia 1: Búsqueda por Nodo (eficiente)
+      if (opciones.nombreNodo && opciones.propietarioId) {
+        const nodo = await this._obtenerNodoBasico(opciones.nombreNodo, opciones.propietarioId);
+        if (!nodo) return [];
+
+        const snapshot = await this.#db.collection("lecturas").where("id_nodo", "==", nodo.id).get();
+        lecturas = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        consultaRealizada = true;
+      }
+      // Estrategia 2: Búsqueda por Ubicación con Geohash (eficiente)
+      else if (opciones.latitud !== undefined && opciones.longitud !== undefined && opciones.radio !== undefined) {
+        const center = [opciones.latitud, opciones.longitud];
+        const radiusInM = opciones.radio;
+
+        // Obtener los límites de la consulta de geohash
+        const bounds = geofire.geohashQueryBounds(center, radiusInM);
+        const promises = [];
+
+        // Realizar una consulta por cada límite
+        for (const b of bounds) {
+          const q = this.#db.collection("lecturas")
+            .orderBy("geohash")
+            .startAt(b[0])
+            .endAt(b[1]);
+          promises.push(q.get());
+        }
+
+        // Esperar a que todas las consultas se completen
+        const snapshots = await Promise.all(promises);
+        const matchingDocs = [];
+        for (const snap of snapshots) {
+          for (const doc of snap.docs) {
+            matchingDocs.push(doc.data());
+          }
+        }
+        
+        // Filtro final en memoria para asegurar que los puntos están dentro del círculo exacto
+        lecturas = matchingDocs.filter(doc => {
+            const distanceInKm = geofire.distanceBetween([doc.latitud, doc.longitud], center);
+            const distanceInM = distanceInKm * 1000;
+            return distanceInM <= radiusInM;
+        });
+        consultaRealizada = true;
+      }
+
+      if (!consultaRealizada) {
+        throw new Error("La consulta de lecturas debe incluir un filtro por nodo o por ubicación.");
+      }
       
-      const snapshot = await query.get();
-      let lecturas = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-
-      // 2. Aplicar los filtros en la memoria del servidor.
-      if (opciones.tipoSensor) {
-        lecturas = lecturas.filter(l => l.tipo_sensor === opciones.tipoSensor);
-      }
+      // --- Aplicar filtros secundarios en memoria (fecha) ---
       if (opciones.fechaInicio) {
-        lecturas = lecturas.filter(l => l.timestamp.toDate() >= opciones.fechaInicio);
+        const fechaInicio = new Date(opciones.fechaInicio);
+        lecturas = lecturas.filter(l => l.timestamp.toDate() >= fechaInicio);
       }
       if (opciones.fechaFin) {
-        lecturas = lecturas.filter(l => l.timestamp.toDate() <= opciones.fechaFin);
+        const fechaFin = new Date(opciones.fechaFin);
+        fechaFin.setHours(23, 59, 59, 999);
+        lecturas = lecturas.filter(l => l.timestamp.toDate() <= fechaFin);
       }
-
-      // Si no hay opciones, replicar la lógica original de "obtener el último lote" en memoria.
-      if (Object.keys(opciones).length === 0) {
-        if (lecturas.length === 0) {
-            return [];
-        }
-        // Ordenar para encontrar el más reciente.
-        lecturas.sort((a, b) => b.timestamp.toMillis() - a.timestamp.toMillis());
-        const ultimoTimestamp = lecturas[0].timestamp;
-        // Filtrar para quedarse solo con las lecturas de ese timestamp.
-        lecturas = lecturas.filter(l => l.timestamp.isEqual(ultimoTimestamp));
-      }
-
-      functions.logger.info(`✅ Encontradas ${lecturas.length} lecturas para el nodo "${nombreNodo}"`);
-      return lecturas;
+      
+      return lecturas.sort((a, b) => b.timestamp.toMillis() - a.timestamp.toMillis());
 
     } catch (error) {
       functions.logger.error("❌ Error en obtenerLecturas:", error);
@@ -180,43 +221,6 @@ class LogicaDeNegocio {
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 
     return R * c; // en metros
-  }
-
-  async buscarLecturas(opciones = {}) {
-    try {
-      // Advertencia: Obtener todos los documentos puede ser ineficiente.
-      const snapshot = await this.#db.collection("lecturas").get();
-      let lecturas = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-
-      // Filtrado por fecha
-      if (opciones.fechaInicio) {
-        lecturas = lecturas.filter(l => l.timestamp.toDate() >= opciones.fechaInicio);
-      }
-      if (opciones.fechaFin) {
-        lecturas = lecturas.filter(l => l.timestamp.toDate() <= opciones.fechaFin);
-      }
-
-      // Filtrado por ubicación y radio
-      if (opciones.latitud && opciones.longitud && opciones.radio) {
-        lecturas = lecturas.filter(l => {
-          if (l.latitud === undefined || l.longitud === undefined) {
-            return false;
-          }
-          const distancia = this._haversineDistance(
-            opciones.latitud, opciones.longitud,
-            l.latitud, l.longitud
-          );
-          return distancia <= opciones.radio;
-        });
-      }
-
-      functions.logger.info(`✅ Búsqueda completada, encontradas ${lecturas.length} lecturas.`);
-      return lecturas;
-
-    } catch (error) {
-      functions.logger.error("❌ Error en buscarLecturas:", error);
-      throw error;
-    }
   }
 
   // ===================================================================================
@@ -411,7 +415,12 @@ class LogicaDeNegocio {
 
       if (!nodoBasico) return null;
 
-      const lecturasRecientes = await this.obtenerLecturas(nombre, propietarioId);
+      // Llama a la nueva versión de obtenerLecturas sin filtros de fecha/ubicación
+      // para obtener solo el último lote de mediciones, como hacía la lógica original.
+      const lecturasRecientes = await this.obtenerLecturas({ 
+        nombreNodo: nombre, 
+        propietarioId: propietarioId 
+      });
 
       const sensores = {};
       let tiempo = null;
@@ -453,7 +462,10 @@ class LogicaDeNegocio {
 
       const nodosConLecturas = await Promise.all(
         nodos.map(async (nodo) => {
-          const lecturasRecientes = await this.obtenerLecturas(nodo.nombre, nodo.propietarioId);
+          const lecturasRecientes = await this.obtenerLecturas({ 
+            nombreNodo: nodo.nombre, 
+            propietarioId: nodo.propietarioId 
+          });
           const sensores = {};
           let tiempo = null;
 
