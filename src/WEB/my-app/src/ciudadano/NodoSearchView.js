@@ -1,10 +1,10 @@
-// src/WEB/my-app/src/ciudadano/NodeCard.js
+// src/WEB/my-app/src/ciudadano/NodoSearchView.js
 import React, { useState, useEffect, useCallback } from 'react';
 import { obtenerLecturas } from './../logicaFake/logicaFake';
 import ReadingsTable from './ReadingsTable';
 import './css/ciudadano.css';
 
-function NodeCard({ nodo }) {
+function NodoSearchView({ nodo }) {
   const [lecturas, setLecturas] = useState([]);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState(null);
@@ -22,7 +22,6 @@ function NodeCard({ nodo }) {
     setCargando(true);
     setError(null);
     try {
-      // Usamos la nueva función `obtenerLecturas` con el id_nodo
       const res = await obtenerLecturas({ 
           id_nodo: nodo.id_nodo, 
           fechaInicio: new Date(fechaInicio), 
@@ -43,16 +42,14 @@ function NodeCard({ nodo }) {
   }, [cargarLecturas]);
 
   return (
-    <div className="card shadow-sm mb-4">
-      <div className="card-header bg-white">
-        <h5 className="card-title mb-0">Nodo: {nodo.nombre || nodo.id_nodo}</h5>
+    <div>
+        <h5>Lecturas para el nodo: {nodo.nombre || nodo.id_nodo}</h5>
         {nodo.latitud && 
             <small className="text-muted">
                 Lat: {nodo.latitud.toFixed(4)}, Lon: {nodo.longitud.toFixed(4)}
             </small>
         }
-      </div>
-      <div className="card-body">
+      <div>
         <div className="row mb-3 gx-2 align-items-end">
           <div className="col-sm-4">
             <label htmlFor={`fechaInicio-${nodo.id_nodo}`} className="form-label small">Fecha Inicio</label>
@@ -87,10 +84,14 @@ function NodeCard({ nodo }) {
 
         {error && <div className="alert alert-danger">Error: {error}</div>}
         
-        {!cargando && !error && <ReadingsTable lecturas={lecturas} />}
+        {!cargando && !error && (
+            <div className="readings-container" style={{ maxHeight: '60vh', overflowY: 'auto' }}>
+                <ReadingsTable lecturas={lecturas} />
+            </div>
+        )}
       </div>
     </div>
   );
 }
 
-export default NodeCard;
+export default NodoSearchView;

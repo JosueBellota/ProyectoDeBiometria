@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { obtenerUsuarioLogueado } from "./../logicaFake/auth";
 import { obtenerNodosPorPropietario, obtenerLecturas } from "./../logicaFake/logicaFake";
 import HeaderRegistrado from "./templates/HeaderRegistrado";
-import NodeCard from "./NodeCard";
+import NodoSearchView from "./NodoSearchView";
 import ReadingsTable from "./ReadingsTable";
 import "./css/ciudadano.css";
 
@@ -35,7 +35,7 @@ function MisNodosList({ nodos, selectedNodo, onNodoSelect }) {
 }
 
 // Componente para la vista de búsqueda general
-function GeneralSearchView() {
+function GeneralSearchView({ misNodos }) {
     const [resultados, setResultados] = useState([]);
     const [cargando, setCargando] = useState(false);
     const [error, setError] = useState(null);
@@ -47,6 +47,11 @@ function GeneralSearchView() {
     const [fechaInicio, setFechaInicio] = useState(semanaPasada.toISOString().split('T')[0]);
     const [fechaFin, setFechaFin] = useState(hoy.toISOString().split('T')[0]);
     const [radio, setRadio] = useState(5000);
+
+    const nodeIdToNameMap = React.useMemo(() => {
+        if (!misNodos) return new Map();
+        return new Map(misNodos.map(nodo => [nodo.id_nodo, nodo.nombre]));
+    }, [misNodos]);
 
     const buscarLecturas = async () => {
         setCargando(true);
@@ -70,11 +75,11 @@ function GeneralSearchView() {
     };
     
     return (
-        <div className="card shadow-sm">
-            <div className="card-header">
+        <div>
+            <div>
                 <h5 className="mb-0">Búsqueda General de Lecturas</h5>
             </div>
-            <div className="card-body">
+            <div>
                 <div className="row gx-2 gy-3 align-items-end">
                     <div className="col-md-3">
                         <label className="form-label small">Fecha Inicio</label>
@@ -98,8 +103,8 @@ function GeneralSearchView() {
                 {cargando && <p>Buscando...</p>}
                 {error && <div className="alert alert-danger mt-3">{error}</div>}
                 {!cargando && !error && (
-                    <div className="mt-3">
-                        <ReadingsTable lecturas={resultados} showNodeColumn={true} />
+                    <div className="readings-container" style={{ maxHeight: '60vh', overflowY: 'auto' }}>
+                        <ReadingsTable lecturas={resultados} showNodeColumn={true} nodeIdToNameMap={nodeIdToNameMap} />
                     </div>
                 )}
             </div>
@@ -160,9 +165,9 @@ function Intranet() {
                         </div>
                         <div className="col-lg-9">
                             {selectedNodo ? (
-                                <NodeCard nodo={selectedNodo} />
+                                <NodoSearchView nodo={selectedNodo} />
                             ) : (
-                                <GeneralSearchView />
+                                <GeneralSearchView misNodos={misNodos} />
                             )}
                         </div>
                     </div>

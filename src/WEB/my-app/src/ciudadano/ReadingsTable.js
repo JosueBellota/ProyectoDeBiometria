@@ -12,62 +12,36 @@ const formatearTiempo = (tiempo) => {
   return "Formato desconocido";
 };
 
-// Agrupa las lecturas por timestamp para mostrarlas en una sola fila
-const agruparLecturasPorTimestamp = (lecturas) => {
-    if (!lecturas || lecturas.length === 0) return [];
-    const mediciones = new Map();
-    lecturas.forEach(lectura => {
-        // La clave ahora incluye el id_nodo para evitar colisiones si dos nodos tienen el mismo timestamp
-        const clave = `${lectura.id_nodo}-${lectura.timestamp.seconds}`;
-        if (!mediciones.has(clave)) {
-            mediciones.set(clave, {
-                id_nodo: lectura.id_nodo,
-                timestamp: lectura.timestamp,
-                co2: '-',
-                temperatura: '-',
-                humedad: '-'
-            });
-        }
-        const medicion = mediciones.get(clave);
-        if (lectura.tipo_sensor.toLowerCase() === 'co2') {
-            medicion.co2 = lectura.valor;
-        } else if (lectura.tipo_sensor.toLowerCase() === 'temperatura') {
-            medicion.temperatura = lectura.valor;
-        } else if (lectura.tipo_sensor.toLowerCase() === 'humedad') {
-            medicion.humedad = lectura.valor;
-        }
-    });
-    // Devuelve ordenado por fecha, de más reciente a más antiguo
-    return Array.from(mediciones.values()).sort((a, b) => b.timestamp.seconds - a.timestamp.seconds);
-}
-
-function ReadingsTable({ lecturas, showNodeColumn = false }) {
-  const medicionesAgrupadas = agruparLecturasPorTimestamp(lecturas);
-
-  if (medicionesAgrupadas.length === 0) {
+function ReadingsTable({ lecturas, showNodeColumn = false, nodeIdToNameMap = new Map() }) {
+  if (!lecturas || lecturas.length === 0) {
     return <p>No hay lecturas para el período seleccionado.</p>;
   }
 
+  // Ordenar lecturas por fecha, de más reciente a más antiguo
+  const lecturasOrdenadas = [...lecturas].sort((a, b) => {
+    const timeA = a.timestamp.seconds || a.timestamp._seconds || 0;
+    const timeB = b.timestamp.seconds || b.timestamp._seconds || 0;
+    return timeB - timeA;
+  });
+
   return (
-    <div className="table-responsive" style={{ maxHeight: '350px', overflowY: 'auto', border: '1px solid #dee2e6', borderRadius: '.25rem' }}>
+    <div className="table-responsive" style={{ border: '1px solid #dee2e6', borderRadius: '.25rem' }}>
       <table className="table table-striped table-hover table-sm mb-0">
         <thead className="thead-dark" style={{ position: 'sticky', top: 0, zIndex: 1 }}>
           <tr>
             {showNodeColumn && <th>Nodo</th>}
             <th>Fecha y Hora</th>
-            <th>CO₂ (ppm)</th>
-            <th>Temp (°C)</th>
-            <th>Humedad (%)</th>
+            <th>Tipo de Sensor</th>
+            <th>Valor</th>
           </tr>
         </thead>
         <tbody>
-          {medicionesAgrupadas.map((medicion, index) => (
+          {lecturasOrdenadas.map((lectura, index) => (
             <tr key={index}>
-              {showNodeColumn && <td>{medicion.id_nodo ? medicion.id_nodo.substring(0, 6) + '...' : 'N/A'}</td>}
-              <td>{formatearTiempo(medicion.timestamp)}</td>
-              <td>{medicion.co2}</td>
-              <td>{medicion.temperatura}</td>
-              <td>{medicion.humedad}</td>
+              {showNodeColumn && <td>{nodeIdToNameMap.get(lectura.id_nodo) || (lectura.id_nodo ? lectura.id_nodo.substring(0, 6) + '...' : 'N/A')}</td>}
+              <td>{formatearTiempo(lectura.timestamp)}</td>
+              <td>{lectura.tipo_sensor}</td>
+              <td>{lectura.valor}</td>
             </tr>
           ))}
         </tbody>
