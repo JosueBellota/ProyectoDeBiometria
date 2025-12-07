@@ -7,6 +7,16 @@
 //
 // --------------------------------------------------------------
 
+/**
+ * @file HolaMundoIBeacon.ino
+ * @brief Sketch principal para el nodo sensor de ambiente con BLE.
+ * @author Jordi Bataller i Mascarell
+ * @date 2019-07-07
+ *
+ * Este sketch inicializa un nodo sensor que mide datos ambientales (CO2, temperatura)
+ * y los transmite usando el protocolo iBeacon sobre Bluetooth LE.
+ */
+
 // https://learn.sparkfun.com/tutorials/nrf52840-development-with-arduino-and-circuitpython
 
 // https://stackoverflow.com/questions/29246805/can-an-ibeacon-have-a-data-payload
@@ -25,6 +35,10 @@
 
 // --------------------------------------------------------------
 // --------------------------------------------------------------
+/**
+ * @namespace Globales
+ * @brief Contiene los objetos globales para la aplicación.
+ */
 namespace Globales {
   
   LED elLED ( /* NUMERO DEL PIN LED = */ 7 );
@@ -53,6 +67,9 @@ namespace Globales {
 
 // --------------------------------------------------------------
 // --------------------------------------------------------------
+/**
+ * @brief Inicializa los componentes específicos de la placa.
+ */
 void inicializarPlaquita () {
 
   // de momento nada
@@ -62,6 +79,11 @@ void inicializarPlaquita () {
 // --------------------------------------------------------------
 // setup()
 // --------------------------------------------------------------
+/**
+ * @brief Función de configuración de Arduino. Se ejecuta una vez al inicio.
+ *
+ * Inicializa el puerto serie, la placa, el publicador BLE y el medidor de sensores.
+ */
 void setup() {
 
   Globales::elPuerto.esperarDisponible();
@@ -97,6 +119,9 @@ void setup() {
 
 // --------------------------------------------------------------
 // --------------------------------------------------------------
+/**
+ * @brief Función de utilidad para hacer parpadear el LED como feedback visual.
+ */
 inline void lucecitas() {
   using namespace Globales;
 
@@ -113,12 +138,22 @@ inline void lucecitas() {
 // --------------------------------------------------------------
 // loop ()
 // --------------------------------------------------------------
+/**
+ * @namespace Loop
+ * @brief Contiene variables locales para el bucle principal.
+ */
 namespace Loop {
   uint8_t cont = 0;
 };
 
 // ..............................................................
 // ..............................................................
+/**
+ * @brief Función principal del bucle de Arduino. Se ejecuta repetidamente.
+ *
+ * En cada iteración, incrementa un contador, da feedback visual con el LED,
+ * mide CO2 y temperatura, y publica los valores a través de BLE.
+ */
 void loop () {
 
   using namespace Loop;

@@ -11,7 +11,9 @@
 // devolviendo valores fijos. También se incluye un método para
 // iniciar el medidor (para inicializaciones posteriores al constructor).
 // ----------------------------------------------------------
-
+/**
+ * @brief Clase que representa un dispositivo de medición de parámetros ambientales.
+ */
 class Medidor {
 
 private:
@@ -19,6 +21,9 @@ private:
 
 public:
 
+  /**
+   * @brief Constructor de la clase Medidor.
+   */
   //------------------------------------------------------------------------------------
   // sin parámetros (de entrada)
   // -->
@@ -29,6 +34,9 @@ public:
   Medidor(  ) {
   } // ()
 
+  /**
+   * @brief Realiza inicializaciones adicionales del medidor si son necesarias.
+   */
   //------------------------------------------------------------------------------------
   // sin parámetros (de entrada)
   // -->
@@ -40,6 +48,10 @@ public:
 	// las cosas que no se puedan hacer en el constructor, if any
   } // ()
 
+  /**
+   * @brief Mide el nivel de CO2.
+   * @return Devuelve el nivel de CO2 medido (valor simulado).
+   */
   //------------------------------------------------------------------------------------
   // sin parámetros (de entrada)
   // -->
@@ -51,6 +63,10 @@ public:
 	return 1234;
   } // ()
 
+  /**
+   * @brief Mide la temperatura.
+   * @return Devuelve la temperatura medida (valor simulado).
+   */
   //------------------------------------------------------------------------------------
   // sin parámetros (de entrada)
   // -->
