@@ -25,6 +25,10 @@ class LogicaDeNegocio {
   #db;
   #admin;
 
+  // ## Constructor:
+  // -->  (no parameters)
+  // constructor() --> (inicializa la clase)
+  // ---> (no devuelve nada: void)
   constructor() {
     if (!admin.apps.length) {
       admin.initializeApp();
@@ -37,6 +41,10 @@ class LogicaDeNegocio {
   // =============================== MÉTODOS DE LECTURAS ===============================
   // ===================================================================================
 
+  // ## GuardarLecturas:
+  // -->  nombreNodo: string, propietarioId: string, lecturas: [ object ], latitud: R, longitud: R
+  // GuardarLecturas() --> (modifica la clase --> almacena lecturas en la base de datos)
+  // ---> (no devuelve nada: void)
   async GuardarLecturas(nombreNodo, propietarioId, lecturas, latitud, longitud) {
     try {
       const nodo = await this._obtenerNodoBasico(nombreNodo, propietarioId);
@@ -82,6 +90,10 @@ class LogicaDeNegocio {
     }
   }
 
+  // ## obtenerLecturas:
+  // -->  opciones: { string, string, R, R, R, string, string } (nombreNodo, propietarioId, latitud, longitud, radio, fechaInicio, fechaFin)
+  // obtenerLecturas() --> (consulta la clase <--)
+  // ---> lecturas: [ object ]
   async obtenerLecturas(opciones = {}) {
     try {
       // Validar que al menos un filtro esté presente
@@ -131,7 +143,7 @@ class LogicaDeNegocio {
             matchingDocs.push(doc.data());
           }
         }
-        
+
         // Filtro final en memoria para asegurar que los puntos están dentro del círculo exacto
         lecturas = matchingDocs.filter(doc => {
             const distanceInKm = geofire.distanceBetween([doc.latitud, doc.longitud], center);
@@ -144,7 +156,7 @@ class LogicaDeNegocio {
       if (!consultaRealizada) {
         throw new Error("La consulta de lecturas debe incluir un filtro por nodo o por ubicación.");
       }
-      
+
       // --- Aplicar filtros secundarios en memoria (fecha) ---
       if (opciones.fechaInicio) {
         const fechaInicio = new Date(opciones.fechaInicio);
@@ -155,7 +167,7 @@ class LogicaDeNegocio {
         fechaFin.setHours(23, 59, 59, 999);
         lecturas = lecturas.filter(l => l.timestamp.toDate() <= fechaFin);
       }
-      
+
       return lecturas.sort((a, b) => b.timestamp.toMillis() - a.timestamp.toMillis());
 
     } catch (error) {
@@ -164,6 +176,10 @@ class LogicaDeNegocio {
     }
   }
 
+  // ## eliminarLecturas:
+  // -->  nombreNodo: string, propietarioId: string, opciones: { string, string, string } (fechaInicio, fechaFin, tipoSensor)
+  // eliminarLecturas() --> (modifica la clase --> elimina lecturas de la base de datos)
+  // ---> cantidadEliminada: N
   async eliminarLecturas(nombreNodo, propietarioId, opciones) {
     try {
       if (!opciones || Object.keys(opciones).length === 0) {
@@ -208,6 +224,10 @@ class LogicaDeNegocio {
     }
   }
 
+  // ## _haversineDistance:
+  // -->  lat1: R, lon1: R, lat2: R, lon2: R
+  // _haversineDistance() --> (consulta la clase <--)
+  // ---> distancia: R
   _haversineDistance(lat1, lon1, lat2, lon2) {
     const R = 6371e3; // Radio de la Tierra en metros
     const φ1 = lat1 * Math.PI / 180;
@@ -227,6 +247,10 @@ class LogicaDeNegocio {
   // =============================== MÉTODOS DE USUARIOS ===============================
   // ===================================================================================
 
+  // ## crearUsuario:
+  // -->  nombre: string, correo: string, rol: string, password: string
+  // crearUsuario() --> (modifica la clase --> crea un nuevo usuario en la base de datos)
+  // ---> uid: string
   async crearUsuario(nombre, correo, rol, password) {
     try {
       const userRecord = await this.#admin.auth().createUser({
@@ -256,6 +280,10 @@ class LogicaDeNegocio {
     }
   }
 
+  // ## obtenerUsuario:
+  // -->  idUsuario: string
+  // obtenerUsuario() --> (consulta la clase <--)
+  // ---> usuarioData: { string, string, string, N, [ string ], R, object }
   async obtenerUsuario(idUsuario) {
     try {
       const doc = await this.#db.collection("usuarios").doc(idUsuario).get();
@@ -273,6 +301,10 @@ class LogicaDeNegocio {
     }
   }
 
+  // ## actualizarUsuario:
+  // -->  idUsuario: string, datos: { string, string, string, N, [ string ], R, object } (nombre, correo, rol, monedas, premios, distancia, etc.)
+  // actualizarUsuario() --> (modifica la clase --> actualiza los datos de un usuario existente)
+  // ---> exito: bool
   async actualizarUsuario(idUsuario, datos) {
     try {
       const usuarioRef = this.#db.collection("usuarios").doc(idUsuario);
@@ -303,6 +335,10 @@ class LogicaDeNegocio {
     }
   }
 
+  // ## obtenerUsuariosDesdeAdmin:
+  // -->  idAdmin: string
+  // obtenerUsuariosDesdeAdmin() --> (consulta la clase <--)
+  // ---> usuarios: [ { string, string, string, N, [ string ], R, object } ]
   async obtenerUsuariosDesdeAdmin(idAdmin) {
     try {
       const adminDoc = await this.#db.collection("usuarios").doc(idAdmin).get();
@@ -336,6 +372,10 @@ class LogicaDeNegocio {
     }
   }
 
+  // ## eliminarUsuario:
+  // -->  idUsuario: string
+  // eliminarUsuario() --> (modifica la clase --> elimina un usuario y todos sus nodos y lecturas)
+  // ---> (no devuelve nada: void)
   async eliminarUsuario(idUsuario) {
     try {
       const usuarioRef = this.#db.collection("usuarios").doc(idUsuario);
@@ -371,6 +411,10 @@ class LogicaDeNegocio {
   // ================================ MÉTODOS DE NODOS =================================
   // ===================================================================================
 
+  // ## _obtenerNodoBasico:
+  // -->  nombre: string, propietarioId: string
+  // _obtenerNodoBasico() --> (consulta la clase <--)
+  // ---> nodo: { string, string, string, object } (id, nombre, propietarioId, creadoEn)
   async _obtenerNodoBasico(nombre, propietarioId) {
     const snapshot = await this.#db
       .collection("nodos")
@@ -385,6 +429,10 @@ class LogicaDeNegocio {
     return { id: doc.id, ...doc.data() };
   }
 
+  // ## crearNodo:
+  // -->  nombre: string, propietarioId: string
+  // crearNodo() --> (modifica la clase --> crea un nuevo nodo en la base de datos)
+  // ---> exito: bool
   async crearNodo(nombre, propietarioId) {
     try {
       const existente = await this._obtenerNodoBasico(nombre, propietarioId);
@@ -409,6 +457,10 @@ class LogicaDeNegocio {
     }
   }
 
+  // ## obtenerNodo:
+  // -->  nombre: string, propietarioId: string
+  // obtenerNodo() --> (consulta la clase <--)
+  // ---> nodoConLecturas: { string, string, string, object, object, object } (id, nombre, propietarioId, creadoEn, sensores, tiempo)
   async obtenerNodo(nombre, propietarioId) {
     try {
       const nodoBasico = await this._obtenerNodoBasico(nombre, propietarioId);
@@ -444,6 +496,10 @@ class LogicaDeNegocio {
     }
   }
 
+  // ## obtenerNodos:
+  // -->  idPropietario: string
+  // obtenerNodos() --> (consulta la clase <--)
+  // ---> nodosConLecturas: [ { string, string, string, object, object, object } ]
   async obtenerNodos(idPropietario) {
     try {
       const nodosSnapshot = await this.#db
@@ -489,6 +545,10 @@ class LogicaDeNegocio {
     }
   }
 
+  // ## actualizarNodo:
+  // -->  nombreNodo: string, propietarioId: string, datos: { string } (datos a actualizar, excepto ubicacion, sensores, tiempo)
+  // actualizarNodo() --> (modifica la clase --> actualiza los datos de un nodo existente)
+  // ---> (no devuelve nada: void)
   async actualizarNodo(nombreNodo, propietarioId, datos) {
     try {
       const nodo = await this._obtenerNodoBasico(nombreNodo, propietarioId);
@@ -511,6 +571,10 @@ class LogicaDeNegocio {
     }
   }
 
+  // ## eliminarNodo:
+  // -->  nombreNodo: string, propietarioId: string
+  // eliminarNodo() --> (modifica la clase --> elimina un nodo y todas sus lecturas)
+  // ---> (no devuelve nada: void)
   async eliminarNodo(nombreNodo, propietarioId) {
     try {
       const nodo = await this._obtenerNodoBasico(nombreNodo, propietarioId);
@@ -543,6 +607,10 @@ class LogicaDeNegocio {
   // ============================ AUTENTICACIÓN Y OTROS ==============================
   // ===================================================================================
 
+  // ## generarTokenAutologin:
+  // -->  uid: string
+  // generarTokenAutologin() --> (consulta la clase <--)
+  // ---> link: string
   async generarTokenAutologin(uid) {
     try {
       const userRecord = await this.#admin.auth().getUser(uid);
@@ -564,6 +632,10 @@ class LogicaDeNegocio {
     }
   }
 
+  // ## enviarNotificacion:
+  // -->  mensaje: string, color: string, topic: string
+  // enviarNotificacion() --> (modifica la clase --> envía notificación a través de Firebase Messaging)
+  // ---> (no devuelve nada: void)
   async enviarNotificacion(mensaje, color, topic) {
     try {
       functions.logger.info("🔔 Enviando notificación:", { mensaje, color, topic });
@@ -586,6 +658,10 @@ class LogicaDeNegocio {
     }
   }
 
+  // ## revocarSesion:
+  // -->  uid: string
+  // revocarSesion() --> (modifica la clase --> revoca la sesión de un usuario)
+  // ---> exito: bool
   async revocarSesion(uid) {
     try {
       await this.#admin.auth().revokeRefreshTokens(uid);
