@@ -54,6 +54,7 @@
         </activity>
 
         <activity android:name=".WebNodoActivity" />
+        <activity android:name=".VerifyEmailActivity" android:exported="false" />
 
 
         <service

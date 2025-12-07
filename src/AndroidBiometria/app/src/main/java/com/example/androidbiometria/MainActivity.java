@@ -36,6 +36,7 @@
     import android.widget.Toast;
 
     import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
     import com.google.firebase.messaging.FirebaseMessaging;
 
     import android.content.Context;
@@ -107,6 +108,18 @@
         @Override
         protected void onCreate(Bundle savedInstanceState) {
             super.onCreate(savedInstanceState);
+
+            // --- Verificación de estado de autenticación ---
+            FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+            if (user == null) {
+                goToLogin();
+                return;
+            } else if (!user.isEmailVerified()) {
+                goToVerifyEmail();
+                return;
+            }
+            // --- Si todo está OK, continuar ---
+
             setContentView(R.layout.activity_main);
 
             // --- Toolbar Setup ---
@@ -1009,15 +1022,29 @@
         }
 
         private void forzarLogout() {
+            if (distanciaManager != null) {
+                distanciaManager.detener();
+            }
 
-            distanciaManager.detener();
-
+            String uid = FirebaseAuth.getInstance().getUid();
+            if (uid != null) {
+                FirebaseMessaging.getInstance().unsubscribeFromTopic(uid);
+            }
             FirebaseAuth.getInstance().signOut();
-            FirebaseMessaging.getInstance().unsubscribeFromTopic(
-                    FirebaseAuth.getInstance().getUid() == null ? "" : FirebaseAuth.getInstance().getUid()
-            );
+            goToLogin();
+        }
 
+        private void goToLogin() {
             Intent intent = new Intent(MainActivity.this, Login.class);
+            intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP |
+                    Intent.FLAG_ACTIVITY_NEW_TASK |
+                    Intent.FLAG_ACTIVITY_CLEAR_TASK);
+            startActivity(intent);
+            finish();
+        }
+
+        private void goToVerifyEmail() {
+            Intent intent = new Intent(MainActivity.this, VerifyEmailActivity.class);
             intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP |
                     Intent.FLAG_ACTIVITY_NEW_TASK |
                     Intent.FLAG_ACTIVITY_CLEAR_TASK);
