@@ -3,14 +3,17 @@
     android:padding="24dp"
     android:gravity="center"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:background="@color/colorBackground">
 
     <ImageView
         android:id="@+id/logo"
         android:layout_width="100dp"
         android:layout_height="100dp"
         android:src="@drawable/logo"
-        android:layout_marginBottom="24dp"/>
+        android:layout_marginBottom="24dp"
+        android:background="@drawable/rounded_logo_background"
+        android:padding="10dp"/>
 
     <TextView android:text="Registro de Usuario"
         android:textSize="22sp"

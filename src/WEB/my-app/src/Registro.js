@@ -95,6 +95,9 @@ function Registro() {
         }}
       >
 
+          <div style={{ textAlign: "center", marginBottom: "20px" }}>
+            <img src="/logo.svg" alt="Logo" style={{ height: "60px" }} />
+          </div>
           <h1 style={{ textAlign: "center", marginBottom: "8px" }}>
             Registro de Ciudadano
           </h1>
