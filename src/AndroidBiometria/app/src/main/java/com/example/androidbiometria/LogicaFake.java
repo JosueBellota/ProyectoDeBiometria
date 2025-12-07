@@ -186,12 +186,27 @@ public class LogicaFake {
     private void enviarMediciones(int co2, int temp) {
         try {
             JSONObject json = new JSONObject();
-            json.put("nombreNodo", nombreNodo);
-            json.put("propietarioId", idUsuario);
-            JSONObject medidas = new JSONObject();
-            medidas.put("co2", co2);
-            medidas.put("temperatura", temp);
-            json.put("medidas", medidas);
+            json.put("nombreNodo", this.nombreNodo);
+            json.put("propietarioId", this.idUsuario);
+
+            // TODO: Reemplazar con la latitud y longitud reales del dispositivo.
+            // Este es un valor de marcador de posición.
+            json.put("latitud", 0.0);
+            json.put("longitud", 0.0);
+
+            org.json.JSONArray lecturas = new org.json.JSONArray();
+
+            JSONObject co2Lectura = new JSONObject();
+            co2Lectura.put("tipo", "co2");
+            co2Lectura.put("valor", co2);
+            lecturas.put(co2Lectura);
+
+            JSONObject tempLectura = new JSONObject();
+            tempLectura.put("tipo", "temperatura");
+            tempLectura.put("valor", temp);
+            lecturas.put(tempLectura);
+
+            json.put("lecturas", lecturas);
 
             RequestBody body = RequestBody.create(
                     json.toString(),
@@ -199,23 +214,27 @@ public class LogicaFake {
             );
 
             Request request = new Request.Builder()
-                    .url(BASE_URL + "/mediciones")
+                    .url(BASE_URL + "/lecturas") // <-- Endpoint actualizado
                     .post(body)
                     .build();
 
             client.newCall(request).enqueue(new Callback() {
                 @Override
                 public void onFailure(Call call, IOException e) {
-                    Log.e(">>>>>>", "Error enviando:", e);
+                    Log.e(">>>>>>", "Error enviando lecturas:", e);
                 }
 
                 @Override
                 public void onResponse(Call call, Response response) throws IOException {
-                    Log.d(">>>>>>", "Servidor respondió: " + response.body().string());
+                    if (!response.isSuccessful()) {
+                        Log.e(">>>>>>", "Error del servidor al guardar lecturas: " + response.body().string());
+                    } else {
+                        Log.d(">>>>>>", "Servidor respondió a /lecturas: " + response.body().string());
+                    }
                 }
             });
         } catch (Exception e) {
-            Log.e(">>>>>>", "Error JSON:", e);
+            Log.e(">>>>>>", "Error creando JSON de lecturas:", e);
         }
     }
 

@@ -15,7 +15,9 @@
 // inicializa la emisora y ofrece métodos para anunciar datos
 // durante un tiempo determinado.
 // ----------------------------------------------------------
-
+/**
+ * @brief Clase que se encarga de publicar mediciones ambientales vía BLE.
+ */
 class Publicador {
 
 private:
@@ -38,6 +40,9 @@ public:
 
 public:
 
+  /**
+   * @brief Identificadores para los distintos tipos de mediciones.
+   */
   // Identificadores de los distintos tipos de mediciones
   enum MedicionesID  {
 	CO2 = 11,
@@ -45,6 +50,9 @@ public:
 	RUIDO = 13
   };
 
+  /**
+   * @brief Constructor de la clase Publicador.
+   */
   //------------------------------------------------------------------------------------
   // sin parámetros (de entrada)
   // -->
@@ -57,6 +65,9 @@ public:
 	// Pondremos un método para llamarlo desde el setup() más tarde
   } // ()
 
+  /**
+   * @brief Enciende la emisora BLE asociada al publicador.
+   */
   //------------------------------------------------------------------------------------
   // sin parámetros (de entrada)
   // -->
@@ -68,6 +79,12 @@ public:
 	(*this).laEmisora.encenderEmisora();
   } // ()
 
+  /**
+   * @brief Publica el valor de CO2 como un anuncio iBeacon.
+   * @param valorCO2 El valor de CO2 a publicar.
+   * @param contador Un contador para el paquete de datos.
+   * @param tiempoEspera El tiempo en milisegundos que dura el anuncio.
+   */
   //------------------------------------------------------------------------------------
   // valorCO2: numeros, contador: numeros, tiempoEspera: numeros (de entrada)
   // -->
@@ -93,6 +110,12 @@ public:
 	(*this).laEmisora.detenerAnuncio();
   } // ()
 
+  /**
+   * @brief Publica el valor de la temperatura como un anuncio iBeacon.
+   * @param valorTemperatura El valor de temperatura a publicar.
+   * @param contador Un contador para el paquete de datos.
+   * @param tiempoEspera El tiempo en milisegundos que dura el anuncio.
+   */
   //------------------------------------------------------------------------------------
   // valorTemperatura: numeros, contador: numeros, tiempoEspera: numeros (de entrada)
   // -->

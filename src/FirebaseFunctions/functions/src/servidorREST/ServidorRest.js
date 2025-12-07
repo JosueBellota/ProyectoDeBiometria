@@ -39,59 +39,28 @@ exports.ServidorREST = functions.https.onRequest((req, res) => {
       // ===================================================================================
 
       // -----------------------------------------------------------------------------------
-      // GET /buscar-lecturas
+      // GET /lecturas
       //
-      // Busca lecturas en toda la colección con filtros opcionales.
-      // Acepta: ?fechaInicio=...&fechaFin=...&latitud=...&longitud=...&radio=... (en metros)
+      // Endpoint unificado para obtener lecturas con filtros flexibles.
+      // Acepta query params:
+      // - Para nodo: nombreNodo, propietarioId
+      // - Para ubicación: latitud, longitud, radio
+      // - Para filtros de fecha: fechaInicio, fechaFin
       // -----------------------------------------------------------------------------------
-      if (req.method === "GET" && rutaLower === "/buscar-lecturas") {
+      if (req.method === "GET" && rutaLower.startsWith("/lecturas")) {
         const opciones = {};
-        // Filtros de fecha
-        if (req.query.fechaInicio) {
-            opciones.fechaInicio = new Date(req.query.fechaInicio);
-        }
-        if (req.query.fechaFin) {
-            opciones.fechaFin = new Date(req.query.fechaFin);
-        }
-        // Filtros de ubicación
-        if (req.query.latitud && req.query.longitud && req.query.radio) {
-            opciones.latitud = parseFloat(req.query.latitud);
-            opciones.longitud = parseFloat(req.query.longitud);
-            opciones.radio = parseFloat(req.query.radio);
-        }
-
-        const resultado = await logica.buscarLecturas(opciones);
-        return res.status(200).json(resultado);
-      }
-
-      // -----------------------------------------------------------------------------------
-      // GET /lecturas/:propietarioId/:nombreNodo
-      //
-      // Obtiene las lecturas de un nodo específico.
-      // Acepta filtros opcionales como query params: ?tipoSensor=co2&fechaInicio=...&fechaFin=...
-      // -----------------------------------------------------------------------------------
-      if (req.method === "GET" && rutaLower.startsWith("/lecturas/")) {
-        const partes = ruta.split("/");
-        const propietarioId = partes[2];
-        const nombreNodo = partes[3];
-
-        if (!propietarioId || !nombreNodo) {
-          return res.status(400).json({ error: "Faltan parámetros propietarioId y nombreNodo" });
-        }
 
         // Extraer filtros de los query parameters
-        const opciones = {};
-        if (req.query.tipoSensor) {
-            opciones.tipoSensor = req.query.tipoSensor;
-        }
-        if (req.query.fechaInicio) {
-            opciones.fechaInicio = new Date(req.query.fechaInicio);
-        }
-        if (req.query.fechaFin) {
-            opciones.fechaFin = new Date(req.query.fechaFin);
-        }
+        if (req.query.nombreNodo) opciones.nombreNodo = req.query.nombreNodo;
+        if (req.query.propietarioId) opciones.propietarioId = req.query.propietarioId;
+        if (req.query.latitud) opciones.latitud = parseFloat(req.query.latitud);
+        if (req.query.longitud) opciones.longitud = parseFloat(req.query.longitud);
+        if (req.query.radio) opciones.radio = parseFloat(req.query.radio);
+        if (req.query.fechaInicio) opciones.fechaInicio = new Date(req.query.fechaInicio);
+        if (req.query.fechaFin) opciones.fechaFin = new Date(req.query.fechaFin);
+        if (req.query.tipoSensor) opciones.tipoSensor = req.query.tipoSensor;
 
-        const resultado = await logica.obtenerLecturas(nombreNodo, propietarioId, opciones);
+        const resultado = await logica.obtenerLecturas(opciones);
         return res.status(200).json(resultado);
       }
 
@@ -215,6 +184,26 @@ exports.ServidorREST = functions.https.onRequest((req, res) => {
       // ================================= RUTAS DE NODOS ==================================
       // ===================================================================================
 
+      // -----------------------------------------------------------------------------------
+      // GET /nodos/ubicacion
+      //
+      // Busca nodos únicos en un área geográfica.
+      // Acepta: ?latitud=...&longitud=...&radio=... (en metros)
+      // -----------------------------------------------------------------------------------
+      if (req.method === "GET" && rutaLower === "/nodos/ubicacion") {
+        const opciones = {};
+        if (req.query.latitud && req.query.longitud && req.query.radio) {
+            opciones.latitud = parseFloat(req.query.latitud);
+            opciones.longitud = parseFloat(req.query.longitud);
+            opciones.radio = parseFloat(req.query.radio);
+        } else {
+          return res.status(400).json({ error: "Se requieren los parámetros: latitud, longitud y radio." });
+        }
+
+        const resultado = await logica.obtenerNodosUnicosPorUbicacion(opciones);
+        return res.status(200).json(resultado);
+      }
+      
       // -----------------------------------------------------------------------------------
       // GET /nodos/propietario/:idPropietario
       // -----------------------------------------------------------------------------------

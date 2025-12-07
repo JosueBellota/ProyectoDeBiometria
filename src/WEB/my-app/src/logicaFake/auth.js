@@ -310,9 +310,11 @@ export async function actualizarUsuario(idUsuario, nuevosDatos) {
 export function escucharSesion(callback) {
   return onAuthStateChanged(auth, async (user) => {
     if (user) {
+      await user.reload(); // <-- Añadido para refrescar el estado del usuario
       console.log("🟩 Sesión detectada en Firebase:");
       console.log("   UID:", user.uid);
       console.log("   Correo:", user.email);
+      console.log("   Verificado:", user.emailVerified); // Log para depuración
 
       try {
         // 🔹 Intentar obtener el usuario completo desde el backend
@@ -323,6 +325,7 @@ export function escucharSesion(callback) {
             ...usuarioCompleto,
             uid: user.uid,
             correo: usuarioCompleto.correo || user.email,
+            emailVerified: user.emailVerified, // <-- Añadido
           };
 
           localStorage.setItem("usuario", JSON.stringify(usuarioFinal));
@@ -332,13 +335,23 @@ export function escucharSesion(callback) {
         } else {
           // Si el backend falla, usar fallback "ciudadano"
           console.warn("⚠️ No se pudo obtener usuario desde backend, usando ciudadano por defecto");
-          const usuario = { uid: user.uid, correo: user.email, rol: "ciudadano" };
+            const usuario = {
+            uid: user.uid,
+            correo: user.email,
+            rol: "ciudadano",
+            emailVerified: user.emailVerified, // <-- Añadido
+          };
           localStorage.setItem("usuario", JSON.stringify(usuario));
           callback(usuario);
         }
       } catch (err) {
         console.error("❌ Error al obtener usuario desde backend:", err);
-        const usuario = { uid: user.uid, correo: user.email, rol: "ciudadano" };
+          const usuario = {
+            uid: user.uid,
+            correo: user.email,
+            rol: "ciudadano",
+            emailVerified: user.emailVerified, // <-- Añadido
+          };
         localStorage.setItem("usuario", JSON.stringify(usuario));
         callback(usuario);
       }

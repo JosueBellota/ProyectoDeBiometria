@@ -25,6 +25,9 @@
 // ----------------------------------------------------------
 //Transmitir un Beacon 
 // ----------------------------------------------------------
+/**
+ * @brief Clase que gestiona la transmisión de balizas (beacons) BLE.
+ */
 class EmisoraBLE {
 private:
 //Contructor. Inicializa nombre, fabricante y potencia del beacon
@@ -35,13 +38,25 @@ private:
 
 public:
 
+  /**
+   * @brief Definición del tipo para el callback de conexión establecida.
+   */
   // .........................................................
   // .........................................................
   using CallbackConexionEstablecida = void ( uint16_t connHandle );
+  /**
+   * @brief Definición del tipo para el callback de conexión terminada.
+   */
   using CallbackConexionTerminada = void ( uint16_t connHandle, uint8_t reason);
 
   // .........................................................
   // .........................................................
+  /**
+   * @brief Constructor de la clase EmisoraBLE.
+   * @param nombreEmisora_ El nombre de la emisora.
+   * @param fabricanteID_ El ID del fabricante.
+   * @param txPower_ La potencia de transmisión.
+   */
   EmisoraBLE( const char * nombreEmisora_, const uint16_t fabricanteID_,
 			  const int8_t txPower_ ) 
 	:
@@ -74,6 +89,9 @@ public:
   } // ()
   */
 	
+  /**
+   * @brief Inicializa la emisora BLE y detiene cualquier anuncio previo.
+   */
   // .........................................................
 	//Inicializa la emisora BLE y detiene cualquier anuncio previo
   // .........................................................
@@ -85,6 +103,11 @@ public:
 	 (*this).detenerAnuncio();
   } // ()
 
+  /**
+   * @brief Inicializa la emisora BLE e instala los callbacks de conexión.
+   * @param cbce Callback que se ejecuta cuando se establece una conexión.
+   * @param cbct Callback que se ejecuta cuando se termina una conexión.
+   */
   // .........................................................
 	//Inicializa la emisora BLE e instala callbacks de conexión
   // .........................................................
@@ -98,6 +121,9 @@ public:
 
   } // ()
 
+  /**
+   * @brief Detiene cualquier anuncio BLE que esté activo.
+   */
   // .........................................................
 	//Detiene cualquier anuncio BLE activo
   // .........................................................
@@ -110,6 +136,10 @@ public:
 
   }  // ()
   
+  /**
+   * @brief Comprueba si la emisora está actualmente anunciando.
+   * @return Verdadero si está anunciando, falso en caso contrario.
+   */
   // .........................................................
   // estaAnunciando() -> Boleano
 	//Devuelve true si la emisora está anunciando
@@ -118,6 +148,13 @@ public:
 	return Bluefruit.Advertising.isRunning();
   } // ()
 
+  /**
+   * @brief Configura y emite un anuncio iBeacon estándar.
+   * @param beaconUUID El UUID de 16 bytes para el iBeacon.
+   * @param major El valor "major" del iBeacon.
+   * @param minor El valor "minor" del iBeacon.
+   * @param rssi El valor RSSI de referencia.
+   */
   // .........................................................
 	//Configura y emite un anuncio iBEacon estándar con UUID, major, minor y potencia
   // .........................................................
@@ -214,6 +251,11 @@ public:
 
 	const uint8_t tamanyoCarga = strlen( carga );
   */
+	/**
+	 * @brief Emite un iBeacon con una carga de datos personalizada de 21 bytes.
+	 * @param carga Puntero a los datos de la carga.
+	 * @param tamanyoCarga El tamaño de la carga.
+	 */
 	// .........................................................
 	//Emite un i BEacon con una carga personalizada de 21 bytes
 	// .........................................................
@@ -277,6 +319,11 @@ public:
 	Globales::elPuerto.escribir( "emitiriBeacon libre  Bluefruit.Advertising.start( 0 );  \n");
   } // ()
 
+  /**
+   * @brief Añade un servicio BLE al anuncio.
+   * @param servicio El servicio a añadir.
+   * @return Verdadero si se añadió con éxito, falso en caso contrario.
+   */
   // .........................................................
 	//Añade un servicio BLE al anuncio
   // .........................................................
@@ -297,6 +344,11 @@ public:
   } // ()
 
   
+  /**
+   * @brief Añade un servicio con sus características.
+   * @param servicio El servicio a añadir.
+   * @return Verdadero si se añadió con éxito, falso en caso contrario.
+   */
   // .........................................................
 	//Añade un servicio y sus características
   // .........................................................
@@ -304,6 +356,14 @@ public:
 	return (*this).anyadirServicio( servicio );
   } // 
 
+  /**
+   * @brief Añade múltiples características a un servicio de forma recursiva.
+   * @tparam T Tipos de las características restantes.
+   * @param servicio El servicio al que añadir las características.
+   * @param caracteristica La primera característica a añadir.
+   * @param restoCaracteristicas El resto de características a añadir.
+   * @return El resultado de la llamada recursiva.
+   */
   // .........................................................
 	// .........................................................
 	//Añade múltiples características a un servicio repetidamente
@@ -319,6 +379,13 @@ public:
 	
   } // ()
 
+  /**
+   * @brief Añade características a un servicio y lo activa.
+   * @tparam T Tipos de las características a añadir.
+   * @param servicio El servicio a activar.
+   * @param restoCaracteristicas Las características a añadir.
+   * @return El resultado de añadir el servicio.
+   */
   // .........................................................
   template <typename ... T>
 	// .........................................................
@@ -336,6 +403,10 @@ public:
 	
   } // ()
 
+  /**
+   * @brief Instala un callback para cuando se establece una conexión.
+   * @param cb La función de callback.
+   */
   // .........................................................
 	//Instala callback para cuando se establece una conexión
   // .........................................................
@@ -343,6 +414,10 @@ public:
 	Bluefruit.Periph.setConnectCallback( cb );
   } // ()
 
+  /**
+   * @brief Instala un callback para cuando se termina una conexión.
+   * @param cb La función de callback.
+   */
   // .........................................................
 	//Instala callback para cuando se termina una conexión
   // .........................................................
@@ -350,6 +425,11 @@ public:
 	Bluefruit.Periph.setDisconnectCallback( cb );
   } // ()
 
+  /**
+   * @brief Obtiene un puntero a una conexión BLE a partir de su handle.
+   * @param connHandle El handle de la conexión.
+   * @return Un puntero al objeto BLEConnection.
+   */
   // .........................................................
 	//Devuelve un puntero a la conexión BLE por handle
   // .........................................................

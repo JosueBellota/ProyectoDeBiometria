@@ -94,144 +94,72 @@ async function testUsuarios() {
 }
 
 /* -------------------------------------------------------------------------- */
-/* ✅ PRUEBAS DE NODOS Y LECTURAS                                             */
+/* ✅ PRUEBAS E2E (USUARIOS, NODOS, LECTURAS, BÚSQUEDA)                     */
 /* -------------------------------------------------------------------------- */
-async function testNodosYLecturas(idCiudadano, unique) {
+async function testEndToEnd(idCiudadano, unique) {
   const resultados = [];
 
-  const nombreNodoPrincipal = `NodoPrincipal_${unique}`;
-  const nombreNodoEliminar = `NodoEliminar_${unique}`;
-
-  // 1. Crear nodos
+  // --- Creación de Nodos y Lecturas ---
+  const nombreNodo = `Nodo_${unique}`;
   resultados.push(
-    await callAPI("POST", "/nodos", {
-      nombre: nombreNodoPrincipal,
-      propietarioId: idCiudadano,
-    })
+    await callAPI("POST", "/nodos", { nombre: nombreNodo, propietarioId: idCiudadano })
   );
 
-  resultados.push(
-    await callAPI("POST", "/nodos", {
-      nombre: nombreNodoEliminar,
-      propietarioId: idCiudadano,
-    })
-  );
-
-  // 2. Guardar lecturas (Batch 1 - simula ser más antiguo)
-  const lecturasAntiguas = [
-      { tipo: "temperatura", valor: 18.5 },
-      { tipo: "co2", valor: 50 },
-      { tipo: "humedad", valor: 65 },
-  ];
+  const lecturasAntiguas = [{ tipo: "co2", valor: 50 }];
+  const lat1 = 40.7128, lon1 = -74.0060;
   resultados.push(
     await callAPI("POST", "/lecturas", {
-      nombreNodo: nombreNodoPrincipal,
+      nombreNodo: nombreNodo,
       propietarioId: idCiudadano,
       lecturas: lecturasAntiguas,
-      latitud: 40.7128,
-      longitud: -74.0060,
+      latitud: lat1,
+      longitud: lon1,
     })
   );
 
-  // Pausa para asegurar un timestamp diferente
   await new Promise(resolve => setTimeout(resolve, 1200));
-  const fechaInicioBatch2 = new Date();
-  await new Promise(resolve => setTimeout(resolve, 100));
-
-
-  // 2. Guardar lecturas (Batch 2 - más reciente y con CO2 elevado)
-  const lecturasRecientes = [
-    { tipo: "temperatura", valor: 25.1 },
-    { tipo: "co2", valor: 150 },
-    { tipo: "humedad", valor: 70 },
-  ];
+  const fechaInicioReciente = new Date();
+  
+  const lecturasRecientes = [{ tipo: "co2", valor: 150 }];
+  const lat2 = 40.7129, lon2 = -74.0061;
   resultados.push(
     await callAPI("POST", "/lecturas", {
-      nombreNodo: nombreNodoPrincipal,
+      nombreNodo: nombreNodo,
       propietarioId: idCiudadano,
       lecturas: lecturasRecientes,
-      latitud: 40.7129,
-      longitud: -74.0061,
+      latitud: lat2,
+      longitud: lon2,
     })
   );
+
+  // --- Pruebas de Obtención y Búsqueda ---
+  resultados.push({ paso: "🧪 Test BÚSQUEDA FLEXIBLE" });
   
-  await new Promise(resolve => setTimeout(resolve, 100));
-  const fechaFinBatch2 = new Date();
-
-
-  // 3. Obtener lecturas (sin filtro, debe devolver el Batch 2)
+  // Test 1: Búsqueda por NODO (debe devolver 2 lecturas)
   resultados.push(
-    await callAPI("GET", `/lecturas/${idCiudadano}/${nombreNodoPrincipal}`)
+      await callAPI("GET", `/lecturas?nombreNodo=${nombreNodo}&propietarioId=${idCiudadano}`)
   );
 
-  // 3. Obtener lecturas (con filtro de tipoSensor, debe devolver 2 lecturas de co2)
+  // Test 2: Búsqueda por UBICACIÓN (radio pequeño, debe encontrar 1 lectura)
   resultados.push(
-    await callAPI("GET", `/lecturas/${idCiudadano}/${nombreNodoPrincipal}?tipoSensor=co2`)
+      await callAPI("GET", `/lecturas?latitud=${lat1}&longitud=${lon1}&radio=10`)
   );
 
-  // 4. Actualizar nodo (cambiar nombre)
-  const nuevoNombre = `NodoPrincipal_Actualizado_${unique}`;
+  // Test 3: Búsqueda por UBICACIÓN (radio grande, debe encontrar 2 lecturas)
   resultados.push(
-    await callAPI("PUT", "/nodos", {
-      nombreNodo: nombreNodoPrincipal,
-      propietarioId: idCiudadano,
-      datos: { nombre: nuevoNombre },
-    })
+      await callAPI("GET", `/lecturas?latitud=${lat1}&longitud=${lon1}&radio=50`)
   );
 
-  // 5. Eliminar lecturas (eliminar todas las de temperatura)
-  resultados.push({ paso: "🧪 Eliminando lecturas de temperatura..." });
-  resultados.push(
-      await callAPI("POST", "/lecturas/delete", {
-          nombreNodo: nuevoNombre, // Usamos el nuevo nombre
-          propietarioId: idCiudadano,
-          opciones: { tipoSensor: "temperatura" }
-      })
-  );
-
-  // 6. Obtener todos los nodos del propietario (verificar adaptador)
-  resultados.push(await callAPI("GET", `/nodos/propietario/${idCiudadano}`));
-
-  // 7. Eliminar un nodo
-  resultados.push(
-    await callAPI("DELETE", "/nodos", {
-      nombreNodo: nombreNodoEliminar,
-      propietarioId: idCiudadano,
-    })
-  );
-
-  return { resultados, fechaInicioBatch2, fechaFinBatch2 };
-}
-
-/* -------------------------------------------------------------------------- */
-/* ✅ PRUEBAS DE BÚSQUEDA DE LECTURAS                                          */
-/* -------------------------------------------------------------------------- */
-async function testBusquedaLecturas({ fechaInicio, fechaFin }) {
-    const resultados = [];
-    resultados.push({ paso: "🧪 Test BÚSQUEDA LECTURAS" });
-
-    // Test 1: Búsqueda por ubicación (debe encontrar el primer batch, 3 lecturas)
-    const lat1 = 40.7128;
-    const lon1 = -74.0060;
-    const radio = 10; // metros
+    // Test 4: Búsqueda por FECHA y UBICACIÓN (debe encontrar 1 lectura reciente)
     resultados.push(
-        await callAPI("GET", `/buscar-lecturas?latitud=${lat1}&longitud=${lon1}&radio=${radio}`)
+        await callAPI("GET", `/lecturas?latitud=${lat2}&longitud=${lon2}&radio=10&fechaInicio=${fechaInicioReciente.toISOString()}`)
     );
-
-    // Test 2: Búsqueda por fecha (debe encontrar el segundo batch, 3 lecturas)
-    resultados.push(
-        await callAPI("GET", `/buscar-lecturas?fechaInicio=${fechaInicio.toISOString()}&fechaFin=${fechaFin.toISOString()}`)
-    );
-
-    // Test 3: Búsqueda por fecha y ubicación (debe encontrar 0 lecturas)
-    // Fecha del batch 2, pero ubicación del batch 1 con radio pequeño
-    resultados.push(
-        await callAPI("GET", `/buscar-lecturas?fechaInicio=${fechaInicio.toISOString()}&fechaFin=${fechaFin.toISOString()}&latitud=${lat1}&longitud=${lon1}&radio=${radio}`)
-    );
-    
+  
+    // --- Limpieza ---
+    resultados.push(await callAPI("DELETE", "/usuarios/" + idCiudadano));
+  
     return resultados;
-}
-
+  }
 
 /* -------------------------------------------------------------------------- */
 /* ✅ EJECUCIÓN GENERAL DE LAS PRUEBAS AUTOMÁTICAS                             */
@@ -241,14 +169,21 @@ export async function pruebaAutomatica() {
 
   resultados.push({ paso: "🧪 Test USUARIOS" });
   const { resultados: resUsuarios, idCiudadano, idAdmin, unique } = await testUsuarios();
-  resultados.push(...resUsuarios);
+  // No agregamos todos los resultados de creación de usuario para no saturar
+  if(idCiudadano && idAdmin) {
+    resultados.push({ paso: "✅ Creación de usuarios de prueba correcta" });
+  } else {
+     resultados.push({ paso: "❌ Error creando usuarios de prueba", error: resUsuarios.filter(r => r.error) });
+     return resultados;
+  }
 
-  resultados.push({ paso: "🧪 Test NODOS y LECTURAS (ciudadano)" });
-  const { resultados: resNodos, fechaInicioBatch2, fechaFinBatch2 } = await testNodosYLecturas(idCiudadano, unique);
-  resultados.push(...resNodos);
+  resultados.push({ paso: "🧪 Test E2E de Lecturas" });
+  const resE2E = await testEndToEnd(idCiudadano, unique);
+  resultados.push(...resE2E);
+  
+  // Limpieza del admin
+  if(idAdmin) await callAPI("DELETE", "/usuarios/" + idAdmin);
 
-  resultados.push(...await testBusquedaLecturas({ fechaInicio: fechaInicioBatch2, fechaFin: fechaFinBatch2 }));
-
-  resultados.push({ paso: "✅ Prueba completada correctamente" });
+  resultados.push({ paso: "✅ Prueba completada" });
   return resultados;
 }

@@ -13,6 +13,40 @@ const API_BASE = "https://us-central1-proyectodebiometria.cloudfunctions.net/Ser
 // 🚀 Funciones de obtención de datos
 // --------------------------------------------------------------------------
 
+export async function obtenerLecturas(opciones) {
+  const params = new URLSearchParams();
+  
+  if (opciones.latitud) params.append("latitud", opciones.latitud);
+  if (opciones.longitud) params.append("longitud", opciones.longitud);
+  if (opciones.radio) params.append("radio", opciones.radio);
+  if (opciones.fechaInicio) params.append("fechaInicio", opciones.fechaInicio.toISOString());
+  if (opciones.fechaFin) params.append("fechaFin", opciones.fechaFin.toISOString());
+  if (opciones.nombreNodo) params.append("nombreNodo", opciones.nombreNodo);
+  if (opciones.propietarioId) params.append("propietarioId", opciones.propietarioId);
+
+  try {
+    const res = await fetch(`${API_BASE}/lecturas?${params.toString()}`);
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Error al obtener lecturas");
+    return data;
+  } catch (error) {
+    console.error("❌ Error en obtenerLecturas:", error);
+    return { error: error.message };
+  }
+}
+
+export async function obtenerNodosPorUbicacion(lat, lon, radio) {
+  try {
+    const res = await fetch(`${API_BASE}/nodos/ubicacion?latitud=${lat}&longitud=${lon}&radio=${radio}`);
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Error al obtener nodos por ubicación");
+    return data;
+  } catch (error) {
+    console.error("❌ Error en obtenerNodosPorUbicacion:", error);
+    return { error: error.message };
+  }
+}
+
 // ----------------------------------------------------------
 // obtenerTodosLosUsuarios()
 //
@@ -51,7 +85,7 @@ export async function obtenerTodosLosUsuarios() {
 //   - Array<Object>: Lista de objetos de nodo.
 //   - { error: string }: Objeto con mensaje de error si falla la operación.
 // ----------------------------------------------------------
-async function obtenerNodosPorPropietario(idUsuario) {
+export async function obtenerNodosPorPropietario(idUsuario) {
   try {
     const res = await fetch(`${API_BASE}/nodos/propietario/${idUsuario}`);
     const data = await res.json();

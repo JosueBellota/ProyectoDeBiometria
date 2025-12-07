@@ -18,12 +18,17 @@
 
 const admin = require("firebase-admin");
 const functions = require("firebase-functions");
+const geofire = require("geofire-common");
 
 class LogicaDeNegocio {
 
   #db;
   #admin;
 
+  // ## Constructor:
+  // -->  (no parameters)
+  // constructor() --> (inicializa la clase)
+  // ---> (no devuelve nada: void)
   constructor() {
     if (!admin.apps.length) {
       admin.initializeApp();
@@ -36,6 +41,10 @@ class LogicaDeNegocio {
   // =============================== MÉTODOS DE LECTURAS ===============================
   // ===================================================================================
 
+  // ## GuardarLecturas:
+  // -->  nombreNodo: string, propietarioId: string, lecturas: [ object ], latitud: R, longitud: R
+  // GuardarLecturas() --> (modifica la clase --> almacena lecturas en la base de datos)
+  // ---> (no devuelve nada: void)
   async GuardarLecturas(nombreNodo, propietarioId, lecturas, latitud, longitud) {
     try {
       const nodo = await this._obtenerNodoBasico(nombreNodo, propietarioId);
@@ -47,6 +56,9 @@ class LogicaDeNegocio {
       const timestamp = this.#admin.firestore.Timestamp.now();
       let co2elevado = null;
 
+      // Calcula el geohash para la ubicación de este lote de lecturas
+      const hash = geofire.geohashForLocation([latitud, longitud]);
+
       lecturas.forEach((lectura) => {
         const lecturaRef = this.#db.collection("lecturas").doc();
         batch.set(lecturaRef, {
@@ -56,6 +68,7 @@ class LogicaDeNegocio {
           latitud: latitud,
           longitud: longitud,
           timestamp: timestamp,
+          geohash: hash, // Añadimos el geohash al documento
         });
 
         if (lectura.tipo === "co2" && lectura.valor >= 100) {
@@ -64,7 +77,7 @@ class LogicaDeNegocio {
       });
 
       await batch.commit();
-      functions.logger.info(`✅ ${lecturas.length} lecturas guardadas para el nodo "${nombreNodo}"`);
+      functions.logger.info(`✅ ${lecturas.length} lecturas guardadas para el nodo "${nombreNodo}" con geohash ${hash}`);
 
       if (co2elevado !== null) {
         const mensaje = `⚠️ CO₂ elevado en nodo "${nombreNodo}". Valor: ${co2elevado}`;
@@ -77,45 +90,85 @@ class LogicaDeNegocio {
     }
   }
 
-  async obtenerLecturas(nombreNodo, propietarioId, opciones = {}) {
+  // ## obtenerLecturas:
+  // -->  opciones: { string, string, R, R, R, string, string } (nombreNodo, propietarioId, latitud, longitud, radio, fechaInicio, fechaFin)
+  // obtenerLecturas() --> (consulta la clase <--)
+  // ---> lecturas: [ object ]
+  async obtenerLecturas(opciones = {}) {
     try {
-      const nodo = await this._obtenerNodoBasico(nombreNodo, propietarioId);
-      if (!nodo) {
-        // Devolvemos un array vacío si el nodo no existe para ser consistentes.
-        return [];
+      // Validar que al menos un filtro esté presente
+      if (Object.keys(opciones).length === 0) {
+        throw new Error("Se requiere al menos un filtro para obtener lecturas.");
+      }
+      // Validar que nombreNodo y propietarioId vengan juntos
+      if ((opciones.nombreNodo && !opciones.propietarioId) || (!opciones.nombreNodo && opciones.propietarioId)) {
+        throw new Error("Si se proporciona nombreNodo o propietarioId, el otro también es requerido.");
       }
 
-      // 1. Obtener todas las lecturas solo por id_nodo para evitar la necesidad de índices compuestos.
-      const query = this.#db.collection("lecturas").where("id_nodo", "==", nodo.id);
-      
-      const snapshot = await query.get();
-      let lecturas = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      let lecturas = [];
+      let consultaRealizada = false;
 
-      // 2. Aplicar los filtros en la memoria del servidor.
-      if (opciones.tipoSensor) {
-        lecturas = lecturas.filter(l => l.tipo_sensor === opciones.tipoSensor);
+      // Estrategia 1: Búsqueda por Nodo (eficiente)
+      if (opciones.nombreNodo && opciones.propietarioId) {
+        const nodo = await this._obtenerNodoBasico(opciones.nombreNodo, opciones.propietarioId);
+        if (!nodo) return [];
+
+        const snapshot = await this.#db.collection("lecturas").where("id_nodo", "==", nodo.id).get();
+        lecturas = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        consultaRealizada = true;
       }
+      // Estrategia 2: Búsqueda por Ubicación con Geohash (eficiente)
+      else if (opciones.latitud !== undefined && opciones.longitud !== undefined && opciones.radio !== undefined) {
+        const center = [opciones.latitud, opciones.longitud];
+        const radiusInM = opciones.radio;
+
+        // Obtener los límites de la consulta de geohash
+        const bounds = geofire.geohashQueryBounds(center, radiusInM);
+        const promises = [];
+
+        // Realizar una consulta por cada límite
+        for (const b of bounds) {
+          const q = this.#db.collection("lecturas")
+            .orderBy("geohash")
+            .startAt(b[0])
+            .endAt(b[1]);
+          promises.push(q.get());
+        }
+
+        // Esperar a que todas las consultas se completen
+        const snapshots = await Promise.all(promises);
+        const matchingDocs = [];
+        for (const snap of snapshots) {
+          for (const doc of snap.docs) {
+            matchingDocs.push(doc.data());
+          }
+        }
+
+        // Filtro final en memoria para asegurar que los puntos están dentro del círculo exacto
+        lecturas = matchingDocs.filter(doc => {
+            const distanceInKm = geofire.distanceBetween([doc.latitud, doc.longitud], center);
+            const distanceInM = distanceInKm * 1000;
+            return distanceInM <= radiusInM;
+        });
+        consultaRealizada = true;
+      }
+
+      if (!consultaRealizada) {
+        throw new Error("La consulta de lecturas debe incluir un filtro por nodo o por ubicación.");
+      }
+
+      // --- Aplicar filtros secundarios en memoria (fecha) ---
       if (opciones.fechaInicio) {
-        lecturas = lecturas.filter(l => l.timestamp.toDate() >= opciones.fechaInicio);
+        const fechaInicio = new Date(opciones.fechaInicio);
+        lecturas = lecturas.filter(l => l.timestamp.toDate() >= fechaInicio);
       }
       if (opciones.fechaFin) {
-        lecturas = lecturas.filter(l => l.timestamp.toDate() <= opciones.fechaFin);
+        const fechaFin = new Date(opciones.fechaFin);
+        fechaFin.setHours(23, 59, 59, 999);
+        lecturas = lecturas.filter(l => l.timestamp.toDate() <= fechaFin);
       }
 
-      // Si no hay opciones, replicar la lógica original de "obtener el último lote" en memoria.
-      if (Object.keys(opciones).length === 0) {
-        if (lecturas.length === 0) {
-            return [];
-        }
-        // Ordenar para encontrar el más reciente.
-        lecturas.sort((a, b) => b.timestamp.toMillis() - a.timestamp.toMillis());
-        const ultimoTimestamp = lecturas[0].timestamp;
-        // Filtrar para quedarse solo con las lecturas de ese timestamp.
-        lecturas = lecturas.filter(l => l.timestamp.isEqual(ultimoTimestamp));
-      }
-
-      functions.logger.info(`✅ Encontradas ${lecturas.length} lecturas para el nodo "${nombreNodo}"`);
-      return lecturas;
+      return lecturas.sort((a, b) => b.timestamp.toMillis() - a.timestamp.toMillis());
 
     } catch (error) {
       functions.logger.error("❌ Error en obtenerLecturas:", error);
@@ -123,6 +176,10 @@ class LogicaDeNegocio {
     }
   }
 
+  // ## eliminarLecturas:
+  // -->  nombreNodo: string, propietarioId: string, opciones: { string, string, string } (fechaInicio, fechaFin, tipoSensor)
+  // eliminarLecturas() --> (modifica la clase --> elimina lecturas de la base de datos)
+  // ---> cantidadEliminada: N
   async eliminarLecturas(nombreNodo, propietarioId, opciones) {
     try {
       if (!opciones || Object.keys(opciones).length === 0) {
@@ -167,6 +224,10 @@ class LogicaDeNegocio {
     }
   }
 
+  // ## _haversineDistance:
+  // -->  lat1: R, lon1: R, lat2: R, lon2: R
+  // _haversineDistance() --> (consulta la clase <--)
+  // ---> distancia: R
   _haversineDistance(lat1, lon1, lat2, lon2) {
     const R = 6371e3; // Radio de la Tierra en metros
     const φ1 = lat1 * Math.PI / 180;
@@ -182,47 +243,14 @@ class LogicaDeNegocio {
     return R * c; // en metros
   }
 
-  async buscarLecturas(opciones = {}) {
-    try {
-      // Advertencia: Obtener todos los documentos puede ser ineficiente.
-      const snapshot = await this.#db.collection("lecturas").get();
-      let lecturas = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-
-      // Filtrado por fecha
-      if (opciones.fechaInicio) {
-        lecturas = lecturas.filter(l => l.timestamp.toDate() >= opciones.fechaInicio);
-      }
-      if (opciones.fechaFin) {
-        lecturas = lecturas.filter(l => l.timestamp.toDate() <= opciones.fechaFin);
-      }
-
-      // Filtrado por ubicación y radio
-      if (opciones.latitud && opciones.longitud && opciones.radio) {
-        lecturas = lecturas.filter(l => {
-          if (l.latitud === undefined || l.longitud === undefined) {
-            return false;
-          }
-          const distancia = this._haversineDistance(
-            opciones.latitud, opciones.longitud,
-            l.latitud, l.longitud
-          );
-          return distancia <= opciones.radio;
-        });
-      }
-
-      functions.logger.info(`✅ Búsqueda completada, encontradas ${lecturas.length} lecturas.`);
-      return lecturas;
-
-    } catch (error) {
-      functions.logger.error("❌ Error en buscarLecturas:", error);
-      throw error;
-    }
-  }
-
   // ===================================================================================
   // =============================== MÉTODOS DE USUARIOS ===============================
   // ===================================================================================
 
+  // ## crearUsuario:
+  // -->  nombre: string, correo: string, rol: string, password: string
+  // crearUsuario() --> (modifica la clase --> crea un nuevo usuario en la base de datos)
+  // ---> uid: string
   async crearUsuario(nombre, correo, rol, password) {
     try {
       const userRecord = await this.#admin.auth().createUser({
@@ -252,6 +280,10 @@ class LogicaDeNegocio {
     }
   }
 
+  // ## obtenerUsuario:
+  // -->  idUsuario: string
+  // obtenerUsuario() --> (consulta la clase <--)
+  // ---> usuarioData: { string, string, string, N, [ string ], R, object }
   async obtenerUsuario(idUsuario) {
     try {
       const doc = await this.#db.collection("usuarios").doc(idUsuario).get();
@@ -269,6 +301,10 @@ class LogicaDeNegocio {
     }
   }
 
+  // ## actualizarUsuario:
+  // -->  idUsuario: string, datos: { string, string, string, N, [ string ], R, object } (nombre, correo, rol, monedas, premios, distancia, etc.)
+  // actualizarUsuario() --> (modifica la clase --> actualiza los datos de un usuario existente)
+  // ---> exito: bool
   async actualizarUsuario(idUsuario, datos) {
     try {
       const usuarioRef = this.#db.collection("usuarios").doc(idUsuario);
@@ -299,6 +335,10 @@ class LogicaDeNegocio {
     }
   }
 
+  // ## obtenerUsuariosDesdeAdmin:
+  // -->  idAdmin: string
+  // obtenerUsuariosDesdeAdmin() --> (consulta la clase <--)
+  // ---> usuarios: [ { string, string, string, N, [ string ], R, object } ]
   async obtenerUsuariosDesdeAdmin(idAdmin) {
     try {
       const adminDoc = await this.#db.collection("usuarios").doc(idAdmin).get();
@@ -332,6 +372,10 @@ class LogicaDeNegocio {
     }
   }
 
+  // ## eliminarUsuario:
+  // -->  idUsuario: string
+  // eliminarUsuario() --> (modifica la clase --> elimina un usuario y todos sus nodos y lecturas)
+  // ---> (no devuelve nada: void)
   async eliminarUsuario(idUsuario) {
     try {
       const usuarioRef = this.#db.collection("usuarios").doc(idUsuario);
@@ -367,6 +411,10 @@ class LogicaDeNegocio {
   // ================================ MÉTODOS DE NODOS =================================
   // ===================================================================================
 
+  // ## _obtenerNodoBasico:
+  // -->  nombre: string, propietarioId: string
+  // _obtenerNodoBasico() --> (consulta la clase <--)
+  // ---> nodo: { string, string, string, object } (id, nombre, propietarioId, creadoEn)
   async _obtenerNodoBasico(nombre, propietarioId) {
     const snapshot = await this.#db
       .collection("nodos")
@@ -381,6 +429,10 @@ class LogicaDeNegocio {
     return { id: doc.id, ...doc.data() };
   }
 
+  // ## crearNodo:
+  // -->  nombre: string, propietarioId: string
+  // crearNodo() --> (modifica la clase --> crea un nuevo nodo en la base de datos)
+  // ---> exito: bool
   async crearNodo(nombre, propietarioId) {
     try {
       const existente = await this._obtenerNodoBasico(nombre, propietarioId);
@@ -405,13 +457,22 @@ class LogicaDeNegocio {
     }
   }
 
+  // ## obtenerNodo:
+  // -->  nombre: string, propietarioId: string
+  // obtenerNodo() --> (consulta la clase <--)
+  // ---> nodoConLecturas: { string, string, string, object, object, object } (id, nombre, propietarioId, creadoEn, sensores, tiempo)
   async obtenerNodo(nombre, propietarioId) {
     try {
       const nodoBasico = await this._obtenerNodoBasico(nombre, propietarioId);
 
       if (!nodoBasico) return null;
 
-      const lecturasRecientes = await this.obtenerLecturas(nombre, propietarioId);
+      // Llama a la nueva versión de obtenerLecturas sin filtros de fecha/ubicación
+      // para obtener solo el último lote de mediciones, como hacía la lógica original.
+      const lecturasRecientes = await this.obtenerLecturas({ 
+        nombreNodo: nombre, 
+        propietarioId: propietarioId 
+      });
 
       const sensores = {};
       let tiempo = null;
@@ -435,6 +496,10 @@ class LogicaDeNegocio {
     }
   }
 
+  // ## obtenerNodos:
+  // -->  idPropietario: string
+  // obtenerNodos() --> (consulta la clase <--)
+  // ---> nodosConLecturas: [ { string, string, string, object, object, object } ]
   async obtenerNodos(idPropietario) {
     try {
       const nodosSnapshot = await this.#db
@@ -453,7 +518,10 @@ class LogicaDeNegocio {
 
       const nodosConLecturas = await Promise.all(
         nodos.map(async (nodo) => {
-          const lecturasRecientes = await this.obtenerLecturas(nodo.nombre, nodo.propietarioId);
+          const lecturasRecientes = await this.obtenerLecturas({ 
+            nombreNodo: nodo.nombre, 
+            propietarioId: nodo.propietarioId 
+          });
           const sensores = {};
           let tiempo = null;
 
@@ -477,6 +545,10 @@ class LogicaDeNegocio {
     }
   }
 
+  // ## actualizarNodo:
+  // -->  nombreNodo: string, propietarioId: string, datos: { string } (datos a actualizar, excepto ubicacion, sensores, tiempo)
+  // actualizarNodo() --> (modifica la clase --> actualiza los datos de un nodo existente)
+  // ---> (no devuelve nada: void)
   async actualizarNodo(nombreNodo, propietarioId, datos) {
     try {
       const nodo = await this._obtenerNodoBasico(nombreNodo, propietarioId);
@@ -499,6 +571,10 @@ class LogicaDeNegocio {
     }
   }
 
+  // ## eliminarNodo:
+  // -->  nombreNodo: string, propietarioId: string
+  // eliminarNodo() --> (modifica la clase --> elimina un nodo y todas sus lecturas)
+  // ---> (no devuelve nada: void)
   async eliminarNodo(nombreNodo, propietarioId) {
     try {
       const nodo = await this._obtenerNodoBasico(nombreNodo, propietarioId);
@@ -531,6 +607,10 @@ class LogicaDeNegocio {
   // ============================ AUTENTICACIÓN Y OTROS ==============================
   // ===================================================================================
 
+  // ## generarTokenAutologin:
+  // -->  uid: string
+  // generarTokenAutologin() --> (consulta la clase <--)
+  // ---> link: string
   async generarTokenAutologin(uid) {
     try {
       const userRecord = await this.#admin.auth().getUser(uid);
@@ -552,6 +632,10 @@ class LogicaDeNegocio {
     }
   }
 
+  // ## enviarNotificacion:
+  // -->  mensaje: string, color: string, topic: string
+  // enviarNotificacion() --> (modifica la clase --> envía notificación a través de Firebase Messaging)
+  // ---> (no devuelve nada: void)
   async enviarNotificacion(mensaje, color, topic) {
     try {
       functions.logger.info("🔔 Enviando notificación:", { mensaje, color, topic });
@@ -574,6 +658,10 @@ class LogicaDeNegocio {
     }
   }
 
+  // ## revocarSesion:
+  // -->  uid: string
+  // revocarSesion() --> (modifica la clase --> revoca la sesión de un usuario)
+  // ---> exito: bool
   async revocarSesion(uid) {
     try {
       await this.#admin.auth().revokeRefreshTokens(uid);

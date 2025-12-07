@@ -27,6 +27,7 @@ import InformacionCiudadano from "./ciudadano/Informacion";
 import Tienda from "./ciudadano/Tienda";
 import PerfilCiudadano from "./ciudadano/Perfil";
 import { escucharSesion } from "./logicaFake/auth";
+import VerificarEmail from "./VerificarEmail"; // <-- Importado
 
 // --------------------------------------------------------------------------
 // ✅ Componente Principal: App
@@ -63,6 +64,11 @@ function App() {
 
   // Muestra un mensaje de carga mientras se verifica la sesión.
   if (cargando) return <p>Cargando sesión...</p>;
+
+  // Si el usuario existe pero no ha verificado su email, muestra la pantalla de verificación
+  if (usuario && !usuario.emailVerified) {
+    return <VerificarEmail usuario={usuario} />;
+  }
 
   // -----------------------------------------------------------------------------------
   // 🚀 Sistema de Enrutamiento (React Router)

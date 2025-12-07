@@ -15,11 +15,17 @@
 // esperar a que esté disponible y escribir mensajes genéricos
 // en él. Está pensada para facilitar el uso de Serial.
 // ----------------------------------------------------------
-
+/**
+ * @brief Clase envoltorio (wrapper) para facilitar la comunicación serie.
+ */
 class PuertoSerie  {
 
 public:
 
+  /**
+   * @brief Constructor que inicializa el puerto serie a una velocidad determinada.
+   * @param baudios La velocidad de comunicación (ej. 9600, 115200).
+   */
   //------------------------------------------------------------------------------------
   // baudios: numeros (de entrada)
   // -->
@@ -32,6 +38,9 @@ public:
 	// mejor no poner esto aquí: while ( !Serial ) delay(10);   
   } // ()
 
+  /**
+   * @brief Espera hasta que el puerto serie esté disponible para la comunicación.
+   */
   //------------------------------------------------------------------------------------
   // sin parámetros (de entrada)
   // -->
@@ -45,6 +54,11 @@ public:
 	}
   } // ()
 
+  /**
+   * @brief Escribe un mensaje en el puerto serie.
+   * @tparam T El tipo del mensaje a escribir.
+   * @param mensaje El mensaje a enviar.
+   */
   //------------------------------------------------------------------------------------
   // mensaje: texto o numeros (genérico, gracias a template) (de entrada)
   // -->
