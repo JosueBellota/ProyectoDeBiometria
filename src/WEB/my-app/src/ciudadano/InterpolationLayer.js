@@ -3,7 +3,7 @@ import { useMap } from 'react-leaflet';
 import L from 'leaflet';
 import * as turf from '@turf/turf';
 
-const InterpolationLayer = ({ lecturas }) => {
+const InterpolationLayer = ({ lecturas, colorScale: propColorScale }) => {
   const map = useMap();
 
   useEffect(() => {
@@ -42,11 +42,11 @@ const InterpolationLayer = ({ lecturas }) => {
       point.properties.value = interpolatedValue;
     });
 
-    const colorScale = (value) => {
+    const colorScale = propColorScale || ((value) => {
         if (value <= 30) return "green";
         if (value <= 60) return "yellow";
         return "red";
-    };
+    });
 
     const gridLayers = grid.features.map(point => {
       const value = point.properties.value;
@@ -61,7 +61,7 @@ const InterpolationLayer = ({ lecturas }) => {
       return L.rectangle(cellBounds, {
         color: color,
         weight: 0,
-        fillOpacity: 0.5,
+        fillOpacity: 0.3,
       });
     }).filter(Boolean);
 
