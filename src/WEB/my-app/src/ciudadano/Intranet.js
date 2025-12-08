@@ -6,10 +6,10 @@
 // Este fichero contiene la información para el ciudadano.
 // --------------------------------------------------------------------------
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import HeaderRegistrado from "./templates/HeaderRegistrado";
 import "../css/main.css";
-import { MapContainer, TileLayer } from "react-leaflet";
+import { MapContainer, TileLayer, CircleMarker, Popup, useMapEvents } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 
 const features = [
@@ -77,6 +77,85 @@ const faqs = [
   }
 ];
 
+// Static 4x4 grid of readings in Gandia
+const gandiaCenterLat = 38.96667;
+const gandiaCenterLng = -0.18333;
+const offset = 0.00225; // Approximately 0.25 km
+
+const mockLecturas = [];
+let idCounter = 0;
+
+for (let row = 0; row < 4; row++) {
+  for (let col = 0; col < 4; col++) {
+    const lat = gandiaCenterLat + (row - 1.5) * offset; // Center the grid
+    const lng = gandiaCenterLng + (col - 1.5) * offset; // Center the grid
+
+    let valor;
+    if (row < 2 && col < 2) {
+      valor = 80 + Math.random() * 10; // Red corner (top-left 2x2)
+    } else if (row >= 2 && col >= 2) {
+      valor = 10 + Math.random() * 10; // Green corner (bottom-right 2x2)
+    } else {
+      valor = 40 + Math.random() * 10; // Yellow middle (remaining points)
+    }
+
+    // Generate a random date and time within the last 24 hours for demonstration
+    const randomDate = new Date(Date.now() - Math.random() * 24 * 60 * 60 * 1000);
+    const fecha = randomDate.toLocaleString(); // Format as local date and time string
+
+    mockLecturas.push({
+      id: idCounter++,
+      lat: lat,
+      lng: lng,
+      valor: valor,
+      fecha: fecha,
+    });
+  }
+}
+
+
+const getColor = (valor) => {
+  if (valor <= 30) return "green";
+  if (valor <= 60) return "yellow";
+  return "red";
+};
+
+const DynamicRadiusCircleMarkers = ({ lecturas }) => {
+  const [zoomLevel, setZoomLevel] = useState(13); // Initial zoom level
+
+  const mapEvents = useMapEvents({
+    zoomend: () => {
+      setZoomLevel(mapEvents.getZoom());
+    },
+  });
+
+  const getRadius = (zoom) => {
+    if (zoom < 12) return 2;
+    if (zoom < 14) return 4;
+    if (zoom < 16) return 8;
+    return 12;
+  };
+
+  return (
+    <>
+      {lecturas.map(lectura => (
+        <CircleMarker
+          key={lectura.id}
+          center={[lectura.lat, lectura.lng]}
+          radius={getRadius(zoomLevel)}
+          pathOptions={{ color: getColor(lectura.valor), fillColor: getColor(lectura.valor), fillOpacity: 0.8 }}
+        >
+          <Popup>
+            Valor: {lectura.valor.toFixed(2)} <br />
+            Fecha: {lectura.fecha}
+          </Popup>
+        </CircleMarker>
+      ))}
+    </>
+  );
+};
+
+
 function Intranet() {
   const [featureIndex, setFeatureIndex] = useState(0);
   const [faqAbierta, setFaqAbierta] = useState(null);
@@ -107,6 +186,7 @@ function Intranet() {
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
               attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
             />
+            <DynamicRadiusCircleMarkers lecturas={mockLecturas} />
           </MapContainer>
         </section>
 
