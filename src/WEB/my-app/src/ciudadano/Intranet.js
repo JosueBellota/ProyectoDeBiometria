@@ -11,8 +11,7 @@ import HeaderRegistrado from "./templates/HeaderRegistrado";
 import "../css/main.css";
 import { MapContainer, TileLayer, CircleMarker, Popup, useMapEvents } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
-
-const features = [
+import InterpolationLayer from "./InterpolationLayer";const features = [
   {
     id: 0,
     titulo: "Recorrido y trazado personal",
@@ -161,6 +160,7 @@ const DynamicRadiusCircleMarkers = ({ lecturas }) => {
 function Intranet() {
   const [featureIndex, setFeatureIndex] = useState(0);
   const [faqAbierta, setFaqAbierta] = useState(null);
+  const [mapView, setMapView] = useState('points'); // 'points' or 'interpolation'
   const gandiaPosition = [38.96667, -0.18333];
 
   const siguienteFeature = () => {
@@ -175,6 +175,10 @@ function Intranet() {
     setFaqAbierta((prev) => (prev === index ? null : index));
   };
 
+  const toggleMapView = () => {
+    setMapView(mapView === 'points' ? 'interpolation' : 'points');
+  };
+
   return (
     <div className="home-page">
       <HeaderRegistrado />
@@ -183,12 +187,19 @@ function Intranet() {
         {/* Hero */}
         <section className="home-hero">
           <h1 className="home-hero-title">Tu ruta, tu aire, tu impacto.</h1>
+          <button onClick={toggleMapView}>
+            {mapView === 'points' ? "Mostrar Mapa de Interpolación" : "Mostrar Puntos"}
+          </button>
           <MapContainer center={gandiaPosition} zoom={13} className="home-main-map">
             <TileLayer
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
               attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
             />
-            <DynamicRadiusCircleMarkers lecturas={mockLecturas} />
+            {mapView === 'points' ? (
+              <DynamicRadiusCircleMarkers lecturas={mockLecturas} />
+            ) : (
+              <InterpolationLayer lecturas={mockLecturas} />
+            )}
           </MapContainer>
         </section>
 
