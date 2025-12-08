@@ -23,6 +23,7 @@ function GeneralSearchView({ misNodos }) {
     const [fechaInicio, setFechaInicio] = useState(semanaPasada.toISOString().split('T')[0]);
     const [fechaFin, setFechaFin] = useState(hoy.toISOString().split('T')[0]);
     const [radio, setRadio] = useState(5000);
+    const [tiposensor, setTipoSensor] = useState('all'); // Estado para el filtro de sensor
 
     const nodeIdToNameMap = useMemo(() => {
         if (!misNodos) return new Map();
@@ -39,6 +40,7 @@ function GeneralSearchView({ misNodos }) {
                 radio: radio,
                 fechaInicio: new Date(fechaInicio),
                 fechaFin: new Date(fechaFin),
+                tiposensor: tiposensor, // Pasar el tipo de sensor
             };
             const res = await obtenerLecturas(opciones);
             if (res.error) throw new Error(res.error);
@@ -65,9 +67,18 @@ function GeneralSearchView({ misNodos }) {
                         <label className="form-label small">Fecha Fin</label>
                         <input type="date" className="form-control" value={fechaFin} onChange={e => setFechaFin(e.target.value)} />
                     </div>
-                    <div className="col-md-4">
-                         <label className="form-label small">Radio: <strong>{(radio / 1000).toFixed(1)} km</strong></label>
-                         <input type="range" className="form-range" min="500" max="50000" step="500" value={radio} onChange={e => setRadio(parseInt(e.target.value, 10))} />
+                    <div className="col-md-2">
+                        <label className="form-label small">Tipo de Sensor</label>
+                        <select className="form-select" value={tiposensor} onChange={e => setTipoSensor(e.target.value)}>
+                            <option value="all">Todos</option>
+                            <option value="co2">CO2</option>
+                            <option value="temperatura">Temperatura</option>
+                            <option value="humedad">Humedad</option>
+                        </select>
+                    </div>
+                    <div className="col-md-2">
+                        <label className="form-label small">Radio: <strong>{(radio / 1000).toFixed(1)} km</strong></label>
+                        <input type="range" className="form-range" min="500" max="50000" step="500" value={radio} onChange={e => setRadio(parseInt(e.target.value, 10))} />
                     </div>
                     <div className="col-md-2">
                         <button className="btn btn-primary w-100" onClick={buscarLecturas} disabled={cargando}>
