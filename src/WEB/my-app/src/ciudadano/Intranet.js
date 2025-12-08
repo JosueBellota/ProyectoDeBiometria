@@ -1,146 +1,211 @@
-// src/WEB/my-app/src/ciudadano/Intranet.js
-import React, { useEffect, useState, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
-import { obtenerUsuarioLogueado } from "./../logicaFake/auth";
-import { obtenerNodosPorPropietario, obtenerLecturas } from "./../logicaFake/logicaFake";
+// --------------------------------------------------------------------------
+// Fichero: Informacion.js
+// Responsable: Josue Bellota Ichaso
+//
+// Descripción:
+// Este fichero contiene la información para el ciudadano.
+// --------------------------------------------------------------------------
+
+import React, { useState } from "react";
 import HeaderRegistrado from "./templates/HeaderRegistrado";
-import ReadingsTable from "./ReadingsTable";
-import "./css/ciudadano.css";
+import "../css/main.css";
 
-// Ubicación fija para la búsqueda general
-const GANDIA_LOCATION = { lat: 38.96667, lon: -0.18333 };
+const features = [
+  {
+    id: 0,
+    titulo: "Recorrido y trazado personal",
+    texto:
+      "Visualiza las rutas que recorres y cómo varían las condiciones ambientales a lo largo del camino. Transforma tus pasos en datos útiles para mejorar la ciudad.",
+    img: "/recorrido.png",
+    alt: "Mapa con un recorrido marcado"
+  },
+  {
+    id: 1,
+    titulo: "Información meteorológica en el mapa",
+    texto:
+      "Lleva tu nodo y observa en tiempo real la temperatura, el aire o el CO₂ de tu entorno. Contribuye a un mapa colectivo que muestra cómo respira la ciudad.",
+    img: "/informacion.png",
+    alt: "Mapa con información meteorológica"
+  },
+  {
+    id: 2,
+    titulo: "Gráficas y análisis de datos",
+    texto:
+      "Consulta gráficos con las mediciones de tu nodo. Detecta patrones, compara zonas y comprende mejor el ambiente que te rodea.",
+    img: "/grafica.png",
+    alt: "Gráficas de datos ambientales"
+  }
+];
 
-// Componente para la vista de búsqueda general
-function GeneralSearchView({ misNodos }) {
-    const [resultados, setResultados] = useState([]);
-    const [cargando, setCargando] = useState(false);
-    const [error, setError] = useState(null);
-
-    const hoy = new Date();
-    const semanaPasada = new Date();
-    semanaPasada.setDate(hoy.getDate() - 7);
-
-    const [fechaInicio, setFechaInicio] = useState(semanaPasada.toISOString().split('T')[0]);
-    const [fechaFin, setFechaFin] = useState(hoy.toISOString().split('T')[0]);
-    const [radio, setRadio] = useState(5000);
-    const [tiposensor, setTipoSensor] = useState('all'); // Estado para el filtro de sensor
-
-    const nodeIdToNameMap = useMemo(() => {
-        if (!misNodos) return new Map();
-        return new Map(misNodos.map(nodo => [nodo.id_nodo, nodo.nombre]));
-    }, [misNodos]);
-
-    const buscarLecturas = async () => {
-        setCargando(true);
-        setError(null);
-        try {
-            const opciones = {
-                latitud: GANDIA_LOCATION.lat,
-                longitud: GANDIA_LOCATION.lon,
-                radio: radio,
-                fechaInicio: new Date(fechaInicio),
-                fechaFin: new Date(fechaFin),
-                tiposensor: tiposensor, // Pasar el tipo de sensor
-            };
-            const res = await obtenerLecturas(opciones);
-            if (res.error) throw new Error(res.error);
-            setResultados(res);
-        } catch (err) {
-            setError(err.message);
-        } finally {
-            setCargando(false);
-        }
-    };
-    
-    return (
-        <div>
-            <div>
-                <h5 className="mb-0">LECTURAS DE SENSORES</h5>
-            </div>
-            <div>
-                <div className="row gx-2 gy-3 align-items-end">
-                    <div className="col-md-3">
-                        <label className="form-label small">Fecha Inicio</label>
-                        <input type="date" className="form-control" value={fechaInicio} onChange={e => setFechaInicio(e.target.value)} />
-                    </div>
-                    <div className="col-md-3">
-                        <label className="form-label small">Fecha Fin</label>
-                        <input type="date" className="form-control" value={fechaFin} onChange={e => setFechaFin(e.target.value)} />
-                    </div>
-                    <div className="col-md-2">
-                        <label className="form-label small">Tipo de Sensor</label>
-                        <select className="form-select" value={tiposensor} onChange={e => setTipoSensor(e.target.value)}>
-                            <option value="all">Todos</option>
-                            <option value="co2">CO2</option>
-                            <option value="temperatura">Temperatura</option>
-                            <option value="humedad">Humedad</option>
-                        </select>
-                    </div>
-                    <div className="col-md-2">
-                        <label className="form-label small">Radio: <strong>{(radio / 1000).toFixed(1)} km</strong></label>
-                        <input type="range" className="form-range" min="500" max="50000" step="500" value={radio} onChange={e => setRadio(parseInt(e.target.value, 10))} />
-                    </div>
-                    <div className="col-md-2">
-                        <button className="btn btn-primary w-100" onClick={buscarLecturas} disabled={cargando}>
-                            {cargando ? '...' : 'Buscar'}
-                        </button>
-                    </div>
-                </div>
-                <hr/>
-                {cargando && <p>Buscando...</p>}
-                {error && <div className="alert alert-danger mt-3">{error}</div>}
-                {!cargando && !error && (
-                    <div className="readings-container" style={{ maxHeight: '60vh', overflowY: 'auto' }}>
-                        <ReadingsTable lecturas={resultados} showNodeColumn={true} nodeIdToNameMap={nodeIdToNameMap} />
-                    </div>
-                )}
-            </div>
-        </div>
-    );
-}
-
+const faqs = [
+  {
+    pregunta: "1. ¿Qué es un nodo y para qué sirve?",
+    respuesta:
+      "Un nodo es un pequeño dispositivo portátil que mide diferentes parámetros ambientales como temperatura, humedad o concentración de CO₂. Sirve para recoger datos mientras te desplazas por la ciudad."
+  },
+  {
+    pregunta: "2. ¿Quién puede solicitar un nodo?",
+    respuesta:
+      "Cualquier ciudadano interesado, así como centros educativos, asociaciones o administraciones locales que quieran participar en la monitorización del aire."
+  },
+  {
+    pregunta: "3. ¿Necesito tener conocimientos técnicos para usarlo?",
+    respuesta:
+      "No. El nodo está pensado para ser sencillo: solo tienes que llevarlo contigo encendido. La aplicación se encarga de procesar y mostrar los datos."
+  },
+  {
+    pregunta: "4. ¿Qué información puedo ver en la aplicación?",
+    respuesta:
+      "Podrás ver tus recorridos, las mediciones asociadas a cada tramo, mapas de calor y gráficos que resumen el comportamiento de las variables ambientales."
+  },
+  {
+    pregunta: "5. ¿Qué diferencia hay entre usuarios registrados y no registrados?",
+    respuesta:
+      "Los usuarios registrados pueden vincular un nodo, guardar su historial de rutas, descargar datos y personalizar alertas. Los no registrados solo pueden explorar mapas y estadísticas generales."
+  },
+  {
+    pregunta: "6. ¿Qué pasa con mis datos personales?",
+    respuesta:
+      "Solo almacenamos los datos imprescindibles para el funcionamiento del servicio. Las rutas se anonimizan y puedes solicitar la eliminación de tu cuenta y tus datos en cualquier momento."
+  },
+  {
+    pregunta: "7. ¿Es necesario registrarse para ver los datos?",
+    respuesta:
+      "No. Puedes consultar mapas y estadísticas públicas sin registrarte. El registro solo es necesario si quieres asociar un nodo y guardar tu información personal de uso."
+  }
+];
 
 function Intranet() {
-    const navigate = useNavigate();
-    const [usuario, setUsuario] = useState(null);
-    const [misNodos, setMisNodos] = useState([]);
-    
-    useEffect(() => {
-        const user = obtenerUsuarioLogueado();
-        if (!user) {
-            navigate("/");
-            return;
-        }
-        setUsuario(user);
+  const [featureIndex, setFeatureIndex] = useState(0);
+  const [faqAbierta, setFaqAbierta] = useState(null);
 
-        const cargarMisNodos = async () => {
-            try {
-                // NOTA: obtenerNodosPorPropietario devuelve los nodos del backend
-                const nodos = await obtenerNodosPorPropietario(user.uid);
-                if (nodos.error) throw new Error(nodos.error);
-                setMisNodos(nodos);
-            } catch (err) {
-                console.error(err.message);
-            }
-        };
+  const siguienteFeature = () => {
+    setFeatureIndex((prev) => (prev + 1) % features.length);
+  };
 
-        cargarMisNodos();
-    }, [navigate]);
+  const anteriorFeature = () => {
+    setFeatureIndex((prev) => (prev - 1 + features.length) % features.length);
+  };
 
-    return (
-        <>
-            <HeaderRegistrado />
-            <div className="home-page" style={{ /* Estilos de fondo */ }}>
-                <main className="container py-4">
-                    <div className="row">
-                        <div className="col-lg-12">
-                            <GeneralSearchView misNodos={misNodos} />
-                        </div>
-                    </div>
-                </main>
-            </div>
-        </>
-    );
+  const toggleFaq = (index) => {
+    setFaqAbierta((prev) => (prev === index ? null : index));
+  };
+
+  return (
+    <div
+      className="home-page"
+      style={{
+        width: "100%",
+        minHeight: "100vh",
+        backgroundImage: "url(/Fondo.png)",
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+        backgroundRepeat: "no-repeat"
+      }}
+    >
+      <HeaderRegistrado />
+
+      <main className="home-content">
+        {/* Hero */}
+        <section className="home-hero">
+          <h1 className="home-hero-title">Tu ruta, tu aire, tu impacto.</h1>
+          <img
+            src="/mapaMain.png"
+            alt="Mapa principal de la ciudad"
+            className="home-main-map"
+          />
+        </section>
+
+        {/* Cómo funciona nuestro servicio */}
+        <section className="home-how">
+          <h2 className="home-how-title">¿Cómo funciona nuestro servicio?</h2>
+
+          {/* Versión escritorio: tres tarjetas */}
+          <div className="home-features-desktop">
+            {features.map((f) => (
+              <article key={f.id} className="home-feature-card">
+                <img src={f.img} alt={f.alt} className="home-feature-image" />
+                <h3 className="home-feature-title">{f.titulo}</h3>
+                <p className="home-feature-text">{f.texto}</p>
+              </article>
+            ))}
+          </div>
+
+          {/* Versión móvil: slider con flechas */}
+          <div className="home-features-mobile">
+            <button
+              type="button"
+              className="home-feature-arrow"
+              onClick={anteriorFeature}
+              aria-label="Anterior"
+            >
+              ‹
+            </button>
+
+            <article className="home-feature-card mobile">
+              <img
+                src={features[featureIndex].img}
+                alt={features[featureIndex].alt}
+                className="home-feature-image"
+              />
+              <h3 className="home-feature-title">
+                {features[featureIndex].titulo}
+              </h3>
+              <p className="home-feature-text">
+                {features[featureIndex].texto}
+              </p>
+            </article>
+
+            <button
+              type="button"
+              className="home-feature-arrow"
+              onClick={siguienteFeature}
+              aria-label="Siguiente"
+            >
+              ›
+            </button>
+          </div>
+        </section>
+
+        {/* FAQ */}
+        <section className="home-faq-section">
+          <h2 className="home-faq-title">FAQ</h2>
+
+          <div className="home-faq-list">
+            {faqs.map((item, index) => (
+              <div
+                key={index}
+                className={`faq-item ${faqAbierta === index ? "open" : ""}`}
+              >
+                <button
+                  type="button"
+                  className="faq-question"
+                  onClick={() => toggleFaq(index)}
+                >
+                  <span>{item.pregunta}</span>
+                  <span className="faq-toggle-icon">⌄</span>
+                </button>
+                {faqAbierta === index && (
+                  <div className="faq-answer">
+                    <p>{item.respuesta}</p>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* Contacto */}
+        <section className="home-contact">
+          <p>contacto@mail.com</p>
+        </section>
+
+        <footer className="home-footer">
+          <span>GTI 2025©</span>
+        </footer>
+      </main>
+    </div>
+  );
 }
 
 export default Intranet;

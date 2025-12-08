@@ -74,8 +74,8 @@ export default function HeaderRegistrado() {
           <Link to="/ciudadano/Informacion" onClick={closeMenu}>
             INFORMACIÓN
           </Link>
-          <Link to="/ciudadano/calidad-aire" onClick={closeMenu}>
-            CONTAMINANTES
+          <Link to="/ciudadano/lecturas" onClick={closeMenu}>
+            LECTURAS
           </Link>
 
           <button onClick={handleLogout} aria-label="Cerrar sesión">
