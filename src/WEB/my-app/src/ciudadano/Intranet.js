@@ -85,7 +85,6 @@ const DynamicRadiusCircleMarkers = ({ lecturas }) => {
         >
           <Popup>
             CO2: {lectura.medida.toFixed(2)} <br />
-            Valor: {lectura.medida.toFixed(2)} <br />
             Tiempo: {lectura.fecha}
           </Popup>
         </CircleMarker>

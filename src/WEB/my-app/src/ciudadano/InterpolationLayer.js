@@ -23,7 +23,13 @@ const InterpolationLayer = ({ lecturas }) => {
     const cellWidth = 0.001;
     const cellHeight = 0.001;
 
-    const grid = turf.pointGrid([west, south, east, north], cellWidth, { units: 'degrees' });
+    const gridFeatures = [];
+    for (let x = west; x < east; x += cellWidth) {
+        for (let y = south; y < north; y += cellHeight) {
+            gridFeatures.push(turf.point([x, y]));
+        }
+    }
+    const grid = turf.featureCollection(gridFeatures);
 
     grid.features.forEach(point => {
       let interpolatedValue = 0;
