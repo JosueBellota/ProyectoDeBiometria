@@ -1,38 +1,14 @@
 // src/WEB/my-app/src/ciudadano/Intranet.js
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { obtenerUsuarioLogueado } from "./../logicaFake/auth";
 import { obtenerNodosPorPropietario, obtenerLecturas } from "./../logicaFake/logicaFake";
 import HeaderRegistrado from "./templates/HeaderRegistrado";
-import NodoSearchView from "./NodoSearchView";
 import ReadingsTable from "./ReadingsTable";
 import "./css/ciudadano.css";
 
 // Ubicación fija para la búsqueda general
 const GANDIA_LOCATION = { lat: 38.96667, lon: -0.18333 };
-
-// Componente para la lista de nodos del usuario
-function MisNodosList({ nodos, selectedNodo, onNodoSelect }) {
-    return (
-        <div className="card shadow-sm">
-            <div className="card-header">
-                <h5 className="mb-0">Mis Nodos</h5>
-            </div>
-            <div className="list-group list-group-flush" style={{ maxHeight: '400px', overflowY: 'auto' }}>
-                 <a href="#" onClick={(e) => { e.preventDefault(); onNodoSelect(null); }}
-                   className={`list-group-item list-group-item-action ${!selectedNodo ? 'active' : ''}`}>
-                    Búsqueda General
-                </a>
-                {nodos.map(nodo => (
-                    <a href="#" key={nodo.id} onClick={(e) => { e.preventDefault(); onNodoSelect(nodo); }}
-                       className={`list-group-item list-group-item-action ${selectedNodo?.id === nodo.id ? 'active' : ''}`}>
-                        {nodo.nombre}
-                    </a>
-                ))}
-            </div>
-        </div>
-    );
-}
 
 // Componente para la vista de búsqueda general
 function GeneralSearchView({ misNodos }) {
@@ -48,7 +24,7 @@ function GeneralSearchView({ misNodos }) {
     const [fechaFin, setFechaFin] = useState(hoy.toISOString().split('T')[0]);
     const [radio, setRadio] = useState(5000);
 
-    const nodeIdToNameMap = React.useMemo(() => {
+    const nodeIdToNameMap = useMemo(() => {
         if (!misNodos) return new Map();
         return new Map(misNodos.map(nodo => [nodo.id_nodo, nodo.nombre]));
     }, [misNodos]);
@@ -77,7 +53,7 @@ function GeneralSearchView({ misNodos }) {
     return (
         <div>
             <div>
-                <h5 className="mb-0">Búsqueda General de Lecturas</h5>
+                <h5 className="mb-0">LECTURAS DE SENSORES</h5>
             </div>
             <div>
                 <div className="row gx-2 gy-3 align-items-end">
@@ -117,9 +93,6 @@ function Intranet() {
     const navigate = useNavigate();
     const [usuario, setUsuario] = useState(null);
     const [misNodos, setMisNodos] = useState([]);
-    const [selectedNodo, setSelectedNodo] = useState(null);
-    const [cargandoNodos, setCargandoNodos] = useState(true);
-    const [errorNodos, setErrorNodos] = useState(null);
     
     useEffect(() => {
         const user = obtenerUsuarioLogueado();
@@ -130,16 +103,13 @@ function Intranet() {
         setUsuario(user);
 
         const cargarMisNodos = async () => {
-            setCargandoNodos(true);
             try {
                 // NOTA: obtenerNodosPorPropietario devuelve los nodos del backend
                 const nodos = await obtenerNodosPorPropietario(user.uid);
                 if (nodos.error) throw new Error(nodos.error);
                 setMisNodos(nodos);
             } catch (err) {
-                setErrorNodos(err.message);
-            } finally {
-                setCargandoNodos(false);
+                console.error(err.message);
             }
         };
 
@@ -152,23 +122,8 @@ function Intranet() {
             <div className="home-page" style={{ /* Estilos de fondo */ }}>
                 <main className="container py-4">
                     <div className="row">
-                        <div className="col-lg-3">
-                            {cargandoNodos && <p>Cargando nodos...</p>}
-                            {errorNodos && <div className="alert alert-warning">{errorNodos}</div>}
-                            {!cargandoNodos && !errorNodos && 
-                                <MisNodosList 
-                                    nodos={misNodos}
-                                    selectedNodo={selectedNodo}
-                                    onNodoSelect={setSelectedNodo}
-                                />
-                            }
-                        </div>
-                        <div className="col-lg-9">
-                            {selectedNodo ? (
-                                <NodoSearchView nodo={selectedNodo} />
-                            ) : (
-                                <GeneralSearchView misNodos={misNodos} />
-                            )}
+                        <div className="col-lg-12">
+                            <GeneralSearchView misNodos={misNodos} />
                         </div>
                     </div>
                 </main>
@@ -178,5 +133,3 @@ function Intranet() {
 }
 
 export default Intranet;
-
-
