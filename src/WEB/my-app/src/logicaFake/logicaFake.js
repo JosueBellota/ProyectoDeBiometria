@@ -26,8 +26,14 @@ export async function obtenerLecturas(opciones) {
 
   try {
     const res = await fetch(`${API_BASE}/lecturas?${params.toString()}`);
-    const data = await res.json();
+    let data = await res.json();
     if (!res.ok) throw new Error(data.error || "Error al obtener lecturas");
+
+    // Filtrado por tipo de sensor en el cliente
+    if (opciones.tiposensor && opciones.tiposensor !== 'all') {
+      data = data.filter(lectura => lectura.tipo_sensor === opciones.tiposensor);
+    }
+
     return data;
   } catch (error) {
     console.error("❌ Error en obtenerLecturas:", error);

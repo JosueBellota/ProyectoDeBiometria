@@ -95,6 +95,9 @@ function Login() {
             boxShadow: "0 4px 16px rgba(0, 0, 0, 0.15)",
           }}
         >
+          <div style={{ textAlign: "center", marginBottom: "20px" }}>
+            <img src="/logo.svg" alt="Logo" style={{ height: "60px" }} />
+          </div>
           <h1 style={{ textAlign: "center", marginBottom: "8px" }}>
             Iniciar sesión
           </h1>
