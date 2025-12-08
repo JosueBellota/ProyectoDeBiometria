@@ -87,16 +87,16 @@ let idCounter = 0;
 
 for (let row = 0; row < 4; row++) {
   for (let col = 0; col < 4; col++) {
-    const lat = gandiaCenterLat + (row - 1.5) * offset; // Center the grid
-    const lng = gandiaCenterLng + (col - 1.5) * offset; // Center the grid
+    const latitud = gandiaCenterLat + (row - 1.5) * offset; // Center the grid
+    const longitud = gandiaCenterLng + (col - 1.5) * offset; // Center the grid
 
-    let valor;
+    let medida;
     if (row < 2 && col < 2) {
-      valor = 80 + Math.random() * 10; // Red corner (top-left 2x2)
+      medida = 80 + Math.random() * 10; // Red corner (top-left 2x2)
     } else if (row >= 2 && col >= 2) {
-      valor = 10 + Math.random() * 10; // Green corner (bottom-right 2x2)
+      medida = 10 + Math.random() * 10; // Green corner (bottom-right 2x2)
     } else {
-      valor = 40 + Math.random() * 10; // Yellow middle (remaining points)
+      medida = 40 + Math.random() * 10; // Yellow middle (remaining points)
     }
 
     // Generate a random date and time within the last 24 hours for demonstration
@@ -105,18 +105,19 @@ for (let row = 0; row < 4; row++) {
 
     mockLecturas.push({
       id: idCounter++,
-      lat: lat,
-      lng: lng,
-      valor: valor,
+      latitud: latitud,
+      longitud: longitud,
+      medida: medida,
       fecha: fecha,
+      tipoSensor: "CO2",
     });
   }
 }
 
 
-const getColor = (valor) => {
-  if (valor <= 30) return "green";
-  if (valor <= 60) return "yellow";
+const getColor = (medida) => {
+  if (medida <= 30) return "green";
+  if (medida <= 60) return "yellow";
   return "red";
 };
 
@@ -141,13 +142,14 @@ const DynamicRadiusCircleMarkers = ({ lecturas }) => {
       {lecturas.map(lectura => (
         <CircleMarker
           key={lectura.id}
-          center={[lectura.lat, lectura.lng]}
+          center={[lectura.latitud, lectura.longitud]}
           radius={getRadius(zoomLevel)}
-          pathOptions={{ color: getColor(lectura.valor), fillColor: getColor(lectura.valor), fillOpacity: 0.8 }}
+          pathOptions={{ color: getColor(lectura.medida), fillColor: getColor(lectura.medida), fillOpacity: 0.8 }}
         >
           <Popup>
-            Valor: {lectura.valor.toFixed(2)} <br />
-            Fecha: {lectura.fecha}
+            CO2: {lectura.medida.toFixed(2)} <br />
+            Valor: {lectura.medida.toFixed(2)} <br />
+            Tiempo: {lectura.fecha}
           </Popup>
         </CircleMarker>
       ))}
