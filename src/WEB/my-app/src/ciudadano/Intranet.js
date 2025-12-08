@@ -9,6 +9,8 @@
 import React, { useState } from "react";
 import HeaderRegistrado from "./templates/HeaderRegistrado";
 import "../css/main.css";
+import { MapContainer, TileLayer } from "react-leaflet";
+import "leaflet/dist/leaflet.css";
 
 const features = [
   {
@@ -78,6 +80,7 @@ const faqs = [
 function Intranet() {
   const [featureIndex, setFeatureIndex] = useState(0);
   const [faqAbierta, setFaqAbierta] = useState(null);
+  const gandiaPosition = [38.96667, -0.18333];
 
   const siguienteFeature = () => {
     setFeatureIndex((prev) => (prev + 1) % features.length);
@@ -92,28 +95,19 @@ function Intranet() {
   };
 
   return (
-    <div
-      className="home-page"
-      style={{
-        width: "100%",
-        minHeight: "100vh",
-        backgroundImage: "url(/Fondo.png)",
-        backgroundSize: "cover",
-        backgroundPosition: "center",
-        backgroundRepeat: "no-repeat"
-      }}
-    >
+    <div className="home-page">
       <HeaderRegistrado />
 
       <main className="home-content">
         {/* Hero */}
         <section className="home-hero">
           <h1 className="home-hero-title">Tu ruta, tu aire, tu impacto.</h1>
-          <img
-            src="/mapaMain.png"
-            alt="Mapa principal de la ciudad"
-            className="home-main-map"
-          />
+          <MapContainer center={gandiaPosition} zoom={13} className="home-main-map">
+            <TileLayer
+              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            />
+          </MapContainer>
         </section>
 
         {/* Cómo funciona nuestro servicio */}
