@@ -11,70 +11,8 @@ import HeaderRegistrado from "./templates/HeaderRegistrado";
 import "../css/main.css";
 import { MapContainer, TileLayer, CircleMarker, Popup, useMapEvents } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
-import InterpolationLayer from "./InterpolationLayer";const features = [
-  {
-    id: 0,
-    titulo: "Recorrido y trazado personal",
-    texto:
-      "Visualiza las rutas que recorres y cómo varían las condiciones ambientales a lo largo del camino. Transforma tus pasos en datos útiles para mejorar la ciudad.",
-    img: "/recorrido.png",
-    alt: "Mapa con un recorrido marcado"
-  },
-  {
-    id: 1,
-    titulo: "Información meteorológica en el mapa",
-    texto:
-      "Lleva tu nodo y observa en tiempo real la temperatura, el aire o el CO₂ de tu entorno. Contribuye a un mapa colectivo que muestra cómo respira la ciudad.",
-    img: "/informacion.png",
-    alt: "Mapa con información meteorológica"
-  },
-  {
-    id: 2,
-    titulo: "Gráficas y análisis de datos",
-    texto:
-      "Consulta gráficos con las mediciones de tu nodo. Detecta patrones, compara zonas y comprende mejor el ambiente que te rodea.",
-    img: "/grafica.png",
-    alt: "Gráficas de datos ambientales"
-  }
-];
-
-const faqs = [
-  {
-    pregunta: "1. ¿Qué es un nodo y para qué sirve?",
-    respuesta:
-      "Un nodo es un pequeño dispositivo portátil que mide diferentes parámetros ambientales como temperatura, humedad o concentración de CO₂. Sirve para recoger datos mientras te desplazas por la ciudad."
-  },
-  {
-    pregunta: "2. ¿Quién puede solicitar un nodo?",
-    respuesta:
-      "Cualquier ciudadano interesado, así como centros educativos, asociaciones o administraciones locales que quieran participar en la monitorización del aire."
-  },
-  {
-    pregunta: "3. ¿Necesito tener conocimientos técnicos para usarlo?",
-    respuesta:
-      "No. El nodo está pensado para ser sencillo: solo tienes que llevarlo contigo encendido. La aplicación se encarga de procesar y mostrar los datos."
-  },
-  {
-    pregunta: "4. ¿Qué información puedo ver en la aplicación?",
-    respuesta:
-      "Podrás ver tus recorridos, las mediciones asociadas a cada tramo, mapas de calor y gráficos que resumen el comportamiento de las variables ambientales."
-  },
-  {
-    pregunta: "5. ¿Qué diferencia hay entre usuarios registrados y no registrados?",
-    respuesta:
-      "Los usuarios registrados pueden vincular un nodo, guardar su historial de rutas, descargar datos y personalizar alertas. Los no registrados solo pueden explorar mapas y estadísticas generales."
-  },
-  {
-    pregunta: "6. ¿Qué pasa con mis datos personales?",
-    respuesta:
-      "Solo almacenamos los datos imprescindibles para el funcionamiento del servicio. Las rutas se anonimizan y puedes solicitar la eliminación de tu cuenta y tus datos en cualquier momento."
-  },
-  {
-    pregunta: "7. ¿Es necesario registrarse para ver los datos?",
-    respuesta:
-      "No. Puedes consultar mapas y estadísticas públicas sin registrarte. El registro solo es necesario si quieres asociar un nodo y guardar tu información personal de uso."
-  }
-];
+import InterpolationLayer from "./InterpolationLayer";
+import data from './FeaturesFaq.json';
 
 // Static 4x4 grid of readings in Gandia
 const gandiaCenterLat = 38.96667;
@@ -164,11 +102,11 @@ function Intranet() {
   const gandiaPosition = [38.96667, -0.18333];
 
   const siguienteFeature = () => {
-    setFeatureIndex((prev) => (prev + 1) % features.length);
+    setFeatureIndex((prev) => (prev + 1) % data.features.length);
   };
 
   const anteriorFeature = () => {
-    setFeatureIndex((prev) => (prev - 1 + features.length) % features.length);
+    setFeatureIndex((prev) => (prev - 1 + data.features.length) % data.features.length);
   };
 
   const toggleFaq = (index) => {
@@ -209,7 +147,7 @@ function Intranet() {
 
           {/* Versión escritorio: tres tarjetas */}
           <div className="home-features-desktop">
-            {features.map((f) => (
+            {data.features.map((f) => (
               <article key={f.id} className="home-feature-card">
                 <img src={f.img} alt={f.alt} className="home-feature-image" />
                 <h3 className="home-feature-title">{f.titulo}</h3>
@@ -226,20 +164,20 @@ function Intranet() {
               onClick={anteriorFeature}
               aria-label="Anterior"
             >
-              ‹
+              
             </button>
 
             <article className="home-feature-card mobile">
               <img
-                src={features[featureIndex].img}
-                alt={features[featureIndex].alt}
+                src={data.features[featureIndex].img}
+                alt={data.features[featureIndex].alt}
                 className="home-feature-image"
               />
               <h3 className="home-feature-title">
-                {features[featureIndex].titulo}
+                {data.features[featureIndex].titulo}
               </h3>
               <p className="home-feature-text">
-                {features[featureIndex].texto}
+                {data.features[featureIndex].texto}
               </p>
             </article>
 
@@ -259,7 +197,7 @@ function Intranet() {
           <h2 className="home-faq-title">FAQ</h2>
 
           <div className="home-faq-list">
-            {faqs.map((item, index) => (
+            {data.faqs.map((item, index) => (
               <div
                 key={index}
                 className={`faq-item ${faqAbierta === index ? "open" : ""}`}
