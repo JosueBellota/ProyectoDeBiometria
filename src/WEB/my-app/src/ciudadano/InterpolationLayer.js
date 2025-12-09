@@ -48,10 +48,9 @@ const InterpolationLayer = ({ lecturas, colorScale: propColorScale, isAirQuality
       const latLngs = polygon.geometry.coordinates[0].map(coord => [coord[1], coord[0]]);
 
       const layer = L.polygon(latLngs, {
-        color: color,
-        weight: 0.5,
+        weight: 0,
         fillColor: color,
-        fillOpacity: 0.4,
+        fillOpacity: 0.5,
       });
 
       const popupContent = isAirQualityView 
