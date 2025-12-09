@@ -21,9 +21,8 @@ const InterpolationLayer = ({ lecturas, colorScale: propColorScale, isAirQuality
       lecturas.map(l => turf.point([l.longitud, l.latitud], { value: l.valor }))
     );
 
-    // 2. Definir el Bounding Box a partir de los límites del mapa
-    const bounds = map.getBounds();
-    const bbox = [bounds.getWest(), bounds.getSouth(), bounds.getEast(), bounds.getNorth()];
+    // 2. Calcular el Bounding Box a partir de los propios puntos
+    const bbox = turf.bbox(points);
 
     // 3. Generar el diagrama de Voronoi
     // Cada polígono resultante contendrá las propiedades del punto original
