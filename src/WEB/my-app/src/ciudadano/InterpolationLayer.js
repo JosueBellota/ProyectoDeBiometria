@@ -7,101 +7,60 @@ const InterpolationLayer = ({ lecturas, colorScale: propColorScale, isAirQuality
   const map = useMap();
 
   const getAirQualityText = (value) => {
-      if (value === 1) return "Calidad de Aire: Buena";
-      if (value === 2) return "Calidad de Aire: Aceptable";
-      if (value === 3) return "Calidad de Aire: Mala";
-      // Fallback por si acaso
-      return `Nivel de severidad: ${value}`;
+    if (value === 1) return "Calidad de Aire: Buena";
+    if (value === 2) return "Calidad de Aire: Aceptable";
+    if (value === 3) return "Calidad de Aire: Mala";
+    return `Nivel de severidad: ${value}`;
   };
 
   useEffect(() => {
-    if (!map || lecturas.length < 3) return;
+    if (!map || lecturas.length < 1) return;
 
+    // 1. Crear la colección de puntos para Turf.js
     const points = turf.featureCollection(
       lecturas.map(l => turf.point([l.longitud, l.latitud], { value: l.valor }))
     );
 
-    const tin = turf.tin(points, 'value');
-
+    // 2. Definir el Bounding Box a partir de los límites del mapa
     const bounds = map.getBounds();
-    const west = bounds.getWest();
-    const south = bounds.getSouth();
-    const east = bounds.getEast();
-    const north = bounds.getNorth();
-    const cellWidth = 0.001;
-    const cellHeight = 0.001;
+    const bbox = [bounds.getWest(), bounds.getSouth(), bounds.getEast(), bounds.getNorth()];
 
-    const gridFeatures = [];
-    for (let x = west; x < east; x += cellWidth) {
-        for (let y = south; y < north; y += cellHeight) {
-            gridFeatures.push(turf.point([x, y]));
-        }
-    }
-    const grid = turf.featureCollection(gridFeatures);
+    // 3. Generar el diagrama de Voronoi
+    // Cada polígono resultante contendrá las propiedades del punto original
+    const voronoiPolygons = turf.voronoi(points, { bbox });
 
-    grid.features.forEach(point => {
-      let interpolatedValue = 0;
-      for (const triangle of tin.features) {
-        if (turf.booleanPointInPolygon(point, triangle)) {
-          const maxVertexValue = Math.max(
-              triangle.properties.a,
-              triangle.properties.b,
-              triangle.properties.c
-          );
-          interpolatedValue = maxVertexValue;
-          break;
-        }
-      }
-      point.properties.value = interpolatedValue;
-    });
-
-    lecturas.forEach(lectura => {
-        const lecturaPoint = turf.point([lectura.longitud, lectura.latitud]);
-        let closestPoint = null;
-        let minDistance = Infinity;
-
-        grid.features.forEach(gridPoint => {
-            const distance = turf.distance(lecturaPoint, gridPoint);
-            if (distance < minDistance) {
-                minDistance = distance;
-                closestPoint = gridPoint;
-            }
-        });
-
-        if (closestPoint) {
-            closestPoint.properties.value = lectura.valor;
-        }
-    });
-
+    // 4. Determinar la escala de color
     const colorScale = propColorScale || ((value) => {
         if (value <= 30) return "green";
         if (value <= 60) return "yellow";
         return "red";
     });
 
-    const gridLayers = grid.features.map(point => {
-      const value = point.properties.value;
-      if (value === 0) return null;
-
-      const color = colorScale(value);
-      const cellBounds = L.latLngBounds(
-        [point.geometry.coordinates[1], point.geometry.coordinates[0]],
-        [point.geometry.coordinates[1] + cellHeight, point.geometry.coordinates[0] + cellWidth]
-      );
+    // 5. Mapear los polígonos de Voronoi a capas de Leaflet
+    const gridLayers = voronoiPolygons.features.map(polygon => {
+      if (!polygon.properties) return null;
       
-      const rectangle = L.rectangle(cellBounds, {
+      const value = polygon.properties.value;
+      const color = colorScale(value);
+
+      // Turf.js devuelve las coordenadas en [longitud, latitud]
+      // Leaflet espera [latitud, longitud]
+      const latLngs = polygon.geometry.coordinates[0].map(coord => [coord[1], coord[0]]);
+
+      const layer = L.polygon(latLngs, {
         color: color,
-        weight: 0,
-        fillOpacity: 0.3,
+        weight: 0.5,
+        fillColor: color,
+        fillOpacity: 0.4,
       });
 
       const popupContent = isAirQualityView 
-        ? getAirQualityText(value) 
+        ? getAirQualityText(Math.round(value))
         : `Valor: ${value.toFixed(2)}`;
       
-      rectangle.bindPopup(popupContent);
+      layer.bindPopup(popupContent);
 
-      return rectangle;
+      return layer;
     }).filter(Boolean);
 
     const layerGroup = L.layerGroup(gridLayers).addTo(map);
@@ -109,7 +68,7 @@ const InterpolationLayer = ({ lecturas, colorScale: propColorScale, isAirQuality
     return () => {
       map.removeLayer(layerGroup);
     };
-  }, [map, lecturas, isAirQualityView]); // Añadido isAirQualityView a las dependencias
+  }, [map, lecturas, isAirQualityView]);
 
   return null;
 };

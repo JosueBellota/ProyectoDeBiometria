@@ -28,6 +28,7 @@ import Tienda from "./ciudadano/Tienda";
 import PerfilCiudadano from "./ciudadano/Perfil";
 import { escucharSesion } from "./logicaFake/auth";
 import VerificarEmail from "./VerificarEmail"; // <-- Importado
+import Condiciones from "./Condiciones";
 
 // --------------------------------------------------------------------------
 // ✅ Componente Principal: App
@@ -83,6 +84,7 @@ function App() {
       <Route path="/" element={!usuario ? <Home /> : (usuario.rol === "admin" ? <Navigate to="/admin/intranet" /> : <Navigate to="/ciudadano/intranet" />)} />
       <Route path="/login" element={!usuario ? <Login /> : (usuario.rol === "admin" ? <Navigate to="/admin/intranet" /> : <Navigate to="/ciudadano/intranet" />)} />
       <Route path="/registro" element={!usuario ? <Registro /> : <Navigate to="/ciudadano/intranet" />} />
+      <Route path="/condiciones" element={<Condiciones />} />
       <Route path="/calidad-aire" element={<CalidadAire />} />
 
       {/* ------------------ Rutas de Ciudadano ------------------ */}

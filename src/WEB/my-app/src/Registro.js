@@ -7,7 +7,7 @@
 // --------------------------------------------------------------------------
 
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { registrarCiudadano } from "./logicaFake/auth";
 import HeaderNoRegistrado from "./templates/HeaderNoRegistrado";
 
@@ -17,6 +17,7 @@ function Registro() {
   const [correo, setCorreo] = useState("");
   const [password, setPassword] = useState("");
   const [password2, setPassword2] = useState("");
+  const [aceptaCondiciones, setAceptaCondiciones] = useState(false);
   const [error, setError] = useState(null);
   const [exito, setExito] = useState(null);
 
@@ -33,6 +34,11 @@ function Registro() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(null);
+
+    if (!aceptaCondiciones) {
+      setError("Debes aceptar los términos y condiciones para registrarte.");
+      return;
+    }
 
     if (!validarCorreo(correo)) {
       setError("El correo no tiene un formato válido.");
@@ -86,15 +92,14 @@ function Registro() {
         {/* Tarjeta central */}
         <div
           style={{
-            maxWidth: "540px",                 // ← antes 480px
+            maxWidth: "540px",
             margin: "0 auto",
             backgroundColor: "rgba(255, 255, 255, 0.95)",
-            padding: "40px 80px",              // ← antes 28px 24px
-            borderRadius: "20px",              // ← bordes un poco más suaves
+            padding: "40px 80px",
+            borderRadius: "20px",
             boxShadow: "0 4px 20px rgba(0, 0, 0, 0.18)",
-        }}
-      >
-
+          }}
+        >
           <div style={{ textAlign: "center", marginBottom: "20px" }}>
             <img src="/logo.svg" alt="Logo" style={{ height: "60px" }} />
           </div>
@@ -200,7 +205,7 @@ function Registro() {
               />
             </div>
 
-            <div style={{ marginBottom: "12px" }}>
+            <div style={{ marginBottom: "20px" }}>
               <label
                 style={{
                   display: "block",
@@ -222,6 +227,19 @@ function Registro() {
                   border: "1px solid #ccc",
                 }}
               />
+            </div>
+            
+            <div style={{ marginBottom: "20px", display: "flex", alignItems: "center" }}>
+              <input 
+                type="checkbox" 
+                id="condiciones"
+                checked={aceptaCondiciones}
+                onChange={(e) => setAceptaCondiciones(e.target.checked)}
+                style={{ margin: "0 10px 0 0" }}
+              />
+              <label htmlFor="condiciones" style={{ fontSize: "0.9rem", color: "#555" }}>
+                He leído y acepto los <Link to="/condiciones" target="_blank" rel="noopener noreferrer">Términos y Condiciones</Link>.
+              </label>
             </div>
 
             {error && (
