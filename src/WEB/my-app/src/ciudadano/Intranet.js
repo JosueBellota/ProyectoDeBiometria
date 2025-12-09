@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import HeaderRegistrado from "./templates/HeaderRegistrado";
 import "../css/main.css";
 import { MapContainer, TileLayer, CircleMarker, Popup, useMapEvents } from "react-leaflet";
@@ -11,6 +11,11 @@ const gandiaCenterLat = 38.96667;
 const gandiaCenterLng = -0.18333;
 
 const colorScales = {
+    'calidad': (medida) => {
+        if (medida === 1) return 'green'; // Bueno
+        if (medida === 2) return 'yellow'; // Aceptable
+        return 'red'; // Malo
+    },
     'co2': (medida) => {
         if (medida < 450) return 'green';
         if (medida <= 1000) return 'yellow';
@@ -27,6 +32,18 @@ const colorScales = {
         return 'red';
     }
 };
+
+const getSeverityLevel = (tipoSensor, medida) => {
+    const scale = colorScales[tipoSensor];
+    if (!scale) return 0; // Sin severidad
+
+    const color = scale(medida);
+    if (color === 'green') return 1; // Bueno
+    if (color === 'yellow') return 2; // Aceptable
+    if (color === 'red') return 3; // Malo
+    return 0;
+};
+
 
 const DynamicRadiusCircleMarkers = ({ lecturas }) => {
   const [zoomLevel, setZoomLevel] = useState(13);
@@ -76,6 +93,12 @@ const DynamicRadiusCircleMarkers = ({ lecturas }) => {
 
 
 const legendData = {
+    'calidad': {
+        title: 'Calidad del Aire General',
+        green: 'Verde: Buena',
+        yellow: 'Amarillo: Aceptable',
+        red: 'Rojo: Mala',
+    },
     'co2': {
         title: 'Dióxido de Carbono (CO2)',
         green: 'Verde: Concentración menor a 450',
@@ -115,8 +138,8 @@ const Legend = ({ sensor }) => {
 function Intranet() {
   const [featureIndex, setFeatureIndex] = useState(0);
   const [faqAbierta, setFaqAbierta] = useState(null);
-  const [mapView, setMapView] = useState('points');
-  const [selectedSensor, setSelectedSensor] = useState('');
+  const [mapView, setMapView] = useState('interpolation'); // Default to interpolation view
+  const [selectedSensor, setSelectedSensor] = useState('calidad'); // Default to 'calidad'
   const gandiaPosition = [38.96667, -0.18333];
   
   const [allLecturas, setAllLecturas] = useState([]);
@@ -131,17 +154,38 @@ function Intranet() {
   const [fechaFin, setFechaFin] = useState(hoy.toISOString().split('T')[0]);
   const [radio, setRadio] = useState(5000);
 
+  const airQualityPoints = useMemo(() => {
+    if (selectedSensor !== 'calidad') return [];
+
+    const pointsByLocation = {};
+
+    allLecturas.forEach(lectura => {
+        const key = `${lectura.latitud},${lectura.longitud}`;
+        const severity = getSeverityLevel(lectura.tipo_sensor.toLowerCase(), lectura.valor);
+
+        if (severity > (pointsByLocation[key]?.valor || 0)) {
+            pointsByLocation[key] = {
+                ...lectura,
+                valor: severity, // Aquí 'valor' es el nivel de severidad
+            };
+        }
+    });
+
+    return Object.values(pointsByLocation);
+  }, [allLecturas, selectedSensor]);
+
   const handleFiltrar = async () => {
     console.log("Botón 'Aplicar filtros' clickeado");
     setLoading(true);
-    setError(null); // Clear any previous errors
+    setError(null);
     const opciones = {
         latitud: gandiaCenterLat,
         longitud: gandiaCenterLng,
         radio: radio,
         fechaInicio: new Date(fechaInicio),
         fechaFin: new Date(fechaFin),
-        tiposensor: selectedSensor,
+        // Para 'calidad' no filtramos por tipo de sensor, los queremos todos
+        tiposensor: selectedSensor === 'calidad' ? '' : selectedSensor, 
     };
     console.log("Opciones de filtrado:", opciones);
     try {
@@ -165,12 +209,12 @@ function Intranet() {
   };
 
   useEffect(() => {
-    // handleFiltrar();
-  }, []); // Carga inicial de datos
+    handleFiltrar();
+  }, [selectedSensor]); // Refrescar datos cuando cambia el sensor
 
   const handleSensorChange = (event) => {
     setSelectedSensor(event.target.value);
-    setMapView('points');
+    // No cambiamos la vista, el usuario decide si ve puntos o interpolación
   };
 
   const siguienteFeature = () => {
@@ -188,6 +232,9 @@ function Intranet() {
   const toggleMapView = () => {
     setMapView(mapView === 'points' ? 'interpolation' : 'points');
   };
+  
+  const lecturasParaMapa = selectedSensor === 'calidad' ? airQualityPoints : allLecturas;
+
 
   return (
     <div className="home-page">
@@ -199,7 +246,7 @@ function Intranet() {
           <h1 className="home-hero-title">Tu ruta, tu aire, tu impacto.</h1>
           <div>
             <select onChange={handleSensorChange} value={selectedSensor}>
-                <option value="">Selecciona un sensor</option>
+                <option value="calidad">Calidad del Aire</option>
                 <option value="co2">CO2</option>
                 <option value="no2">NO2</option>
                 <option value="o3">O3</option>
@@ -218,10 +265,12 @@ function Intranet() {
                     <label className="form-label small">Radio: <strong>{(radio / 1000).toFixed(1)} km</strong></label>
                     <input type="range" className="form-range" min="500" max="50000" step="500" value={radio} onChange={e => setRadio(parseInt(e.target.value, 10))} />
                 </div>
+                 <div className="col-md-2 d-flex align-items-end">
+                    <button onClick={handleFiltrar} className="btn btn-primary w-100">Aplicar filtros</button>
+                </div>
             </div>
-            <button onClick={handleFiltrar}>Aplicar filtros</button>
             {error && <div className="alert alert-danger mt-3">{error}</div>}
-          <button onClick={toggleMapView} disabled={!selectedSensor}>
+          <button onClick={toggleMapView}>
             {mapView === 'points' ? "Mostrar Mapa de Interpolación" : "Mostrar Lecturas"}
           </button>
           <MapContainer center={gandiaPosition} zoom={13} className="home-main-map">
@@ -233,7 +282,7 @@ function Intranet() {
                 mapView === 'points' ? (
                 <DynamicRadiusCircleMarkers lecturas={allLecturas} />
                 ) : (
-                <InterpolationLayer lecturas={allLecturas} colorScale={colorScales[selectedSensor]}/>
+                <InterpolationLayer lecturas={lecturasParaMapa} colorScale={colorScales[selectedSensor]} isAirQualityView={selectedSensor === 'calidad'} />
                 )
             )}
              {mapView === 'interpolation' && <Legend sensor={selectedSensor} />}
@@ -321,8 +370,7 @@ function Intranet() {
 
         {/* Contacto */}
         <section className="home-contact">
-          <p>contacto@mail.com</p>
-        </section>
+          <p>contacto@mail.com</p>        </section>
 
         <footer className="home-footer">
           <span>GTI 2025©</span>
