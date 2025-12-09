@@ -43,7 +43,12 @@ const InterpolationLayer = ({ lecturas, colorScale: propColorScale, isAirQuality
       let interpolatedValue = 0;
       for (const triangle of tin.features) {
         if (turf.booleanPointInPolygon(point, triangle)) {
-          interpolatedValue = turf.planepoint(point, triangle);
+          const maxVertexValue = Math.max(
+              triangle.properties.a,
+              triangle.properties.b,
+              triangle.properties.c
+          );
+          interpolatedValue = maxVertexValue;
           break;
         }
       }
