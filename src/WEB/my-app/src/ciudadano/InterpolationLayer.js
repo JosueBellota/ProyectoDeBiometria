@@ -10,7 +10,7 @@ const InterpolationLayer = ({ lecturas, colorScale: propColorScale }) => {
     if (!map || lecturas.length < 3) return;
 
     const points = turf.featureCollection(
-      lecturas.map(l => turf.point([l.longitud, l.latitud], { value: l.medida }))
+      lecturas.map(l => turf.point([l.longitud, l.latitud], { value: l.valor }))
     );
 
     const tin = turf.tin(points, 'value');
@@ -57,7 +57,7 @@ const InterpolationLayer = ({ lecturas, colorScale: propColorScale }) => {
         });
 
         if (closestPoint) {
-            closestPoint.properties.value = lectura.medida;
+            closestPoint.properties.value = lectura.valor;
         }
     });
 

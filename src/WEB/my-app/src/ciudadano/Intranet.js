@@ -55,12 +55,12 @@ const DynamicRadiusCircleMarkers = ({ lecturas }) => {
     <>
       {lecturas.map(lectura => (
         <CircleMarker
-          key={lectura.id}
+          key={`${lectura.id}-${lectura.timestamp._seconds}-${lectura.latitud}-${lectura.longitud}`}
           center={[lectura.latitud, lectura.longitud]}
           radius={getRadius(zoomLevel)}
           pathOptions={{
-              color: getColor(lectura.valor, lectura.tipo_sensor),
-              fillColor: getColor(lectura.valor, lectura.tipo_sensor),
+              color: getColor(lectura.valor, lectura.tipo_sensor.toLowerCase()),
+              fillColor: getColor(lectura.valor, lectura.tipo_sensor.toLowerCase()),
               fillOpacity: 0.8
           }}
         >
@@ -116,7 +116,7 @@ function Intranet() {
   const [featureIndex, setFeatureIndex] = useState(0);
   const [faqAbierta, setFaqAbierta] = useState(null);
   const [mapView, setMapView] = useState('points');
-  const [selectedSensor, setSelectedSensor] = useState('co2');
+  const [selectedSensor, setSelectedSensor] = useState('');
   const gandiaPosition = [38.96667, -0.18333];
   
   const [allLecturas, setAllLecturas] = useState([]);
@@ -165,11 +165,12 @@ function Intranet() {
   };
 
   useEffect(() => {
-    handleFiltrar();
+    // handleFiltrar();
   }, []); // Carga inicial de datos
 
   const handleSensorChange = (event) => {
     setSelectedSensor(event.target.value);
+    setMapView('points');
   };
 
   const siguienteFeature = () => {
@@ -198,9 +199,10 @@ function Intranet() {
           <h1 className="home-hero-title">Tu ruta, tu aire, tu impacto.</h1>
           <div>
             <select onChange={handleSensorChange} value={selectedSensor}>
-                <option value="CO2">CO2</option>
-                <option value="NO2">NO2</option>
-                <option value="O3">O3</option>
+                <option value="">Selecciona un sensor</option>
+                <option value="co2">CO2</option>
+                <option value="no2">NO2</option>
+                <option value="o3">O3</option>
             </select>
           </div>
            <div className="row gx-2 gy-3 align-items-end">
@@ -219,7 +221,7 @@ function Intranet() {
             </div>
             <button onClick={handleFiltrar}>Aplicar filtros</button>
             {error && <div className="alert alert-danger mt-3">{error}</div>}
-          <button onClick={toggleMapView}>
+          <button onClick={toggleMapView} disabled={!selectedSensor}>
             {mapView === 'points' ? "Mostrar Mapa de Interpolación" : "Mostrar Lecturas"}
           </button>
           <MapContainer center={gandiaPosition} zoom={13} className="home-main-map">
