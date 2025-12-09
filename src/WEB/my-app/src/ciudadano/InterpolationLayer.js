@@ -3,8 +3,16 @@ import { useMap } from 'react-leaflet';
 import L from 'leaflet';
 import * as turf from '@turf/turf';
 
-const InterpolationLayer = ({ lecturas, colorScale: propColorScale }) => {
+const InterpolationLayer = ({ lecturas, colorScale: propColorScale, isAirQualityView }) => {
   const map = useMap();
+
+  const getAirQualityText = (value) => {
+      if (value === 1) return "Calidad de Aire: Buena";
+      if (value === 2) return "Calidad de Aire: Aceptable";
+      if (value === 3) return "Calidad de Aire: Mala";
+      // Fallback por si acaso
+      return `Nivel de severidad: ${value}`;
+  };
 
   useEffect(() => {
     if (!map || lecturas.length < 3) return;
@@ -42,7 +50,6 @@ const InterpolationLayer = ({ lecturas, colorScale: propColorScale }) => {
       point.properties.value = interpolatedValue;
     });
 
-    // Snap grid values to the nearest sensor readings
     lecturas.forEach(lectura => {
         const lecturaPoint = turf.point([lectura.longitud, lectura.latitud]);
         let closestPoint = null;
@@ -77,11 +84,19 @@ const InterpolationLayer = ({ lecturas, colorScale: propColorScale }) => {
         [point.geometry.coordinates[1] + cellHeight, point.geometry.coordinates[0] + cellWidth]
       );
       
-      return L.rectangle(cellBounds, {
+      const rectangle = L.rectangle(cellBounds, {
         color: color,
         weight: 0,
         fillOpacity: 0.3,
       });
+
+      const popupContent = isAirQualityView 
+        ? getAirQualityText(value) 
+        : `Valor: ${value.toFixed(2)}`;
+      
+      rectangle.bindPopup(popupContent);
+
+      return rectangle;
     }).filter(Boolean);
 
     const layerGroup = L.layerGroup(gridLayers).addTo(map);
@@ -89,7 +104,7 @@ const InterpolationLayer = ({ lecturas, colorScale: propColorScale }) => {
     return () => {
       map.removeLayer(layerGroup);
     };
-  }, [map, lecturas]);
+  }, [map, lecturas, isAirQualityView]); // Añadido isAirQualityView a las dependencias
 
   return null;
 };
