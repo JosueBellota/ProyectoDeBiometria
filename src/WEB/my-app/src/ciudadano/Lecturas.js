@@ -71,9 +71,9 @@ function GeneralSearchView({ misNodos }) {
                         <label className="form-label small">Tipo de Sensor</label>
                         <select className="form-select" value={tiposensor} onChange={e => setTipoSensor(e.target.value)}>
                             <option value="all">Todos</option>
-                            <option value="co2">CO2</option>
-                            <option value="temperatura">Temperatura</option>
-                            <option value="humedad">Humedad</option>
+                            <option value="CO2">CO2</option>
+                            <option value="NO2">Temperatura</option>
+                            <option value="O3">Humedad</option>
                         </select>
                     </div>
                     <div className="col-md-2">

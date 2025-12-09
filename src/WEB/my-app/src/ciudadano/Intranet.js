@@ -1,11 +1,3 @@
-// --------------------------------------------------------------------------
-// Fichero: Informacion.js
-// Responsable: Josue Bellota Ichaso
-//
-// Descripción:
-// Este fichero contiene la información para el ciudadano.
-// --------------------------------------------------------------------------
-
 import React, { useState, useEffect } from "react";
 import HeaderRegistrado from "./templates/HeaderRegistrado";
 import "../css/main.css";
@@ -13,112 +5,23 @@ import { MapContainer, TileLayer, CircleMarker, Popup, useMapEvents } from "reac
 import "leaflet/dist/leaflet.css";
 import InterpolationLayer from "./InterpolationLayer";
 import data from './FeaturesFaq.json';
+import { obtenerLecturas } from "./../logicaFake/logicaFake";
 
 const gandiaCenterLat = 38.96667;
 const gandiaCenterLng = -0.18333;
-const offset = 0.00225; // Approximately 0.25 km
-let idCounter = 0;
-
-const generateReadings = (type, count, options) => {
-    const readings = [];
-    let range;
-    // Values are generated to be around the color change thresholds
-    switch (type) {
-        case 'CO2':
-            range = { green: 400, yellow: 700, red: 1100 };
-            break;
-        case 'NO2':
-            range = { green: 80, yellow: 150, red: 220 };
-            break;
-        case 'O3':
-            range = { green: 100, yellow: 150, red: 190 };
-            break;
-        default:
-            range = { green: 0, yellow: 0, red: 0 };
-    }
-
-    const side = Math.ceil(Math.sqrt(count));
-    for (let i = 0; i < count; i++) {
-        let lat, lng;
-        const row = Math.floor(i / side);
-        const col = i % side;
-
-        lat = gandiaCenterLat + (row - side / 2) * offset * 0.5 + options.latOffset;
-        lng = gandiaCenterLng + (col - side / 2) * offset * 0.5 + options.lngOffset;
-
-
-        let medida;
-        const third = count / 3;
-        if (i < third) {
-            medida = range.green + (Math.random() - 0.5) * 50;
-        } else if (i < 2 * third) {
-            medida = range.yellow + (Math.random() - 0.5) * 50;
-        } else {
-            medida = range.red + (Math.random() - 0.5) * 50;
-        }
-        medida = Math.max(0, Math.round(medida));
-
-        const randomDate = new Date(Date.now() - Math.random() * 24 * 60 * 60 * 1000);
-        const fecha = randomDate.toLocaleString();
-
-        readings.push({
-            id: idCounter++,
-            latitud: lat,
-            longitud: lng,
-            medida: medida,
-            fecha: fecha,
-            tipoSensor: type,
-        });
-    }
-
-    const extraPoints = 10;
-    const awayOffset = offset * 4; // 1km
-
-    for (let i = 0; i < extraPoints; i++) {
-        let lat, lng;
-        const angle = (i / extraPoints) * 2 * Math.PI;
-        lat = gandiaCenterLat + options.latOffset + Math.cos(angle) * awayOffset;
-        lng = gandiaCenterLng + options.lngOffset + Math.sin(angle) * awayOffset;
-
-        let medida = range.green + (Math.random() - 0.5) * 20; // mostly green
-        medida = Math.max(0, Math.round(medida));
-
-        const randomDate = new Date(Date.now() - Math.random() * 24 * 60 * 60 * 1000);
-        const fecha = randomDate.toLocaleString();
-
-        readings.push({
-            id: idCounter++,
-            latitud: lat,
-            longitud: lng,
-            medida: medida,
-            fecha: fecha,
-            tipoSensor: type,
-        });
-    }
-
-
-    return readings;
-};
-
-const mockLecturas = [
-    ...generateReadings('CO2', 30, { latOffset: 0, lngOffset: 0 }),
-    ...generateReadings('NO2', 30, { latOffset: offset * 0.3, lngOffset: offset * 0.3 }),
-    ...generateReadings('O3', 30, { latOffset: -offset * 0.3, lngOffset: -offset * 0.3 }),
-];
-
 
 const colorScales = {
-    'CO2': (medida) => {
+    'co2': (medida) => {
         if (medida < 450) return 'green';
         if (medida <= 1000) return 'yellow';
         return 'red';
     },
-    'NO2': (medida) => {
+    'no2': (medida) => {
         if (medida < 100) return 'green';
         if (medida <= 200) return 'yellow';
         return 'red';
     },
-    'O3': (medida) => {
+    'o3': (medida) => {
         if (medida < 120) return 'green';
         if (medida <= 180) return 'yellow';
         return 'red';
@@ -126,7 +29,7 @@ const colorScales = {
 };
 
 const DynamicRadiusCircleMarkers = ({ lecturas }) => {
-  const [zoomLevel, setZoomLevel] = useState(13); // Initial zoom level
+  const [zoomLevel, setZoomLevel] = useState(13);
 
   const mapEvents = useMapEvents({
     zoomend: () => {
@@ -156,14 +59,14 @@ const DynamicRadiusCircleMarkers = ({ lecturas }) => {
           center={[lectura.latitud, lectura.longitud]}
           radius={getRadius(zoomLevel)}
           pathOptions={{
-              color: getColor(lectura.medida, lectura.tipoSensor),
-              fillColor: getColor(lectura.medida, lectura.tipoSensor),
+              color: getColor(lectura.valor, lectura.tipo_sensor),
+              fillColor: getColor(lectura.valor, lectura.tipo_sensor),
               fillOpacity: 0.8
           }}
         >
           <Popup>
-            {lectura.tipoSensor}: {lectura.medida.toFixed(2)} <br />
-            Tiempo: {lectura.fecha}
+            {lectura.tipo_sensor.toUpperCase()}: {lectura.valor.toFixed(2)} <br />
+            Tiempo: {new Date(lectura.timestamp._seconds * 1000).toLocaleString()}
           </Popup>
         </CircleMarker>
       ))}
@@ -173,19 +76,19 @@ const DynamicRadiusCircleMarkers = ({ lecturas }) => {
 
 
 const legendData = {
-    'CO2': {
+    'co2': {
         title: 'Dióxido de Carbono (CO2)',
         green: 'Verde: Concentración menor a 450',
         yellow: 'Amarillo: Concentración de 450 a 1000',
         red: 'Rojo: Concentración mayor a 1000',
     },
-    'NO2': {
+    'no2': {
         title: 'Dióxido de Nitrógeno (NO2)',
         green: 'Verde: Concentración menor a 100',
         yellow: 'Amarillo: Concentración de 100 a 200',
         red: 'Rojo: Concentración mayor a 200',
     },
-    'O3': {
+    'o3': {
         title: 'Ozono (O3)',
         green: 'Verde: Concentración menor a 120',
         yellow: 'Amarillo: Concentración de 120 a 180',
@@ -194,6 +97,7 @@ const legendData = {
 };
 
 const Legend = ({ sensor }) => {
+    console.log("Sensor for legend: ", sensor);
     const data = legendData[sensor];
     if (!data) return null;
 
@@ -211,15 +115,62 @@ const Legend = ({ sensor }) => {
 function Intranet() {
   const [featureIndex, setFeatureIndex] = useState(0);
   const [faqAbierta, setFaqAbierta] = useState(null);
-  const [mapView, setMapView] = useState('points'); // 'points' or 'interpolation'
-  const [selectedSensor, setSelectedSensor] = useState('CO2');
+  const [mapView, setMapView] = useState('points');
+  const [selectedSensor, setSelectedSensor] = useState('co2');
   const gandiaPosition = [38.96667, -0.18333];
+  
+  const [allLecturas, setAllLecturas] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null); // New state for error handling
+
+  const hoy = new Date();
+  const semanaPasada = new Date();
+  semanaPasada.setDate(hoy.getDate() - 7);
+
+  const [fechaInicio, setFechaInicio] = useState(semanaPasada.toISOString().split('T')[0]);
+  const [fechaFin, setFechaFin] = useState(hoy.toISOString().split('T')[0]);
+  const [radio, setRadio] = useState(5000);
+
+  const handleFiltrar = async () => {
+    console.log("Botón 'Aplicar filtros' clickeado");
+    setLoading(true);
+    setError(null); // Clear any previous errors
+    const opciones = {
+        latitud: gandiaCenterLat,
+        longitud: gandiaCenterLng,
+        radio: radio,
+        fechaInicio: new Date(fechaInicio),
+        fechaFin: new Date(fechaFin),
+        tiposensor: selectedSensor,
+    };
+    console.log("Opciones de filtrado:", opciones);
+    try {
+        const res = await obtenerLecturas(opciones);
+        console.log("Respuesta de obtenerLecturas:", res);
+        if (res.error) {
+            console.error("❌ Error al obtener lecturas en la fase de filtrado:", res.error);
+            setError(res.error);
+            setAllLecturas([]); 
+        } else {
+            console.log("Lecturas actualizadas:", res);
+            setAllLecturas(res);
+        }
+    } catch (err) {
+        console.error("❌ Error inesperado durante el filtrado de lecturas:", err.message);
+        setError(err.message);
+        setAllLecturas([]); 
+    } finally {
+        setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    handleFiltrar();
+  }, []); // Carga inicial de datos
 
   const handleSensorChange = (event) => {
     setSelectedSensor(event.target.value);
   };
-
-  const filteredLecturas = mockLecturas.filter(l => l.tipoSensor === selectedSensor);
 
   const siguienteFeature = () => {
     setFeatureIndex((prev) => (prev + 1) % data.features.length);
@@ -252,6 +203,22 @@ function Intranet() {
                 <option value="O3">O3</option>
             </select>
           </div>
+           <div className="row gx-2 gy-3 align-items-end">
+                <div className="col-md-3">
+                    <label className="form-label small">Fecha Inicio</label>
+                    <input type="date" className="form-control" value={fechaInicio} onChange={e => setFechaInicio(e.target.value)} />
+                </div>
+                <div className="col-md-3">
+                    <label className="form-label small">Fecha Fin</label>
+                    <input type="date" className="form-control" value={fechaFin} onChange={e => setFechaFin(e.target.value)} />
+                </div>
+                <div className="col-md-2">
+                    <label className="form-label small">Radio: <strong>{(radio / 1000).toFixed(1)} km</strong></label>
+                    <input type="range" className="form-range" min="500" max="50000" step="500" value={radio} onChange={e => setRadio(parseInt(e.target.value, 10))} />
+                </div>
+            </div>
+            <button onClick={handleFiltrar}>Aplicar filtros</button>
+            {error && <div className="alert alert-danger mt-3">{error}</div>}
           <button onClick={toggleMapView}>
             {mapView === 'points' ? "Mostrar Mapa de Interpolación" : "Mostrar Lecturas"}
           </button>
@@ -260,10 +227,12 @@ function Intranet() {
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
               attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
             />
-            {mapView === 'points' ? (
-              <DynamicRadiusCircleMarkers lecturas={filteredLecturas} />
-            ) : (
-              <InterpolationLayer lecturas={filteredLecturas} colorScale={colorScales[selectedSensor]}/>
+            {loading ? <p>Cargando...</p> : (
+                mapView === 'points' ? (
+                <DynamicRadiusCircleMarkers lecturas={allLecturas} />
+                ) : (
+                <InterpolationLayer lecturas={allLecturas} colorScale={colorScales[selectedSensor]}/>
+                )
             )}
              {mapView === 'interpolation' && <Legend sensor={selectedSensor} />}
           </MapContainer>
