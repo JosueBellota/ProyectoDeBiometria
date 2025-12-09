@@ -42,6 +42,25 @@ const InterpolationLayer = ({ lecturas, colorScale: propColorScale }) => {
       point.properties.value = interpolatedValue;
     });
 
+    // Snap grid values to the nearest sensor readings
+    lecturas.forEach(lectura => {
+        const lecturaPoint = turf.point([lectura.longitud, lectura.latitud]);
+        let closestPoint = null;
+        let minDistance = Infinity;
+
+        grid.features.forEach(gridPoint => {
+            const distance = turf.distance(lecturaPoint, gridPoint);
+            if (distance < minDistance) {
+                minDistance = distance;
+                closestPoint = gridPoint;
+            }
+        });
+
+        if (closestPoint) {
+            closestPoint.properties.value = lectura.medida;
+        }
+    });
+
     const colorScale = propColorScale || ((value) => {
         if (value <= 30) return "green";
         if (value <= 60) return "yellow";

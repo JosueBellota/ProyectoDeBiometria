@@ -685,7 +685,7 @@ button,
 
   .header-registrado-right {
     position: absolute;
-    top: 68px; /* Ajustado para el nuevo tama�o del logo */
+    top: 68px; /* Ajustado para el nuevo tamao del logo */
     right: 0;
     left: 0;
     background-color: var(--color-primary);
@@ -715,4 +715,31 @@ button,
   .header-registrado-perfil-link {
     flex-direction: column;
   }
+}
+
+.info-legend {
+    position: absolute;
+    bottom: 20px;
+    right: 20px;
+    background-color: white;
+    padding: 10px;
+    border-radius: 5px;
+    z-index: 1000;
+}
+
+@media (max-width: 768px) {
+    .info-legend {
+        bottom: auto;
+        top: 10px;
+        right: 10px;
+        padding: 5px;
+        font-size: 0.8em;
+    }
+    .info-legend h4 {
+        font-size: 1em;
+        margin: 0 0 5px;
+    }
+    .info-legend p {
+        margin: 2px 0;
+    }
 }

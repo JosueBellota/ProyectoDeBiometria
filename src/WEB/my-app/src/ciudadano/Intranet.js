@@ -172,22 +172,54 @@ const DynamicRadiusCircleMarkers = ({ lecturas }) => {
 };
 
 
+const legendData = {
+    'CO2': {
+        title: 'Dióxido de Carbono (CO2)',
+        green: 'Verde: Concentración menor a 450',
+        yellow: 'Amarillo: Concentración de 450 a 1000',
+        red: 'Rojo: Concentración mayor a 1000',
+    },
+    'NO2': {
+        title: 'Dióxido de Nitrógeno (NO2)',
+        green: 'Verde: Concentración menor a 100',
+        yellow: 'Amarillo: Concentración de 100 a 200',
+        red: 'Rojo: Concentración mayor a 200',
+    },
+    'O3': {
+        title: 'Ozono (O3)',
+        green: 'Verde: Concentración menor a 120',
+        yellow: 'Amarillo: Concentración de 120 a 180',
+        red: 'Rojo: Concentración mayor a 180',
+    }
+};
+
+const Legend = ({ sensor }) => {
+    const data = legendData[sensor];
+    if (!data) return null;
+
+    return (
+        <div className="info-legend">
+            <h4>{data.title}</h4>
+            <p><span style={{backgroundColor: 'rgba(0, 128, 0, 0.3)', width: '20px', height: '20px', display: 'inline-block', marginRight: '10px'}}></span>{data.green}</p>
+            <p><span style={{backgroundColor: 'rgba(255, 255, 0, 0.3)', width: '20px', height: '20px', display: 'inline-block', marginRight: '10px'}}></span>{data.yellow}</p>
+            <p><span style={{backgroundColor: 'rgba(255, 0, 0, 0.3)', width: '20px', height: '20px', display: 'inline-block', marginRight: '10px'}}></span>{data.red}</p>
+        </div>
+    );
+};
+
+
 function Intranet() {
   const [featureIndex, setFeatureIndex] = useState(0);
   const [faqAbierta, setFaqAbierta] = useState(null);
   const [mapView, setMapView] = useState('points'); // 'points' or 'interpolation'
-  const [selectedSensors, setSelectedSensors] = useState(['CO2', 'NO2', 'O3']);
+  const [selectedSensor, setSelectedSensor] = useState('CO2');
   const gandiaPosition = [38.96667, -0.18333];
 
-  const handleSensorChange = (sensor) => {
-    setSelectedSensors(prev =>
-        prev.includes(sensor)
-            ? prev.filter(s => s !== sensor)
-            : [...prev, sensor]
-    );
+  const handleSensorChange = (event) => {
+    setSelectedSensor(event.target.value);
   };
 
-  const filteredLecturas = mockLecturas.filter(l => selectedSensors.includes(l.tipoSensor));
+  const filteredLecturas = mockLecturas.filter(l => l.tipoSensor === selectedSensor);
 
   const siguienteFeature = () => {
     setFeatureIndex((prev) => (prev + 1) % data.features.length);
@@ -202,10 +234,6 @@ function Intranet() {
   };
 
   const toggleMapView = () => {
-    if (mapView === 'points' && selectedSensors.length > 1) {
-      alert("solo puede seleccionar una lectura a la vez");
-      return;
-    }
     setMapView(mapView === 'points' ? 'interpolation' : 'points');
   };
 
@@ -218,9 +246,11 @@ function Intranet() {
         <section className="home-hero">
           <h1 className="home-hero-title">Tu ruta, tu aire, tu impacto.</h1>
           <div>
-            <label><input type="checkbox" checked={selectedSensors.includes('CO2')} onChange={() => handleSensorChange('CO2')} /> CO2</label>
-            <label><input type="checkbox" checked={selectedSensors.includes('NO2')} onChange={() => handleSensorChange('NO2')} /> NO2</label>
-            <label><input type="checkbox" checked={selectedSensors.includes('O3')} onChange={() => handleSensorChange('O3')} /> O3</label>
+            <select onChange={handleSensorChange} value={selectedSensor}>
+                <option value="CO2">CO2</option>
+                <option value="NO2">NO2</option>
+                <option value="O3">O3</option>
+            </select>
           </div>
           <button onClick={toggleMapView}>
             {mapView === 'points' ? "Mostrar Mapa de Interpolación" : "Mostrar Lecturas"}
@@ -233,8 +263,9 @@ function Intranet() {
             {mapView === 'points' ? (
               <DynamicRadiusCircleMarkers lecturas={filteredLecturas} />
             ) : (
-              <InterpolationLayer lecturas={filteredLecturas} colorScale={colorScales[selectedSensors[0]]}/>
+              <InterpolationLayer lecturas={filteredLecturas} colorScale={colorScales[selectedSensor]}/>
             )}
+             {mapView === 'interpolation' && <Legend sensor={selectedSensor} />}
           </MapContainer>
         </section>
 
