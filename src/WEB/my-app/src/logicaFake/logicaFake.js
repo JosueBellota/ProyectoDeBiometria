@@ -31,7 +31,7 @@ export async function obtenerLecturas(opciones) {
 
     // Filtrado por tipo de sensor en el cliente
     if (opciones.tiposensor && opciones.tiposensor !== 'all') {
-      data = data.filter(lectura => lectura.tipo_sensor === opciones.tiposensor);
+      data = data.filter(lectura => lectura.tipo_sensor.toLowerCase() === opciones.tiposensor.toLowerCase());
     }
 
     return data;

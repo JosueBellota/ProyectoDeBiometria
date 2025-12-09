@@ -1,201 +1,286 @@
 // --------------------------------------------------------------------------
-// Fichero: Informacion.js
+// Fichero: Intranet.js
 // Responsable: Josue Bellota Ichaso
 //
 // Descripción:
-// Este fichero contiene la información para el ciudadano.
+// Este fichero contiene la información sobre la calidad del aire para el ciudadano.
 // --------------------------------------------------------------------------
 
-import React, { useState } from "react";
+import React from "react";
+import "./css/intranet.css";
 import HeaderRegistrado from "./templates/HeaderRegistrado";
-import "../css/main.css";
 
-const features = [
+const contaminantes = [
   {
-    id: 0,
-    titulo: "Recorrido y trazado personal",
-    texto:
-      "Visualiza las rutas que recorres y cómo varían las condiciones ambientales a lo largo del camino. Transforma tus pasos en datos útiles para mejorar la ciudad.",
-    img: "/recorrido.png",
-    alt: "Mapa con un recorrido marcado"
+    id: "no2",
+    nombre: "Dióxido de nitrógeno",
+    abreviatura: "NO₂",
+    descripcionCorta: "Gas irritante asociado principalmente al tráfico.",
+    resumenRapido:
+      "Riesgo alto en calles con mucho tráfico. Afecta sobre todo a niños, personas con asma y mayores.",
+    fuentes: ["Vehículos diésel", "Calefacciones de gas", "Algunas industrias"],
+    efectos: [
+      "Aumenta las crisis de asma",
+      "Irritación de vías respiratorias",
+      "Problemas respiratorios en niños",
+    ],
+    valoresRecomendados: [
+      {
+        tipo: "Recomendado (anual)",
+        valor: "10",
+        unidad: "µg/m³",
+        periodo: "1 año",
+        fuente: "OMS 2021 (guía)",
+      },
+      {
+        tipo: "Recomendado (diario)",
+        valor: "25",
+        unidad: "µg/m³",
+        periodo: "24 h",
+        fuente: "OMS 2021 (guía)",
+      },
+    ],
+    valoresMaximos: [
+      {
+        tipo: "Límite UE (anual)",
+        valor: "40",
+        unidad: "µg/m³",
+        periodo: "1 año",
+        fuente: "Directiva calidad del aire",
+      },
+      {
+        tipo: "Límite UE (1 h)",
+        valor: "200",
+        unidad: "µg/m³",
+        periodo: "1 h",
+        extra: "no más de 18 superaciones/año",
+        fuente: "Directiva calidad del aire",
+      },
+    ],
+    consejos: [
+      "Evita esperar junto al tubo de escape de los coches.",
+      "Siempre que puedas, elige rutas más alejadas de avenidas principales.",
+    ],
   },
   {
-    id: 1,
-    titulo: "Información meteorológica en el mapa",
-    texto:
-      "Lleva tu nodo y observa en tiempo real la temperatura, el aire o el CO₂ de tu entorno. Contribuye a un mapa colectivo que muestra cómo respira la ciudad.",
-    img: "/informacion.png",
-    alt: "Mapa con información meteorológica"
+    id: "o3",
+    nombre: "Ozono troposférico",
+    abreviatura: "O₃",
+    descripcionCorta:
+      "Gas oxidante que se forma por reacción del sol con otros contaminantes.",
+    resumenRapido:
+      "Riesgo mayor en días calurosos y soleados. Afecta a personas activas al aire libre y con problemas respiratorios.",
+    fuentes: [
+      "No se emite directamente",
+      "Se forma a partir de NOx y COVs con sol y calor",
+    ],
+    efectos: [
+      "Irritación de ojos y garganta",
+      "Reducción temporal de la función pulmonar",
+      "Mayor molestia al hacer ejercicio intenso",
+    ],
+    valoresRecomendados: [
+      {
+        tipo: "Recomendado (máx. 8 h)",
+        valor: "100",
+        unidad: "µg/m³",
+        periodo: "8 h",
+        fuente: "OMS 2021 (guía)",
+      },
+    ],
+    valoresMaximos: [
+      {
+        tipo: "Valor objetivo UE (máx. 8 h)",
+        valor: "120",
+        unidad: "µg/m³",
+        periodo: "8 h",
+        extra: "media sobre 3 años",
+        fuente: "Directiva calidad del aire",
+      },
+    ],
+    consejos: [
+      "En días calurosos, mejor hacer deporte temprano por la mañana.",
+      "Evita correr al aire libre por la tarde en episodios de ozono.",
+    ],
   },
   {
-    id: 2,
-    titulo: "Gráficas y análisis de datos",
-    texto:
-      "Consulta gráficos con las mediciones de tu nodo. Detecta patrones, compara zonas y comprende mejor el ambiente que te rodea.",
-    img: "/grafica.png",
-    alt: "Gráficas de datos ambientales"
-  }
+    id: "co",
+    nombre: "Monóxido de carbono",
+    abreviatura: "CO",
+    descripcionCorta:
+      "Gas tóxico que reduce la capacidad de la sangre para transportar oxígeno.",
+    resumenRapido:
+      "Riesgo alto en espacios cerrados mal ventilados con motores o combustión. Peligroso para todo el mundo.",
+    fuentes: [
+      "Motores de gasolina",
+      "Calderas y estufas en mal estado",
+      "Incendios y combustión incompleta",
+    ],
+    efectos: [
+      "Dolor de cabeza, mareos",
+      "Náuseas, debilidad",
+      "A niveles altos: riesgo grave para la vida",
+    ],
+    valoresRecomendados: [
+      {
+        tipo: "Recomendado (8 h)",
+        valor: "10",
+        unidad: "mg/m³",
+        periodo: "8 h",
+        fuente: "OMS (guía)",
+      },
+    ],
+    valoresMaximos: [
+      {
+        tipo: "Valor guía típico (1 h)",
+        valor: "30",
+        unidad: "mg/m³",
+        periodo: "1 h",
+        fuente: "Referencias sanitarias",
+      },
+    ],
+    consejos: [
+      "Evita zonas poco ventiladas con motores encendidos (garajes, túneles).",
+      "En casa, revisa periódicamente calderas y estufas.",
+    ],
+  },
+  {
+    id: "so2",
+    nombre: "Dióxido de azufre",
+    abreviatura: "SO₂",
+    descripcionCorta:
+      "Gas procedente de combustibles con azufre y algunas actividades industriales.",
+    resumenRapido:
+      "Riesgo localizado cerca de zonas industriales. Afecta sobre todo a personas con asma.",
+    fuentes: ["Centrales térmicas", "Algunas industrias", "Volcanes"],
+    efectos: [
+      "Tos y dificultad respiratoria",
+      "Empeoramiento del asma",
+      "Irritación de ojos y garganta",
+    ],
+    valoresRecomendados: [
+      {
+        tipo: "Recomendado (24 h)",
+        valor: "40",
+        unidad: "µg/m³",
+        periodo: "24 h",
+        fuente: "OMS 2021 (guía)",
+      },
+    ],
+    valoresMaximos: [
+      {
+        tipo: "Límite UE (1 h)",
+        valor: "350",
+        unidad: "µg/m³",
+        periodo: "1 h",
+        extra: "no más de 24 superaciones/año",
+        fuente: "Directiva calidad del aire",
+      },
+      {
+        tipo: "Valor límite (24 h)",
+        valor: "125",
+        unidad: "µg/m³",
+        periodo: "24 h",
+        extra: "no más de 3 superaciones/año",
+        fuente: "Directiva calidad del aire",
+      },
+    ],
+    consejos: [
+      "Evita ejercicio intenso cerca de zonas industriales en días de mala dispersión.",
+      "Consulta los avisos locales si vives cerca de un área industrial.",
+    ],
+  },
 ];
 
-const faqs = [
-  {
-    pregunta: "1. ¿Qué es un nodo y para qué sirve?",
-    respuesta:
-      "Un nodo es un pequeño dispositivo portátil que mide diferentes parámetros ambientales como temperatura, humedad o concentración de CO₂. Sirve para recoger datos mientras te desplazas por la ciudad."
-  },
-  {
-    pregunta: "2. ¿Quién puede solicitar un nodo?",
-    respuesta:
-      "Cualquier ciudadano interesado, así como centros educativos, asociaciones o administraciones locales que quieran participar en la monitorización del aire."
-  },
-  {
-    pregunta: "3. ¿Necesito tener conocimientos técnicos para usarlo?",
-    respuesta:
-      "No. El nodo está pensado para ser sencillo: solo tienes que llevarlo contigo encendido. La aplicación se encarga de procesar y mostrar los datos."
-  },
-  {
-    pregunta: "4. ¿Qué información puedo ver en la aplicación?",
-    respuesta:
-      "Podrás ver tus recorridos, las mediciones asociadas a cada tramo, mapas de calor y gráficos que resumen el comportamiento de las variables ambientales."
-  },
-  {
-    pregunta: "5. ¿Qué diferencia hay entre usuarios registrados y no registrados?",
-    respuesta:
-      "Los usuarios registrados pueden vincular un nodo, guardar su historial de rutas, descargar datos y personalizar alertas. Los no registrados solo pueden explorar mapas y estadísticas generales."
-  },
-  {
-    pregunta: "6. ¿Qué pasa con mis datos personales?",
-    respuesta:
-      "Solo almacenamos los datos imprescindibles para el funcionamiento del servicio. Las rutas se anonimizan y puedes solicitar la eliminación de tu cuenta y tus datos en cualquier momento."
-  },
-  {
-    pregunta: "7. ¿Es necesario registrarse para ver los datos?",
-    respuesta:
-      "No. Puedes consultar mapas y estadísticas públicas sin registrarte. El registro solo es necesario si quieres asociar un nodo y guardar tu información personal de uso."
-  }
-];
-
-function Informacion() {
-  const [featureIndex, setFeatureIndex] = useState(0);
-  const [faqAbierta, setFaqAbierta] = useState(null);
-
-  const siguienteFeature = () => {
-    setFeatureIndex((prev) => (prev + 1) % features.length);
-  };
-
-  const anteriorFeature = () => {
-    setFeatureIndex((prev) => (prev - 1 + features.length) % features.length);
-  };
-
-  const toggleFaq = (index) => {
-    setFaqAbierta((prev) => (prev === index ? null : index));
-  };
-
+export default function Informacion() {
   return (
-    <div
-      className="home-page"
-      style={{
-        width: "100%",
-        minHeight: "100vh",
-        backgroundImage: "url(/Fondo.png)",
-        backgroundSize: "cover",
-        backgroundPosition: "center",
-        backgroundRepeat: "no-repeat"
-      }}
-    >
+    <>
       <HeaderRegistrado />
 
-      <main className="home-content">
-        {/* Hero */}
-        <section className="home-hero">
-          <h1 className="home-hero-title">Tu ruta, tu aire, tu impacto.</h1>
-          <img
-            src="/mapaMain.png"
-            alt="Mapa principal de la ciudad"
-            className="home-main-map"
-          />
-        </section>
+      <div className="intranet-container">
+        <div className="intranet-content-block">
+          <h1 className="intranet-title">
+            Guía de calidad del aire
+          </h1>
 
-        {/* Cómo funciona nuestro servicio */}
-        <section className="home-how">
-          <h2 className="home-how-title">¿Cómo funciona nuestro servicio?</h2>
+          <p className="intranet-subtitle">
+            Consulta los principales contaminantes, sus efectos en la salud, los
+            valores recomendados, los valores máximos permitidos y consejos para
+            protegerte en tu día a día.
+          </p>
 
-          {/* Versión escritorio: tres tarjetas */}
-          <div className="home-features-desktop">
-            {features.map((f) => (
-              <article key={f.id} className="home-feature-card">
-                <img src={f.img} alt={f.alt} className="home-feature-image" />
-                <h3 className="home-feature-title">{f.titulo}</h3>
-                <p className="home-feature-text">{f.texto}</p>
-              </article>
-            ))}
-          </div>
+          <div className="contaminantes-grid">
+            {contaminantes.map((c) => (
+              <div key={c.id} className="medida-card">
+                <h2>
+                  {c.nombre}{" "}
+                  <span className="abreviatura-span">
+                    {c.abreviatura}
+                  </span>
+                </h2>
 
-          {/* Versión móvil: slider con flechas */}
-          <div className="home-features-mobile">
-            <button
-              type="button"
-              className="home-feature-arrow"
-              onClick={anteriorFeature}
-              aria-label="Anterior"
-            >
-              ‹
-            </button>
+                <p className="descripcion-corta">
+                  {c.descripcionCorta}
+                </p>
 
-            <article className="home-feature-card mobile">
-              <img
-                src={features[featureIndex].img}
-                alt={features[featureIndex].alt}
-                className="home-feature-image"
-              />
-              <h3 className="home-feature-title">
-                {features[featureIndex].titulo}
-              </h3>
-              <p className="home-feature-text">
-                {features[featureIndex].texto}
-              </p>
-            </article>
+                <p className="resumen-rapido">
+                  <strong>Resumen rápido: </strong>
+                  {c.resumenRapido}
+                </p>
 
-            <button
-              type="button"
-              className="home-feature-arrow"
-              onClick={siguienteFeature}
-              aria-label="Siguiente"
-            >
-              ›
-            </button>
-          </div>
-        </section>
+                <h3>🌬 Fuentes típicas</h3>
+                <ul>
+                  {c.fuentes.map((f, i) => (
+                    <li key={i}>{f}</li>
+                  ))}
+                </ul>
 
-        {/* FAQ */}
-        <section className="home-faq-section">
-          <h2 className="home-faq-title">FAQ</h2>
+                <h3>❤️ Efectos en la salud</h3>
+                <ul>
+                  {c.efectos.map((e, i) => (
+                    <li key={i}>{e}</li>
+                  ))}
+                </ul>
 
-          <div className="home-faq-list">
-            {faqs.map((item, index) => (
-              <div
-                key={index}
-                className={`faq-item ${faqAbierta === index ? "open" : ""}`}
-              >
-                <button
-                  type="button"
-                  className="faq-question"
-                  onClick={() => toggleFaq(index)}
-                >
-                  <span>{item.pregunta}</span>
-                  <span className="faq-toggle-icon">⌄</span>
-                </button>
-                {faqAbierta === index && (
-                  <div className="faq-answer">
-                    <p>{item.respuesta}</p>
+                <div className="valores-grid">
+                  <div className="valores-recomendados-card">
+                    <h3>📏 Valores recomendados</h3>
+                    <ul>
+                      {c.valoresRecomendados.map((v, i) => (
+                        <li key={i}>
+                          <strong>{v.tipo}:</strong> {v.valor} {v.unidad} (
+                          {v.periodo}) {" – "}
+                          {v.fuente}
+                        </li>
+                      ))}
+                    </ul>
                   </div>
-                )}
+
+                  <div className="valores-maximos-card">
+                    <h3>⚠️ Valores máximos permitidos</h3>
+                    <ul>
+                      {c.valoresMaximos.map((v, i) => (
+                        <li key={i}>
+                          <strong>{v.tipo}:</strong> {v.valor} {v.unidad} (
+                          {v.periodo})
+                          {v.extra ? ` – ${v.extra}` : ""} {" – "}
+                          {v.fuente}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+
+                <h3>💡 Consejos prácticos</h3>
+                <ul>
+                  {c.consejos.map((consejo, i) => (
+                    <li key={i}>{consejo}</li>
+                  ))}
+                </ul>
               </div>
             ))}
           </div>
-        </section>
-
-        {/* Contacto */}
+        </div>
         <section className="home-contact">
           <p>contacto@mail.com</p>
         </section>
@@ -203,9 +288,7 @@ function Informacion() {
         <footer className="home-footer">
           <span>GTI 2025©</span>
         </footer>
-      </main>
-    </div>
+      </div>
+    </>
   );
 }
-
-export default Informacion;
