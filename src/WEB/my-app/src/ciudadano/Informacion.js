@@ -108,7 +108,7 @@ export default function Informacion() {
                 </ul>
 
                 <div className="rangos-card">
-                    <h3>📊 Rangos del Mapa</h3>
+                    <h3>📊 Rangos permitidos en España</h3>
                     <ul style={{listStyle: 'none', paddingLeft: 0}}>
                       {c.rangos.map((r, i) => (
                         <li key={i} style={{display: 'flex', alignItems: 'center', marginBottom: '8px', fontSize: '1.05rem'}}>
