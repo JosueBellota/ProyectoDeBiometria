@@ -7,122 +7,82 @@ const InterpolationLayer = ({ lecturas, colorScale: propColorScale, isAirQuality
   const map = useMap();
 
   const getAirQualityText = (value) => {
-    if (value === 1) return "Calidad de Aire: Buena";
-    if (value === 2) return "Calidad de Aire: Aceptable";
-    if (value === 3) return "Calidad de Aire: Mala";
+    if (value === 1) return "Calidad de Aire: Recomendable";
+    if (value === 2) return "Calidad de Aire: Máximo Permitido";
+    if (value === 3) return "Calidad de Aire: Peligroso";
     return `Nivel de severidad: ${value}`;
   };
 
   useEffect(() => {
     if (!map || lecturas.length < 1) return;
 
-    // ---------------------------------------------------------
-    // 0. CONFIGURACIÓN VISUAL "NUBE SUAVIZADA"
-    // ---------------------------------------------------------
-    // Creamos un Pane personalizado para manejar la opacidad globalmente.
-    // Esto evita que las uniones entre polígonos se vean más oscuras (doble opacidad)
-    // o blancas (huecos), creando un efecto de "nube" uniforme.
-    const PANE_NAME = 'interpolation-cloud-pane';
+    // 0. CONFIGURACIÓN VISUAL
+    const PANE_NAME = 'interpolation-pixel-pane';
     if (!map.getPane(PANE_NAME)) {
         map.createPane(PANE_NAME);
         const pane = map.getPane(PANE_NAME);
-        pane.style.opacity = '0.65'; // Opacidad global de la nube
-        pane.style.zIndex = '350';   // Debajo de los marcadores (suele ser 600)
+        pane.style.opacity = '0.55'; 
+        pane.style.zIndex = '350';
     }
 
-    // ---------------------------------------------------------
     // 1. PREPARACIÓN DE DATOS
-    // ---------------------------------------------------------
     const points = turf.featureCollection(
-      lecturas.map(l => turf.point([l.longitud, l.latitud], { 
-          ...l, 
-          originalLng: l.longitud, 
-          originalLat: l.latitud 
-      }))
+      lecturas.map(l => turf.point([l.longitud, l.latitud], { value: l.valor }))
     );
 
-    // ---------------------------------------------------------
-    // 2. VORONOI Y GEOMETRÍA
-    // ---------------------------------------------------------
+    // 2. GENERACIÓN DE GRILLA
     const bbox = turf.bbox(points);
     const expandedBbox = [
-        bbox[0] - 0.1,
-        bbox[1] - 0.1,
-        bbox[2] + 0.1,
-        bbox[3] + 0.1
+        bbox[0] - 0.01,
+        bbox[1] - 0.01,
+        bbox[2] + 0.01,
+        bbox[3] + 0.01
     ];
 
-    const voronoiPolygons = turf.voronoi(points, { bbox: expandedBbox });
+    // OPTIMIZACIÓN: 0.025 km (25 metros)
+    // Es el límite seguro para evitar lag en el navegador.
+    const CELL_SIZE = 0.04; 
+    
+    const squareGrid = turf.squareGrid(expandedBbox, CELL_SIZE, { units: 'kilometers' });
+    const MAX_RADIUS = 0.25;
 
-    // ---------------------------------------------------------
     // 3. ESCALA DE COLOR
-    // ---------------------------------------------------------
     const colorScale = propColorScale || ((value) => {
         if (value <= 30) return "green";
         if (value <= 60) return "yellow";
         return "red";
     });
 
-    // ---------------------------------------------------------
-    // 4. GENERACIÓN DE CAPAS
-    // ---------------------------------------------------------
-    const gridLayers = voronoiPolygons.features.map(polygon => {
-      if (!polygon || !polygon.properties) return null;
-      
-      const props = polygon.properties;
-      if (props.originalLng === undefined || props.originalLat === undefined) return null;
-      
-      const center = [props.originalLng, props.originalLat];
+    // 4. PROCESAMIENTO
+    const gridLayers = squareGrid.features.map(square => {
+        const center = turf.center(square);
+        const nearest = turf.nearestPoint(center, points);
+        const distance = turf.distance(center, nearest, { units: 'kilometers' });
 
-      // Límite de 0.5km para cada punto
-      const limitCircle = turf.circle(center, 0.5, { steps: 64, units: 'kilometers' });
+        if (distance > MAX_RADIUS) return null;
 
-      let clipped = null;
-      try {
-          clipped = turf.intersect(turf.featureCollection([polygon, limitCircle]));
-      } catch (e) {
-          console.error("Error interpolating:", e);
-          return null;
-      }
+        const value = nearest.properties.value;
+        const color = colorScale(value);
 
-      if (!clipped) return null;
+        const latLngs = square.geometry.coordinates[0].map(coord => [coord[1], coord[0]]);
 
-      const value = props.valor;
-      const color = colorScale(value);
+        const layer = L.polygon(latLngs, {
+            pane: PANE_NAME,
+            weight: 0,          // OPTIMIZACIÓN: Sin bordes (stroke: false) mejora rendimiento
+            stroke: false,      // y suaviza visualmente la unión entre píxeles
+            color: color, 
+            fillColor: color,
+            fillOpacity: 1,     
+            interactive: true   
+        });
 
-      const getLatLngs = (coords) => {
-          if (Array.isArray(coords) && typeof coords[0] === 'number') {
-              return [coords[1], coords[0]];
-          }
-          if (Array.isArray(coords)) {
-              return coords.map(getLatLngs);
-          }
-          return null;
-      };
+        const popupContent = isAirQualityView 
+            ? getAirQualityText(Math.round(value))
+            : `Valor: ${value.toFixed(2)}`;
+        
+        layer.bindPopup(popupContent);
 
-      const geometryCoords = clipped.geometry.coordinates;
-      const latLngs = getLatLngs(geometryCoords);
-
-      // Renderizamos el polígono OPACAMENTE dentro del Panel semitransparente.
-      // Usamos 'stroke: true' con el mismo color para rellenar grietas entre polígonos.
-      const layer = L.polygon(latLngs, {
-        pane: PANE_NAME,   // Usar nuestro panel especial
-        weight: 2,         // Grosor suficiente para tapar huecos entre polígonos
-        color: color,      // El borde es del mismo color que el relleno
-        opacity: 1,        // Borde totalmente opaco
-        fillColor: color,  
-        fillOpacity: 1,    // Relleno totalmente opaco (la transparencia la da el Pane)
-        stroke: true,      // Activamos el borde para suavizar uniones
-        smoothFactor: 0.5
-      });
-
-      const popupContent = isAirQualityView 
-        ? getAirQualityText(Math.round(value))
-        : `Valor: ${value.toFixed(2)}`;
-      
-      layer.bindPopup(popupContent);
-
-      return layer;
+        return layer;
     }).filter(Boolean);
 
     const layerGroup = L.layerGroup(gridLayers).addTo(map);

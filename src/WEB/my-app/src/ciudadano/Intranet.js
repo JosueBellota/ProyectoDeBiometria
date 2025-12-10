@@ -95,27 +95,27 @@ const DynamicRadiusCircleMarkers = ({ lecturas }) => {
 const legendData = {
     'calidad': {
         title: 'Calidad del Aire General',
-        green: 'Verde: Buena',
-        yellow: 'Amarillo: Aceptable',
-        red: 'Rojo: Mala',
+        green: 'Verde: Recomendable',
+        yellow: 'Amarillo: Máximo Permitido',
+        red: 'Rojo: Peligroso',
     },
     'co2': {
         title: 'Dióxido de Carbono (CO2)',
-        green: 'Verde: Concentración menor a 450',
-        yellow: 'Amarillo: Concentración de 450 a 1000',
-        red: 'Rojo: Concentración mayor a 1000',
+        green: 'Verde: Recomendable (< 450)',
+        yellow: 'Amarillo: Máximo Permitido (450 - 1000)',
+        red: 'Rojo: Peligroso (> 1000)',
     },
     'no2': {
         title: 'Dióxido de Nitrógeno (NO2)',
-        green: 'Verde: Concentración menor a 100',
-        yellow: 'Amarillo: Concentración de 100 a 200',
-        red: 'Rojo: Concentración mayor a 200',
+        green: 'Verde: Recomendable (< 100)',
+        yellow: 'Amarillo: Máximo Permitido (100 - 200)',
+        red: 'Rojo: Peligroso (> 200)',
     },
     'o3': {
         title: 'Ozono (O3)',
-        green: 'Verde: Concentración menor a 120',
-        yellow: 'Amarillo: Concentración de 120 a 180',
-        red: 'Rojo: Concentración mayor a 180',
+        green: 'Verde: Recomendable (< 120)',
+        yellow: 'Amarillo: Máximo Permitido (120 - 180)',
+        red: 'Rojo: Peligroso (> 180)',
     }
 };
 
