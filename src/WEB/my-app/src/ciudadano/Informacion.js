@@ -1,9 +1,10 @@
 // --------------------------------------------------------------------------
-// Fichero: Intranet.js
+// Fichero: Informacion.js
 // Responsable: Josue Bellota Ichaso
 //
 // Descripción:
-// Este fichero contiene la información sobre la calidad del aire para el ciudadano.
+// Este fichero contiene la información sobre la calidad del aire para el ciudadano,
+// sincronizada con los rangos y contaminantes del mapa de Intranet.
 // --------------------------------------------------------------------------
 
 import React from "react";
@@ -12,184 +13,50 @@ import HeaderRegistrado from "./templates/HeaderRegistrado";
 
 const contaminantes = [
   {
+    id: "co2",
+    nombre: "Dióxido de carbono",
+    abreviatura: "CO₂",
+    descripcionCorta: "Gas incoloro e inodoro, subproducto de la respiración y combustión.",
+    resumenRapido: "En interiores mal ventilados causa fatiga y falta de concentración. Es el principal gas de efecto invernadero.",
+    fuentes: ["Respiración humana y animal", "Combustión de combustibles fósiles (tráfico, calefacción)", "Incendios forestales"],
+    efectos: ["Dolor de cabeza y mareos", "Fatiga y somnolencia", "Falta de concentración", "Desplazamiento del oxígeno a niveles muy altos"],
+    rangos: [
+      { color: "green", texto: "Recomendable: < 450 ppm" },
+      { color: "yellow", texto: "Máximo Permitido: 450 - 1000 ppm" },
+      { color: "red", texto: "Peligroso: > 1000 ppm" }
+    ],
+    consejos: ["Ventila las habitaciones frecuentemente.", "Mantén plantas en interiores.", "Revisa los sistemas de calefacción."]
+  },
+  {
     id: "no2",
     nombre: "Dióxido de nitrógeno",
     abreviatura: "NO₂",
     descripcionCorta: "Gas irritante asociado principalmente al tráfico.",
-    resumenRapido:
-      "Riesgo alto en calles con mucho tráfico. Afecta sobre todo a niños, personas con asma y mayores.",
+    resumenRapido: "Riesgo alto en calles con mucho tráfico. Afecta sobre todo a niños, personas con asma y mayores.",
     fuentes: ["Vehículos diésel", "Calefacciones de gas", "Algunas industrias"],
-    efectos: [
-      "Aumenta las crisis de asma",
-      "Irritación de vías respiratorias",
-      "Problemas respiratorios en niños",
+    efectos: ["Aumenta las crisis de asma", "Irritación de vías respiratorias", "Problemas respiratorios en niños"],
+    rangos: [
+      { color: "green", texto: "Recomendable: < 100 µg/m³" },
+      { color: "yellow", texto: "Máximo Permitido: 100 - 200 µg/m³" },
+      { color: "red", texto: "Peligroso: > 200 µg/m³" }
     ],
-    valoresRecomendados: [
-      {
-        tipo: "Recomendado (anual)",
-        valor: "10",
-        unidad: "µg/m³",
-        periodo: "1 año",
-        fuente: "OMS 2021 (guía)",
-      },
-      {
-        tipo: "Recomendado (diario)",
-        valor: "25",
-        unidad: "µg/m³",
-        periodo: "24 h",
-        fuente: "OMS 2021 (guía)",
-      },
-    ],
-    valoresMaximos: [
-      {
-        tipo: "Límite UE (anual)",
-        valor: "40",
-        unidad: "µg/m³",
-        periodo: "1 año",
-        fuente: "Directiva calidad del aire",
-      },
-      {
-        tipo: "Límite UE (1 h)",
-        valor: "200",
-        unidad: "µg/m³",
-        periodo: "1 h",
-        extra: "no más de 18 superaciones/año",
-        fuente: "Directiva calidad del aire",
-      },
-    ],
-    consejos: [
-      "Evita esperar junto al tubo de escape de los coches.",
-      "Siempre que puedas, elige rutas más alejadas de avenidas principales.",
-    ],
+    consejos: ["Evita esperar junto al tubo de escape de los coches.", "Siempre que puedas, elige rutas más alejadas de avenidas principales."]
   },
   {
     id: "o3",
     nombre: "Ozono troposférico",
     abreviatura: "O₃",
-    descripcionCorta:
-      "Gas oxidante que se forma por reacción del sol con otros contaminantes.",
-    resumenRapido:
-      "Riesgo mayor en días calurosos y soleados. Afecta a personas activas al aire libre y con problemas respiratorios.",
-    fuentes: [
-      "No se emite directamente",
-      "Se forma a partir de NOx y COVs con sol y calor",
+    descripcionCorta: "Gas oxidante que se forma por reacción del sol con otros contaminantes.",
+    resumenRapido: "Riesgo mayor en días calurosos y soleados. Afecta a personas activas al aire libre y con problemas respiratorios.",
+    fuentes: ["No se emite directamente", "Se forma a partir de NOx y COVs con sol y calor"],
+    efectos: ["Irritación de ojos y garganta", "Reducción temporal de la función pulmonar", "Mayor molestia al hacer ejercicio intenso"],
+    rangos: [
+      { color: "green", texto: "Recomendable: < 120 µg/m³" },
+      { color: "yellow", texto: "Máximo Permitido: 120 - 180 µg/m³" },
+      { color: "red", texto: "Peligroso: > 180 µg/m³" }
     ],
-    efectos: [
-      "Irritación de ojos y garganta",
-      "Reducción temporal de la función pulmonar",
-      "Mayor molestia al hacer ejercicio intenso",
-    ],
-    valoresRecomendados: [
-      {
-        tipo: "Recomendado (máx. 8 h)",
-        valor: "100",
-        unidad: "µg/m³",
-        periodo: "8 h",
-        fuente: "OMS 2021 (guía)",
-      },
-    ],
-    valoresMaximos: [
-      {
-        tipo: "Valor objetivo UE (máx. 8 h)",
-        valor: "120",
-        unidad: "µg/m³",
-        periodo: "8 h",
-        extra: "media sobre 3 años",
-        fuente: "Directiva calidad del aire",
-      },
-    ],
-    consejos: [
-      "En días calurosos, mejor hacer deporte temprano por la mañana.",
-      "Evita correr al aire libre por la tarde en episodios de ozono.",
-    ],
-  },
-  {
-    id: "co",
-    nombre: "Monóxido de carbono",
-    abreviatura: "CO",
-    descripcionCorta:
-      "Gas tóxico que reduce la capacidad de la sangre para transportar oxígeno.",
-    resumenRapido:
-      "Riesgo alto en espacios cerrados mal ventilados con motores o combustión. Peligroso para todo el mundo.",
-    fuentes: [
-      "Motores de gasolina",
-      "Calderas y estufas en mal estado",
-      "Incendios y combustión incompleta",
-    ],
-    efectos: [
-      "Dolor de cabeza, mareos",
-      "Náuseas, debilidad",
-      "A niveles altos: riesgo grave para la vida",
-    ],
-    valoresRecomendados: [
-      {
-        tipo: "Recomendado (8 h)",
-        valor: "10",
-        unidad: "mg/m³",
-        periodo: "8 h",
-        fuente: "OMS (guía)",
-      },
-    ],
-    valoresMaximos: [
-      {
-        tipo: "Valor guía típico (1 h)",
-        valor: "30",
-        unidad: "mg/m³",
-        periodo: "1 h",
-        fuente: "Referencias sanitarias",
-      },
-    ],
-    consejos: [
-      "Evita zonas poco ventiladas con motores encendidos (garajes, túneles).",
-      "En casa, revisa periódicamente calderas y estufas.",
-    ],
-  },
-  {
-    id: "so2",
-    nombre: "Dióxido de azufre",
-    abreviatura: "SO₂",
-    descripcionCorta:
-      "Gas procedente de combustibles con azufre y algunas actividades industriales.",
-    resumenRapido:
-      "Riesgo localizado cerca de zonas industriales. Afecta sobre todo a personas con asma.",
-    fuentes: ["Centrales térmicas", "Algunas industrias", "Volcanes"],
-    efectos: [
-      "Tos y dificultad respiratoria",
-      "Empeoramiento del asma",
-      "Irritación de ojos y garganta",
-    ],
-    valoresRecomendados: [
-      {
-        tipo: "Recomendado (24 h)",
-        valor: "40",
-        unidad: "µg/m³",
-        periodo: "24 h",
-        fuente: "OMS 2021 (guía)",
-      },
-    ],
-    valoresMaximos: [
-      {
-        tipo: "Límite UE (1 h)",
-        valor: "350",
-        unidad: "µg/m³",
-        periodo: "1 h",
-        extra: "no más de 24 superaciones/año",
-        fuente: "Directiva calidad del aire",
-      },
-      {
-        tipo: "Valor límite (24 h)",
-        valor: "125",
-        unidad: "µg/m³",
-        periodo: "24 h",
-        extra: "no más de 3 superaciones/año",
-        fuente: "Directiva calidad del aire",
-      },
-    ],
-    consejos: [
-      "Evita ejercicio intenso cerca de zonas industriales en días de mala dispersión.",
-      "Consulta los avisos locales si vives cerca de un área industrial.",
-    ],
-  },
+    consejos: ["En días calurosos, mejor hacer deporte temprano por la mañana.", "Evita correr al aire libre por la tarde en episodios de ozono."]
+  }
 ];
 
 export default function Informacion() {
@@ -204,9 +71,7 @@ export default function Informacion() {
           </h1>
 
           <p className="intranet-subtitle">
-            Consulta los principales contaminantes, sus efectos en la salud, los
-            valores recomendados, los valores máximos permitidos y consejos para
-            protegerte en tu día a día.
+            Consulta los principales contaminantes, sus efectos en la salud y los rangos de calidad utilizados en nuestro mapa.
           </p>
 
           <div className="contaminantes-grid">
@@ -242,33 +107,24 @@ export default function Informacion() {
                   ))}
                 </ul>
 
-                <div className="valores-grid">
-                  <div className="valores-recomendados-card">
-                    <h3>📏 Valores recomendados</h3>
-                    <ul>
-                      {c.valoresRecomendados.map((v, i) => (
-                        <li key={i}>
-                          <strong>{v.tipo}:</strong> {v.valor} {v.unidad} (
-                          {v.periodo}) {" – "}
-                          {v.fuente}
+                <div className="rangos-card">
+                    <h3>📊 Rangos permitidos en España</h3>
+                    <ul style={{listStyle: 'none', paddingLeft: 0}}>
+                      {c.rangos.map((r, i) => (
+                        <li key={i} style={{display: 'flex', alignItems: 'center', marginBottom: '8px', fontSize: '1.05rem'}}>
+                           <span style={{
+                               width: '24px', 
+                               height: '24px', 
+                               backgroundColor: r.color === 'green' ? 'rgba(0, 128, 0, 0.6)' : r.color === 'yellow' ? 'rgba(255, 255, 0, 0.6)' : 'rgba(255, 0, 0, 0.6)', 
+                               marginRight: '12px',
+                               borderRadius: '4px',
+                               display: 'inline-block',
+                               border: '1px solid #ccc'
+                           }}></span>
+                           {r.texto}
                         </li>
                       ))}
                     </ul>
-                  </div>
-
-                  <div className="valores-maximos-card">
-                    <h3>⚠️ Valores máximos permitidos</h3>
-                    <ul>
-                      {c.valoresMaximos.map((v, i) => (
-                        <li key={i}>
-                          <strong>{v.tipo}:</strong> {v.valor} {v.unidad} (
-                          {v.periodo})
-                          {v.extra ? ` – ${v.extra}` : ""} {" – "}
-                          {v.fuente}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
                 </div>
 
                 <h3>💡 Consejos prácticos</h3>
