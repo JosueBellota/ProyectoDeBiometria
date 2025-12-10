@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { useMap } from 'react-leaflet';
+import { useMap } from 'react-leaflet'; // Removido useMapEvents, ya que no necesitamos forzar render por zoom si no escalamos.
 import L from 'leaflet';
 import * as turf from '@turf/turf';
 
@@ -7,9 +7,9 @@ const InterpolationLayer = ({ lecturas, colorScale: propColorScale, isAirQuality
   const map = useMap();
 
   const getAirQualityText = (value) => {
-    if (value === 1) return "Calidad de Aire: Recomendable";
-    if (value === 2) return "Calidad de Aire: Máximo Permitido";
-    if (value === 3) return "Calidad de Aire: Peligroso";
+    if (value === 1) return "Calidad de Aire: Buena";
+    if (value === 2) return "Calidad de Aire: Aceptable";
+    if (value === 3) return "Calidad de Aire: Mala";
     return `Nivel de severidad: ${value}`;
   };
 
@@ -25,35 +25,37 @@ const InterpolationLayer = ({ lecturas, colorScale: propColorScale, isAirQuality
         pane.style.zIndex = '350';
     }
 
-    // 1. PREPARACIÓN DE DATOS
+    // 1. TAMAÑO FIJO DE CELDAS Y RADIO DE INFLUENCIA
+    // Mantendremos estos valores constantes en kilómetros reales, sin escalado por zoom.
+    const CELL_SIZE = 0.04; // 40 metros
+    const MAX_RADIUS = 0.25; // 250 metros
+
+    // 2. PREPARACIÓN DE DATOS
     const points = turf.featureCollection(
       lecturas.map(l => turf.point([l.longitud, l.latitud], { value: l.valor }))
     );
 
-    // 2. GENERACIÓN DE GRILLA
+    // 3. GENERACIÓN DE GRILLA
     const bbox = turf.bbox(points);
+    // Expandimos el bbox ligeramente para asegurar que cubrimos el radio de 0.25km de los puntos extremos
+    const expansion = MAX_RADIUS * 1.5 * 0.009; // Aprox. conversión km a grados para el buffer del bbox
     const expandedBbox = [
-        bbox[0] - 0.01,
-        bbox[1] - 0.01,
-        bbox[2] + 0.01,
-        bbox[3] + 0.01
+        bbox[0] - expansion,
+        bbox[1] - expansion,
+        bbox[2] + expansion,
+        bbox[3] + expansion
     ];
-
-    // OPTIMIZACIÓN: 0.025 km (25 metros)
-    // Es el límite seguro para evitar lag en el navegador.
-    const CELL_SIZE = 0.04; 
     
     const squareGrid = turf.squareGrid(expandedBbox, CELL_SIZE, { units: 'kilometers' });
-    const MAX_RADIUS = 0.25;
 
-    // 3. ESCALA DE COLOR
+    // 4. ESCALA DE COLOR
     const colorScale = propColorScale || ((value) => {
         if (value <= 30) return "green";
         if (value <= 60) return "yellow";
         return "red";
     });
 
-    // 4. PROCESAMIENTO
+    // 5. PROCESAMIENTO
     const gridLayers = squareGrid.features.map(square => {
         const center = turf.center(square);
         const nearest = turf.nearestPoint(center, points);
@@ -68,8 +70,8 @@ const InterpolationLayer = ({ lecturas, colorScale: propColorScale, isAirQuality
 
         const layer = L.polygon(latLngs, {
             pane: PANE_NAME,
-            weight: 0,          // OPTIMIZACIÓN: Sin bordes (stroke: false) mejora rendimiento
-            stroke: false,      // y suaviza visualmente la unión entre píxeles
+            weight: 0,          
+            stroke: false,      
             color: color, 
             fillColor: color,
             fillOpacity: 1,     
@@ -90,7 +92,7 @@ const InterpolationLayer = ({ lecturas, colorScale: propColorScale, isAirQuality
     return () => {
       map.removeLayer(layerGroup);
     };
-  }, [map, lecturas, isAirQualityView, propColorScale]);
+  }, [map, lecturas, isAirQualityView, propColorScale]); // Dependencia 'map.getZoom()' eliminada
 
   return null;
 };
