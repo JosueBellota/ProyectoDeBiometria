@@ -495,6 +495,36 @@ button,
   margin-top: 8px;
 }
 
+/* --- Responsive Logo Handling --- */
+.headerNR-logo-desktop,
+.header-registrado-logo-desktop {
+  display: none; /* Hidden by default (mobile first) */
+}
+
+@media (min-width: 769px) {
+  .headerNR-logo-mobile,
+  .header-registrado-logo-mobile {
+    display: none; /* Hide mobile logo on larger screens */
+  }
+
+  .headerNR-logo-desktop,
+  .header-registrado-logo-desktop {
+    display: block; /* Show desktop logo on larger screens */
+    height: auto; /* Allow image to determine height based on width */
+    max-height: 48px; /* Limit height to match original logo for consistency */
+    width: auto; /* Let browser calculate width */
+    border-radius: 0; /* Remove border-radius for text logo */
+    background: transparent; /* Remove background for text logo */
+    padding: 0; /* Remove padding for text logo */
+  }
+
+  /* Adjust margin-right for the desktop text logo to align with existing layout */
+  .headerNR-logo-desktop,
+  .header-registrado-logo-desktop {
+    margin-right: 24px; 
+  }
+}
+
 /* RESPONSIVE --------------------------------------------- */
 
 @media (max-width: 1024px) {

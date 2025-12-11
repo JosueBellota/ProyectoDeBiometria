@@ -62,12 +62,21 @@ import com.google.firebase.auth.FirebaseUser;
     // -----------------------------------------------------------------------------------
 
 
+    import android.widget.LinearLayout;
+    import android.view.Gravity;
+    import android.widget.TextView;
+    import android.graphics.Typeface;
+
     public class MainActivity extends AppCompatActivity {
 
     // ---------------------------------------------------------------------------
     // Constantes y variables globales
     // ---------------------------------------------------------------------------
         private DistanciaManager distanciaManager;
+        
+        // UI del Radar
+        private RadarView radarViewActual;
+        private TextView textoRadarActual;
 
         // ETIQUETA_LOG: texto (String)
         private static final String ETIQUETA_LOG = ">>>>>>";
@@ -365,6 +374,22 @@ import com.google.firebase.auth.FirebaseUser;
 
 
         // --------------------------------------------------------------------------------
+        // Método auxiliar para calcular distancia (Modelo de pérdida de trayectoria log-normal)
+        // --------------------------------------------------------------------------------
+        private double calculateDistance(int rssi, int txPower) {
+            if (rssi == 0) {
+                return -1.0; // Desconocido
+            }
+            
+            // Formula: Distance = 10 ^ ((TxPower - RSSI) / (10 * n))
+            // n = Path Loss Exponent (2.0 for free space, 2.5 - 4.0 for indoor)
+            // Usaremos n = 2.0 para una aproximación general
+            
+            double exponent = (double) (txPower - rssi) / 20.0;
+            return Math.pow(10, exponent);
+        }
+
+        // --------------------------------------------------------------------------------
         // resultado: ScanResult (escaneo de dispositivo detectado)
         // -->
         // mostrarInformacionDispositivoBTLE(resultado) --> procesa y muestra información del dispositivo
@@ -469,8 +494,35 @@ import com.google.firebase.auth.FirebaseUser;
                         return; // No es el dispositivo que buscamos
                     }
 
-                    // ✅ DISPOSITIVO CORRECTO DETECTADO - Actualizar timestamp y estado
+                    // ✅ DISPOSITIVO CORRECTO DETECTADO
                     ultimaDeteccionBeacon = System.currentTimeMillis();
+
+                    // --- ACTUALIZACIÓN DE RADAR Y DISTANCIA ---
+                    TramaIBeacon tib = new TramaIBeacon(resultado.getScanRecord().getBytes());
+                    double distancia = calculateDistance(resultado.getRssi(), tib.getTxPower());
+                    
+                    runOnUiThread(() -> {
+                        if (radarViewActual != null && textoRadarActual != null) {
+                            radarViewActual.setVisibility(View.VISIBLE);
+                            textoRadarActual.setVisibility(View.VISIBLE);
+                            
+                            String nombreMostrar = (nombreNodoUsuario != null) ? nombreNodoUsuario : "Nodo";
+
+                            if (distancia < 1.0) {
+                                radarViewActual.setZone(0); // Cerca
+                                textoRadarActual.setText(nombreMostrar + " está Cerca (" + String.format("%.2f", distancia) + "m)");
+                                textoRadarActual.setTextColor(Color.parseColor("#006400")); // Dark Green
+                            } else if (distancia <= 3.0) {
+                                radarViewActual.setZone(1); // Media
+                                textoRadarActual.setText(nombreMostrar + " está a Media distancia (" + String.format("%.2f", distancia) + "m)");
+                                textoRadarActual.setTextColor(Color.parseColor("#FF8C00")); // Dark Orange
+                            } else {
+                                radarViewActual.setZone(2); // Lejos
+                                textoRadarActual.setText(nombreMostrar + " está Lejos (" + String.format("%.2f", distancia) + "m)");
+                                textoRadarActual.setTextColor(Color.RED);
+                            }
+                        }
+                    });
 
                     // Si es la primera detección o estaba desconectado, actualizar estado
                     if (!beaconConectado) {
@@ -949,16 +1001,50 @@ import com.google.firebase.auth.FirebaseUser;
             Log.d(ETIQUETA_LOG, "📟 Nodo detectado: " + codigoNodoQR);
             Log.d(ETIQUETA_LOG, "📛 Nombre automático: " + nombreNodoUsuario);
 
-            // Crear dinámicamente el botón de búsqueda
+            // Obtener el contenedor principal donde añadir elementos
+            LinearLayout parentLayout = (LinearLayout) findViewById(android.R.id.content)
+                    .getRootView()
+                    .findViewById(R.id.botonLeerQR)
+                    .getParent();
+
+            // Crear un contenedor vertical para el Botón + Radar + Texto
+            LinearLayout nodeContainer = new LinearLayout(this);
+            nodeContainer.setOrientation(LinearLayout.VERTICAL);
+            nodeContainer.setGravity(Gravity.CENTER);
+            nodeContainer.setPadding(0, 20, 0, 20);
+            
+            LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT, 
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+            );
+            params.setMargins(0, 20, 0, 20);
+            nodeContainer.setLayoutParams(params);
+
+            // 1. Crear Botón de búsqueda
             Button botonBuscar = new Button(this);
             botonBuscar.setText("Buscar " + nombreNodoUsuario);
             botonBuscar.setOnClickListener(this::botonBuscarDispositivoQR);
+            nodeContainer.addView(botonBuscar);
 
-            ((android.widget.LinearLayout) findViewById(android.R.id.content)
-                    .getRootView()
-                    .findViewById(R.id.botonLeerQR)
-                    .getParent())
-                    .addView(botonBuscar);
+            // 2. Crear RadarView
+            radarViewActual = new RadarView(this);
+            LinearLayout.LayoutParams radarParams = new LinearLayout.LayoutParams(400, 400); // 400x400 px
+            radarParams.setMargins(0, 20, 0, 10);
+            radarViewActual.setLayoutParams(radarParams);
+            radarViewActual.setVisibility(View.GONE); // Oculto hasta que se empiece a buscar
+            nodeContainer.addView(radarViewActual);
+
+            // 3. Crear TextView para estado
+            textoRadarActual = new TextView(this);
+            textoRadarActual.setText("Esperando señal...");
+            textoRadarActual.setGravity(Gravity.CENTER);
+            textoRadarActual.setTypeface(null, Typeface.BOLD);
+            textoRadarActual.setTextSize(16);
+            textoRadarActual.setVisibility(View.GONE); // Oculto hasta que se empiece a buscar
+            nodeContainer.addView(textoRadarActual);
+
+            // Añadir el contenedor al layout principal
+            parentLayout.addView(nodeContainer);
 
             Toast.makeText(this, "✅ Nodo añadido: " + nombreNodoUsuario, Toast.LENGTH_SHORT).show();
         }

@@ -3,7 +3,7 @@ import { useMap } from 'react-leaflet'; // Removido useMapEvents, ya que no nece
 import L from 'leaflet';
 import * as turf from '@turf/turf';
 
-const InterpolationLayer = ({ lecturas, colorScale: propColorScale, isAirQualityView }) => {
+const InterpolationLayer = ({ lecturas, colorScale: propColorScale, isAirQualityView, sensorName, unit }) => {
   const map = useMap();
 
   const getAirQualityText = (value) => {
@@ -80,7 +80,7 @@ const InterpolationLayer = ({ lecturas, colorScale: propColorScale, isAirQuality
 
         const popupContent = isAirQualityView 
             ? getAirQualityText(Math.round(value))
-            : `Valor: ${value.toFixed(2)}`;
+            : `${sensorName}: ${value.toFixed(2)} ${unit}`;
         
         layer.bindPopup(popupContent);
 
@@ -92,7 +92,7 @@ const InterpolationLayer = ({ lecturas, colorScale: propColorScale, isAirQuality
     return () => {
       map.removeLayer(layerGroup);
     };
-  }, [map, lecturas, isAirQualityView, propColorScale]); // Dependencia 'map.getZoom()' eliminada
+  }, [map, lecturas, isAirQualityView, propColorScale, sensorName, unit]); // Dependencia 'map.getZoom()' eliminada
 
   return null;
 };

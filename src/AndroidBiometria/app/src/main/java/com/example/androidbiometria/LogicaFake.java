@@ -16,7 +16,7 @@ public class LogicaFake {
     // NUEVAS VARIABLES PARA LA LÓGICA DE TIMEOUT Y DETECCIÓN MÚLTIPLE
     // -------------------------------------------------------------------------
     private static final long TIMEOUT_DETECCION_MS = 2000; // 2 segundos por sensor
-    private static final long COOLDOWN_ENVIO_MS = 3000; // 3 segundos entre envíos
+    private static final long COOLDOWN_ENVIO_MS = 30000; // 30 segundos entre envíos
 
     // Mapa para trackear los últimos tiempos de detección por major/minor
     private static final Map<String, Long> ultimaDeteccionPorSensor = new ConcurrentHashMap<>();

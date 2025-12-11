@@ -131,7 +131,7 @@ public class DistanciaManager {
 
     private void processLocationBatch() {
         if (!movementDetector.isMoving()) {
-            Log.d(">>>>", "🚶‍➡️ No hay movimiento detectado, ignorando lote de GPS.");
+            // Log.d(">>>>", "🚶‍➡️ No hay movimiento detectado, ignorando lote de GPS.");
             synchronized (locationBatch) {
                 locationBatch.clear();
             }
