@@ -968,6 +968,7 @@ import com.google.firebase.auth.FirebaseUser;
                 return;
             }
 
+            /*
             // 🧩 Obtener link autologin desde el servidor
             obtenerLinkAutologin(uid, new Callback() {
                 @Override
@@ -991,6 +992,7 @@ import com.google.firebase.auth.FirebaseUser;
                     runOnUiThread(() -> Toast.makeText(MainActivity.this, "❌ Error API: " + error, Toast.LENGTH_SHORT).show());
                 }
             });
+            */
         }
 
 
