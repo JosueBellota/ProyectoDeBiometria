@@ -31,7 +31,7 @@ private:
 public:
   // Emisora BLE configurada con nombre, fabricante y potencia de transmisión
   EmisoraBLE laEmisora {
-	"NuevoNodo", // caracteres (nombre emisora)
+	"Nodo1", // caracteres (nombre emisora)
 	0x004c,   // numeros (fabricanteID, Apple)
 	4         // numeros (txPower)
   };

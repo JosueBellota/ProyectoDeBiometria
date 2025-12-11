@@ -96,7 +96,17 @@ function Login() {
           }}
         >
           <div style={{ textAlign: "center", marginBottom: "20px" }}>
-            <img src="/logo.svg" alt="Logo" style={{ height: "60px" }} />
+            <img 
+            src="/Logo_texto.png" 
+            alt="Logo" 
+            style={{ 
+              maxHeight: "80px", 
+              width: "auto",
+              borderRadius: "10px", 
+              backgroundColor: "#F7F2EA", 
+              padding: "8px" 
+            }} 
+          />
           </div>
           <h1 style={{ textAlign: "center", marginBottom: "8px" }}>
             Iniciar sesión

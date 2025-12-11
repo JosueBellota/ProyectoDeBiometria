@@ -51,7 +51,8 @@ export default function HeaderRegistrado() {
     <header className="header-registrado">
       <div className="header-registrado-left">
         <Link to="/ciudadano/intranet" onClick={closeMenu}>
-          <img src="/logo.svg" alt="Logo" className="header-registrado-logo" />
+          <img src="/logo.svg" alt="Logo" className="header-registrado-logo header-registrado-logo-mobile" />
+          <img src="/Logo_texto.png" alt="Logo con texto" className="header-registrado-logo header-registrado-logo-desktop" />
         </Link>
       </div>
 
