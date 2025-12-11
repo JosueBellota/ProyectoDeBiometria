@@ -68,7 +68,7 @@ export default function HeaderRegistrado() {
       <div className={`header-registrado-right ${menuAbierto ? "open" : ""}`}>
         <nav className="header-registrado-nav">
           <Link to="/ciudadano/intranet" onClick={closeMenu}>
-            INTRANET
+            INICIO
           </Link>
           
           <Link to="/ciudadano/Informacion" onClick={closeMenu}>

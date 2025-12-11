@@ -12,6 +12,14 @@ const formatearTiempo = (tiempo) => {
   return "Formato desconocido";
 };
 
+const getUnit = (tipoSensor) => {
+    const tipo = tipoSensor ? tipoSensor.toLowerCase() : '';
+    if (tipo === 'co') return 'ppm';
+    if (tipo === 'no2') return 'µg/m³';
+    if (tipo === 'o3') return 'µg/m³';
+    return '';
+};
+
 function ReadingsTable({ lecturas, showNodeColumn = false, nodeIdToNameMap = new Map() }) {
   if (!lecturas || lecturas.length === 0) {
     return <p>No hay lecturas para el período seleccionado.</p>;
@@ -40,8 +48,8 @@ function ReadingsTable({ lecturas, showNodeColumn = false, nodeIdToNameMap = new
             <tr key={index}>
               {showNodeColumn && <td>{nodeIdToNameMap.get(lectura.id_nodo) || (lectura.id_nodo ? lectura.id_nodo.substring(0, 6) + '...' : 'N/A')}</td>}
               <td>{formatearTiempo(lectura.timestamp)}</td>
-              <td>{lectura.tipo_sensor}</td>
-              <td>{lectura.valor}</td>
+              <td>{lectura.tipo_sensor ? (lectura.tipo_sensor === 'co' ? 'CO' : lectura.tipo_sensor.toUpperCase()) : 'N/A'}</td>
+              <td>{lectura.valor.toFixed(2)} {getUnit(lectura.tipo_sensor)}</td>
             </tr>
           ))}
         </tbody>

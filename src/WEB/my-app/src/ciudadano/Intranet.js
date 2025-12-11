@@ -16,7 +16,7 @@ const colorScales = {
         if (medida === 2) return 'yellow'; // Aceptable
         return 'red'; // Malo
     },
-    'co2': (medida) => {
+    'co': (medida) => {
         if (medida < 450) return 'green';
         if (medida <= 1000) return 'yellow';
         return 'red';
@@ -45,6 +45,13 @@ const getSeverityLevel = (tipoSensor, medida) => {
 };
 
 
+const units = {
+    'co': 'ppm',
+    'no2': 'µg/m³',
+    'o3': 'µg/m³',
+    'calidad': ''
+};
+
 const DynamicRadiusCircleMarkers = ({ lecturas }) => {
   const [zoomLevel, setZoomLevel] = useState(13);
 
@@ -68,6 +75,17 @@ const DynamicRadiusCircleMarkers = ({ lecturas }) => {
       return 'gray';
   }
 
+  const getDisplayUnit = (tipoSensor) => {
+      return units[tipoSensor] || '';
+  }
+
+  const getDisplaySensorName = (tipoSensor) => {
+      if (tipoSensor === 'co') return 'CO';
+      if (tipoSensor === 'no2') return 'NO2';
+      if (tipoSensor === 'o3') return 'O3';
+      return tipoSensor.toUpperCase();
+  }
+
   return (
     <>
       {lecturas.map(lectura => (
@@ -82,7 +100,7 @@ const DynamicRadiusCircleMarkers = ({ lecturas }) => {
           }}
         >
           <Popup>
-            {lectura.tipo_sensor.toUpperCase()}: {lectura.valor.toFixed(2)} <br />
+            {getDisplaySensorName(lectura.tipo_sensor.toLowerCase())}: {lectura.valor.toFixed(2)} {getDisplayUnit(lectura.tipo_sensor.toLowerCase())} <br />
             Tiempo: {new Date(lectura.timestamp._seconds * 1000).toLocaleString()}
           </Popup>
         </CircleMarker>
@@ -99,8 +117,8 @@ const legendData = {
         yellow: 'Amarillo: Máximo Permitido',
         red: 'Rojo: Peligroso',
     },
-    'co2': {
-        title: 'Dióxido de Carbono (CO2)',
+    'co': {
+        title: 'Monóxido de Carbono (CO)',
         green: 'Verde: Recomendable (< 450)',
         yellow: 'Amarillo: Máximo Permitido (450 - 1000)',
         red: 'Rojo: Peligroso (> 1000)',
@@ -247,7 +265,7 @@ function Intranet() {
           <div>
             <select onChange={handleSensorChange} value={selectedSensor}>
                 <option value="calidad">Calidad del Aire</option>
-                <option value="co2">CO2</option>
+                <option value="co">CO</option>
                 <option value="no2">NO2</option>
                 <option value="o3">O3</option>
             </select>
@@ -287,6 +305,124 @@ function Intranet() {
             )}
              {mapView === 'interpolation' && <Legend sensor={selectedSensor} />}
           </MapContainer>
+          <div className="mt-3 text-center">
+            <button 
+                className="btn btn-secondary" 
+                onClick={async () => {
+                    const confirm = window.confirm("¿Ejecutar script de 20 nodos? Esto añadirá datos de prueba.");
+                    if (!confirm) return;
+
+                    console.log("🚀 Iniciando prueba de 20 nodos...");
+                    const BASE_URL = "https://us-central1-proyectodebiometria.cloudfunctions.net/ServidorREST";
+                    const PROPIETARIO_ID = "mcJtObhq2iOpCnm6AT6xbFB8zYT2";
+                    const CENTER_LAT = 39.00500;
+                    const CENTER_LNG = -0.16500;
+                    const NUM_NODOS = 20;
+                    const DISTANCIA_ENTRE_PUNTOS_KM = 0.25;
+                    const perimetroTotal = NUM_NODOS * DISTANCIA_ENTRE_PUNTOS_KM;
+                    const radiusKm = perimetroTotal / (2 * Math.PI);
+                    const DEG_PER_KM = 0.009;
+                    const RADIUS_DEG = radiusKm * DEG_PER_KM;
+
+                    for (let i = 1; i <= NUM_NODOS; i++) {
+                        const nodoId = `nodo_${i}`;
+                        const angle = ((i - 1) / NUM_NODOS) * 2 * Math.PI;
+                        const lat = CENTER_LAT + RADIUS_DEG * Math.cos(angle);
+                        const lng = CENTER_LNG + RADIUS_DEG * Math.sin(angle);
+
+                        let valorCO2;
+                        if (i <= 7) valorCO2 = 1200 + Math.random() * 200;
+                        else if (i <= 13) valorCO2 = 600 + Math.random() * 200;
+                        else valorCO2 = 1100 + Math.random() * 200;
+                        
+                        valorCO2 = Math.round(valorCO2);
+
+                        // Crear Nodo
+                        try {
+                            await fetch(`${BASE_URL}/nodos`, {
+                                method: "POST",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({ nombre: nodoId, propietarioId: PROPIETARIO_ID }),
+                            });
+                        } catch (e) { console.error("Error creando nodo", e); }
+
+                        // Enviar Lectura 1
+                        try {
+                            await fetch(`${BASE_URL}/lecturas`, {
+                                method: "POST",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({
+                                    nombreNodo: nodoId,
+                                    propietarioId: PROPIETARIO_ID,
+                                    lecturas: [{ tipo: 'CO', valor: valorCO2 }],
+                                    latitud: lat,
+                                    longitud: lng,
+                                }),
+                            });
+                        } catch (e) { console.error("Error enviando lectura 1", e); }
+
+                        // Enviar Lectura 2
+                        try {
+                            await fetch(`${BASE_URL}/lecturas`, {
+                                method: "POST",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({
+                                    nombreNodo: nodoId,
+                                    propietarioId: PROPIETARIO_ID,
+                                    lecturas: [{ tipo: 'CO', valor: valorCO2 + (Math.random() * 20 - 10) }],
+                                    latitud: lat + 0.0001,
+                                    longitud: lng + 0.0001,
+                                }),
+                            });
+                        } catch (e) { console.error("Error enviando lectura 2", e); }
+
+                        console.log(`Nodo ${nodoId} procesado.`);
+                    }
+                    alert("✅ Prueba de 20 nodos finalizada. Recargando mapa...");
+                    handleFiltrar();
+                }}
+            >
+                🧪 Prueba de Mapas (Añadir 20 Nodos)
+            </button>
+            <button 
+                className="btn btn-danger ms-2" 
+                onClick={async () => {
+                    const confirm = window.confirm("¿Estás seguro de que quieres eliminar los 20 nodos de prueba y sus lecturas? Esta acción no se puede deshacer.");
+                    if (!confirm) return;
+
+                    console.log("🚀 Eliminando 20 nodos de prueba...");
+                    const BASE_URL = "https://us-central1-proyectodebiometria.cloudfunctions.net/ServidorREST";
+                    const NUM_NODOS = 20;
+
+                    for (let i = 1; i <= NUM_NODOS; i++) {
+                        const nodoId = `nodo_${i}`;
+                        
+                        // Eliminar Nodo (enviando nombre y propietario en el body)
+                        try {
+                            const response = await fetch(`${BASE_URL}/nodos`, {
+                                method: "DELETE",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({ 
+                                    nombreNodo: nodoId, 
+                                    propietarioId: "mcJtObhq2iOpCnm6AT6xbFB8zYT2" 
+                                }),
+                            });
+                            
+                            if (response.ok) {
+                                console.log(`Nodo ${nodoId} eliminado.`);
+                            } else {
+                                console.error(`Error eliminando nodo ${nodoId}: ${response.statusText}`);
+                            }
+
+                        } catch (e) { console.error(`Excepción eliminando nodo ${nodoId}`, e); }
+                    }
+                    alert("🗑️ Nodos de prueba eliminados. Recargando mapa...");
+                    handleFiltrar();
+                }}
+            >
+                🗑️ Eliminar Nodos de Prueba
+            </button>
+          </div>
         </section>
 
         {/* Cómo funciona nuestro servicio */}

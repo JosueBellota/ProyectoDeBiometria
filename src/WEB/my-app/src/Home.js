@@ -3,116 +3,297 @@
 // Responsable: Josue Bellota Ichaso
 //
 // Descripción:
-// Este fichero contiene la página de inicio de la aplicación.
+// Este fichero contiene la página de inicio de la aplicación para usuarios no registrados.
+// Muestra el mapa con lecturas del día actual y un radio fijo de 20km.
 // --------------------------------------------------------------------------
 
-import React, { useState } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import HeaderNoRegistrado from "./templates/HeaderNoRegistrado";
+import "./css/main.css";
+import { MapContainer, TileLayer, CircleMarker, Popup, useMapEvents } from "react-leaflet";
+import "leaflet/dist/leaflet.css";
+import InterpolationLayer from "./ciudadano/InterpolationLayer";
+import data from './ciudadano/FeaturesFaq.json'; // Ajustar ruta si es necesario
+import { obtenerLecturas } from "./logicaFake/logicaFake";
 
-const features = [
-  {
-    id: 0,
-    titulo: "Recorrido y trazado personal",
-    texto:
-      "Visualiza las rutas que recorres y cómo varían las condiciones ambientales a lo largo del camino. Transforma tus pasos en datos útiles para mejorar la ciudad.",
-    img: "/recorrido.png",
-    alt: "Mapa con un recorrido marcado"
-  },
-  {
-    id: 1,
-    titulo: "Información meteorológica en el mapa",
-    texto:
-      "Lleva tu nodo y observa en tiempo real la temperatura, el aire o el CO₂ de tu entorno. Contribuye a un mapa colectivo que muestra cómo respira la ciudad.",
-    img: "/informacion.png",
-    alt: "Mapa con información meteorológica"
-  },
-  {
-    id: 2,
-    titulo: "Gráficas y análisis de datos",
-    texto:
-      "Consulta gráficos con las mediciones de tu nodo. Detecta patrones, compara zonas y comprende mejor el ambiente que te rodea.",
-    img: "/grafica.png",
-    alt: "Gráficas de datos ambientales"
-  }
-];
+const gandiaCenterLat = 38.96667;
+const gandiaCenterLng = -0.18333;
 
-const faqs = [
-  {
-    pregunta: "1. ¿Qué es un nodo y para qué sirve?",
-    respuesta:
-      "Un nodo es un pequeño dispositivo portátil que mide diferentes parámetros ambientales como temperatura, humedad o concentración de CO₂. Sirve para recoger datos mientras te desplazas por la ciudad."
-  },
-  {
-    pregunta: "2. ¿Quién puede solicitar un nodo?",
-    respuesta:
-      "Cualquier ciudadano interesado, así como centros educativos, asociaciones o administraciones locales que quieran participar en la monitorización del aire."
-  },
-  {
-    pregunta: "3. ¿Necesito tener conocimientos técnicos para usarlo?",
-    respuesta:
-      "No. El nodo está pensado para ser sencillo: solo tienes que llevarlo contigo encendido. La aplicación se encarga de procesar y mostrar los datos."
-  },
-  {
-    pregunta: "4. ¿Qué información puedo ver en la aplicación?",
-    respuesta:
-      "Podrás ver tus recorridos, las mediciones asociadas a cada tramo, mapas de calor y gráficos que resumen el comportamiento de las variables ambientales."
-  },
-  {
-    pregunta: "5. ¿Qué diferencia hay entre usuarios registrados y no registrados?",
-    respuesta:
-      "Los usuarios registrados pueden vincular un nodo, guardar su historial de rutas, descargar datos y personalizar alertas. Los no registrados solo pueden explorar mapas y estadísticas generales."
-  },
-  {
-    pregunta: "6. ¿Qué pasa con mis datos personales?",
-    respuesta:
-      "Solo almacenamos los datos imprescindibles para el funcionamiento del servicio. Las rutas se anonimizan y puedes solicitar la eliminación de tu cuenta y tus datos en cualquier momento."
-  },
-  {
-    pregunta: "7. ¿Es necesario registrarse para ver los datos?",
-    respuesta:
-      "No. Puedes consultar mapas y estadísticas públicas sin registrarte. El registro solo es necesario si quieres asociar un nodo y guardar tu información personal de uso."
+const colorScales = {
+    'calidad': (medida) => {
+        if (medida === 1) return 'green'; // Bueno
+        if (medida === 2) return 'yellow'; // Aceptable
+        return 'red'; // Malo
+    },
+    'co': (medida) => {
+        if (medida < 450) return 'green';
+        if (medida <= 1000) return 'yellow';
+        return 'red';
+    },
+    'no2': (medida) => {
+        if (medida < 100) return 'green';
+        if (medida <= 200) return 'yellow';
+        return 'red';
+    },
+    'o3': (medida) => {
+        if (medida < 120) return 'green';
+        if (medida <= 180) return 'yellow';
+        return 'red';
+    }
+};
+
+const getSeverityLevel = (tipoSensor, medida) => {
+    const scale = colorScales[tipoSensor];
+    if (!scale) return 0; // Sin severidad
+
+    const color = scale(medida);
+    if (color === 'green') return 1; // Bueno
+    if (color === 'yellow') return 2; // Aceptable
+    if (color === 'red') return 3; // Malo
+    return 0;
+};
+
+const units = {
+    'co': 'ppm',
+    'no2': 'µg/m³',
+    'o3': 'µg/m³',
+    'calidad': ''
+};
+
+const DynamicRadiusCircleMarkers = ({ lecturas }) => {
+  const [zoomLevel, setZoomLevel] = useState(13);
+
+  const mapEvents = useMapEvents({
+    zoomend: () => {
+      setZoomLevel(mapEvents.getZoom());
+    },
+  });
+
+  const getRadius = (zoom) => {
+    if (zoom < 12) return 2;
+    if (zoom < 14) return 4;
+    if (zoom < 16) return 8;
+    return 12;
+  };
+
+  const getColor = (medida, tipoSensor) => {
+      if (colorScales[tipoSensor]) {
+          return colorScales[tipoSensor](medida);
+      }
+      return 'gray';
   }
-];
+
+  const getDisplayUnit = (tipoSensor) => {
+      return units[tipoSensor] || '';
+  }
+
+  const getDisplaySensorName = (tipoSensor) => {
+      if (tipoSensor === 'co') return 'CO';
+      if (tipoSensor === 'no2') return 'NO2';
+      if (tipoSensor === 'o3') return 'O3';
+      return tipoSensor.toUpperCase();
+  }
+
+  return (
+    <>
+      {lecturas.map(lectura => (
+        <CircleMarker
+          key={`${lectura.id}-${lectura.timestamp._seconds}-${lectura.latitud}-${lectura.longitud}`}
+          center={[lectura.latitud, lectura.longitud]}
+          radius={getRadius(zoomLevel)}
+          pathOptions={{
+              color: getColor(lectura.valor, lectura.tipo_sensor.toLowerCase()),
+              fillColor: getColor(lectura.valor, lectura.tipo_sensor.toLowerCase()),
+              fillOpacity: 0.8
+          }}
+        >
+          <Popup>
+            {getDisplaySensorName(lectura.tipo_sensor.toLowerCase())}: {lectura.valor.toFixed(2)} {getDisplayUnit(lectura.tipo_sensor.toLowerCase())} <br />
+            Tiempo: {new Date(lectura.timestamp._seconds * 1000).toLocaleString()}
+          </Popup>
+        </CircleMarker>
+      ))}
+    </>
+  );
+};
+
+
+const legendData = {
+    'calidad': {
+        title: 'Calidad del Aire General',
+        green: 'Verde: Recomendable',
+        yellow: 'Amarillo: Máximo Permitido',
+        red: 'Rojo: Peligroso',
+    },
+    'co': {
+        title: 'Monóxido de Carbono (CO)',
+        green: 'Verde: Recomendable (< 450)',
+        yellow: 'Amarillo: Máximo Permitido (450 - 1000)',
+        red: 'Rojo: Peligroso (> 1000)',
+    },
+    'no2': {
+        title: 'Dióxido de Nitrógeno (NO2)',
+        green: 'Verde: Recomendable (< 100)',
+        yellow: 'Amarillo: Máximo Permitido (100 - 200)',
+        red: 'Rojo: Peligroso (> 200)',
+    },
+    'o3': {
+        title: 'Ozono (O3)',
+        green: 'Verde: Recomendable (< 120)',
+        yellow: 'Amarillo: Máximo Permitido (120 - 180)',
+        red: 'Rojo: Peligroso (> 180)',
+    }
+};
+
+const Legend = ({ sensor }) => {
+    const data = legendData[sensor];
+    if (!data) return null;
+
+    return (
+        <div className="info-legend">
+            <h4>{data.title}</h4>
+            <p><span style={{backgroundColor: 'rgba(0, 128, 0, 0.3)', width: '20px', height: '20px', display: 'inline-block', marginRight: '10px'}}></span>{data.green}</p>
+            <p><span style={{backgroundColor: 'rgba(255, 255, 0, 0.3)', width: '20px', height: '20px', display: 'inline-block', marginRight: '10px'}}></span>{data.yellow}</p>
+            <p><span style={{backgroundColor: 'rgba(255, 0, 0, 0.3)', width: '20px', height: '20px', display: 'inline-block', marginRight: '10px'}}></span>{data.red}</p>
+        </div>
+    );
+};
+
 
 function Home() {
   const [featureIndex, setFeatureIndex] = useState(0);
   const [faqAbierta, setFaqAbierta] = useState(null);
+  const [mapView, setMapView] = useState('interpolation');
+  const [selectedSensor, setSelectedSensor] = useState('calidad');
+  
+  const [allLecturas, setAllLecturas] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  // Configuración fija para usuarios no registrados
+  const hoy = new Date();
+  const inicioDia = new Date();
+  inicioDia.setHours(0,0,0,0);
+  const finDia = new Date();
+  finDia.setHours(23,59,59,999);
+  
+  const radioFijo = 20000; // 20 km
+
+  const airQualityPoints = useMemo(() => {
+    if (selectedSensor !== 'calidad') return [];
+
+    const pointsByLocation = {};
+
+    allLecturas.forEach(lectura => {
+        const key = `${lectura.latitud},${lectura.longitud}`;
+        const severity = getSeverityLevel(lectura.tipo_sensor.toLowerCase(), lectura.valor);
+
+        if (severity > (pointsByLocation[key]?.valor || 0)) {
+            pointsByLocation[key] = {
+                ...lectura,
+                valor: severity, 
+            };
+        }
+    });
+
+    return Object.values(pointsByLocation);
+  }, [allLecturas, selectedSensor]);
+
+  const cargarLecturas = async () => {
+    setLoading(true);
+    setError(null);
+    const opciones = {
+        latitud: gandiaCenterLat,
+        longitud: gandiaCenterLng,
+        radio: radioFijo,
+        fechaInicio: inicioDia,
+        fechaFin: finDia,
+        tiposensor: selectedSensor === 'calidad' ? '' : selectedSensor, 
+    };
+    
+    try {
+        const res = await obtenerLecturas(opciones);
+        if (res.error) {
+            console.error("❌ Error al obtener lecturas:", res.error);
+            setError(res.error);
+            setAllLecturas([]); 
+        } else {
+            setAllLecturas(res);
+        }
+    } catch (err) {
+        console.error("❌ Error inesperado:", err.message);
+        setError(err.message);
+        setAllLecturas([]); 
+    } finally {
+        setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    cargarLecturas();
+  }, [selectedSensor]); 
+
+  const handleSensorChange = (event) => {
+    setSelectedSensor(event.target.value);
+  };
 
   const siguienteFeature = () => {
-    setFeatureIndex((prev) => (prev + 1) % features.length);
+    setFeatureIndex((prev) => (prev + 1) % data.features.length);
   };
 
   const anteriorFeature = () => {
-    setFeatureIndex((prev) => (prev - 1 + features.length) % features.length);
+    setFeatureIndex((prev) => (prev - 1 + data.features.length) % data.features.length);
   };
 
   const toggleFaq = (index) => {
     setFaqAbierta((prev) => (prev === index ? null : index));
   };
 
+  const toggleMapView = () => {
+    setMapView(mapView === 'points' ? 'interpolation' : 'points');
+  };
+  
+  const lecturasParaMapa = selectedSensor === 'calidad' ? airQualityPoints : allLecturas;
+
+
   return (
-    <div
-      className="home-page"
-      style={{
-        width: "100%",
-        minHeight: "100vh",
-        backgroundImage: "url(/Fondo.png)",
-        backgroundSize: "cover",
-        backgroundPosition: "center",
-        backgroundRepeat: "no-repeat"
-      }}
-    >
+    <div className="home-page">
       <HeaderNoRegistrado />
 
       <main className="home-content">
         {/* Hero */}
         <section className="home-hero">
           <h1 className="home-hero-title">Tu ruta, tu aire, tu impacto.</h1>
-          <img
-            src="/mapaMain.png"
-            alt="Mapa principal de la ciudad"
-            className="home-main-map"
-          />
+          
+          <div className="mb-3" style={{maxWidth: '300px', margin: '0 auto'}}>
+            <select className="form-select" onChange={handleSensorChange} value={selectedSensor}>
+                <option value="calidad">Calidad del Aire</option>
+                <option value="co">CO</option>
+                <option value="no2">NO2</option>
+                <option value="o3">O3</option>
+            </select>
+          </div>
+           
+            {error && <div className="alert alert-danger mt-3">{error}</div>}
+          
+          <button onClick={toggleMapView} className="btn btn-outline-secondary mb-2">
+            {mapView === 'points' ? "Mostrar Mapa de Interpolación" : "Mostrar Lecturas"}
+          </button>
+          
+          <MapContainer center={[gandiaCenterLat, gandiaCenterLng]} zoom={13} className="home-main-map">
+            <TileLayer
+              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            />
+            {loading ? <p className="text-center mt-5">Cargando datos en tiempo real...</p> : (
+                mapView === 'points' ? (
+                <DynamicRadiusCircleMarkers lecturas={allLecturas} />
+                ) : (
+                <InterpolationLayer lecturas={lecturasParaMapa} colorScale={colorScales[selectedSensor]} isAirQualityView={selectedSensor === 'calidad'} />
+                )
+            )}
+             {mapView === 'interpolation' && <Legend sensor={selectedSensor} />}
+          </MapContainer>
         </section>
 
         {/* Cómo funciona nuestro servicio */}
@@ -121,7 +302,7 @@ function Home() {
 
           {/* Versión escritorio: tres tarjetas */}
           <div className="home-features-desktop">
-            {features.map((f) => (
+            {data.features.map((f) => (
               <article key={f.id} className="home-feature-card">
                 <img src={f.img} alt={f.alt} className="home-feature-image" />
                 <h3 className="home-feature-title">{f.titulo}</h3>
@@ -138,20 +319,20 @@ function Home() {
               onClick={anteriorFeature}
               aria-label="Anterior"
             >
-              ‹
+              
             </button>
 
             <article className="home-feature-card mobile">
               <img
-                src={features[featureIndex].img}
-                alt={features[featureIndex].alt}
+                src={data.features[featureIndex].img}
+                alt={data.features[featureIndex].alt}
                 className="home-feature-image"
               />
               <h3 className="home-feature-title">
-                {features[featureIndex].titulo}
+                {data.features[featureIndex].titulo}
               </h3>
               <p className="home-feature-text">
-                {features[featureIndex].texto}
+                {data.features[featureIndex].texto}
               </p>
             </article>
 
@@ -171,7 +352,7 @@ function Home() {
           <h2 className="home-faq-title">FAQ</h2>
 
           <div className="home-faq-list">
-            {faqs.map((item, index) => (
+            {data.faqs.map((item, index) => (
               <div
                 key={index}
                 className={`faq-item ${faqAbierta === index ? "open" : ""}`}
@@ -196,8 +377,7 @@ function Home() {
 
         {/* Contacto */}
         <section className="home-contact">
-          <p>contacto@mail.com</p>
-        </section>
+          <p>contacto@mail.com</p>        </section>
 
         <footer className="home-footer">
           <span>GTI 2025©</span>
