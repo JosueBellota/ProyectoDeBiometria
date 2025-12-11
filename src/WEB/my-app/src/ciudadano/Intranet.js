@@ -300,7 +300,13 @@ function Intranet() {
                 mapView === 'points' ? (
                 <DynamicRadiusCircleMarkers lecturas={allLecturas} />
                 ) : (
-                <InterpolationLayer lecturas={lecturasParaMapa} colorScale={colorScales[selectedSensor]} isAirQualityView={selectedSensor === 'calidad'} />
+                <InterpolationLayer 
+                    lecturas={lecturasParaMapa} 
+                    colorScale={colorScales[selectedSensor]} 
+                    isAirQualityView={selectedSensor === 'calidad'} 
+                    sensorName={legendData[selectedSensor]?.title || selectedSensor}
+                    unit={units[selectedSensor]}
+                />
                 )
             )}
              {mapView === 'interpolation' && <Legend sensor={selectedSensor} />}
