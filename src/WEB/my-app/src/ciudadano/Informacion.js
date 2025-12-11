@@ -13,9 +13,9 @@ import HeaderRegistrado from "./templates/HeaderRegistrado";
 
 const contaminantes = [
   {
-    id: "co2",
-    nombre: "Dióxido de carbono",
-    abreviatura: "CO₂",
+    id: "co",
+    nombre: "Monóxido de carbono",
+    abreviatura: "CO",
     descripcionCorta: "Gas incoloro e inodoro, subproducto de la respiración y combustión.",
     resumenRapido: "En interiores mal ventilados causa fatiga y falta de concentración. Es el principal gas de efecto invernadero.",
     fuentes: ["Respiración humana y animal", "Combustión de combustibles fósiles (tráfico, calefacción)", "Incendios forestales"],

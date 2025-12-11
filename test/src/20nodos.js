@@ -94,7 +94,7 @@ async function main() {
         await callAPI("POST", "/lecturas", {
             nombreNodo: nodoId,
             propietarioId: PROPIETARIO_ID,
-            lecturas: [{ tipo: 'co2', valor: valorCO2 }],
+            lecturas: [{ tipo: 'CO', valor: valorCO2 }],
             latitud: lat,
             longitud: lng,
         });
@@ -102,7 +102,7 @@ async function main() {
         await callAPI("POST", "/lecturas", {
             nombreNodo: nodoId,
             propietarioId: PROPIETARIO_ID,
-            lecturas: [{ tipo: 'co2', valor: valorCO2 + (Math.random() * 20 - 10) }],
+            lecturas: [{ tipo: 'CO', valor: valorCO2 + (Math.random() * 20 - 10) }],
             latitud: lat + 0.0001, 
             longitud: lng + 0.0001,
         });

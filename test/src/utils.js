@@ -70,7 +70,7 @@ const generateReadings = (type, count, options) => {
     let range;
     // Values are generated to be around the color change thresholds
     switch (type) {
-        case 'CO2':
+        case 'CO':
             range = { green: 400, yellow: 700, red: 1100 };
             break;
         case 'NO2':
@@ -147,7 +147,7 @@ const generateReadings = (type, count, options) => {
 };
 
 const mockLecturas = [
-    ...generateReadings('CO2', 30, { latOffset: 0, lngOffset: 0 }),
+    ...generateReadings('CO', 30, { latOffset: 0, lngOffset: 0 }),
     ...generateReadings('NO2', 30, { latOffset: offset * 0.3, lngOffset: offset * 0.3 }),
     ...generateReadings('O3', 30, { latOffset: -offset * 0.3, lngOffset: -offset * 0.3 }),
 ];
