@@ -46,7 +46,7 @@ const getSeverityLevel = (tipoSensor, medida) => {
 
 
 const units = {
-    'co': 'ppm',
+    'co': 'mg/m³',
     'no2': 'µg/m³',
     'o3': 'µg/m³',
     'calidad': ''
@@ -119,21 +119,21 @@ const legendData = {
     },
     'co': {
         title: 'Monóxido de Carbono (CO)',
-        green: 'Verde: Recomendable (< 450)',
-        yellow: 'Amarillo: Máximo Permitido (450 - 1000)',
-        red: 'Rojo: Peligroso (> 1000)',
+        green: 'Verde: Recomendable (< 450 mg/m³)',
+        yellow: 'Amarillo: Máximo Permitido (450 - 1000 mg/m³)',
+        red: 'Rojo: Peligroso (> 1000 mg/m³)',
     },
     'no2': {
         title: 'Dióxido de Nitrógeno (NO2)',
-        green: 'Verde: Recomendable (< 100)',
-        yellow: 'Amarillo: Máximo Permitido (100 - 200)',
-        red: 'Rojo: Peligroso (> 200)',
+        green: 'Verde: Recomendable (< 100 µg/m³)',
+        yellow: 'Amarillo: Máximo Permitido (100 - 200 µg/m³)',
+        red: 'Rojo: Peligroso (> 200 µg/m³)',
     },
     'o3': {
         title: 'Ozono (O3)',
-        green: 'Verde: Recomendable (< 120)',
-        yellow: 'Amarillo: Máximo Permitido (120 - 180)',
-        red: 'Rojo: Peligroso (> 180)',
+        green: 'Verde: Recomendable (< 120 µg/m³)',
+        yellow: 'Amarillo: Máximo Permitido (120 - 180 µg/m³)',
+        red: 'Rojo: Peligroso (> 180 µg/m³)',
     }
 };
 

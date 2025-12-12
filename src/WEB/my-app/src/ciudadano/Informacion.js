@@ -21,9 +21,9 @@ const contaminantes = [
     fuentes: ["Respiración humana y animal", "Combustión de combustibles fósiles (tráfico, calefacción)", "Incendios forestales"],
     efectos: ["Dolor de cabeza y mareos", "Fatiga y somnolencia", "Falta de concentración", "Desplazamiento del oxígeno a niveles muy altos"],
     rangos: [
-      { color: "green", texto: "Recomendable: < 450 ppm" },
-      { color: "yellow", texto: "Máximo Permitido: 450 - 1000 ppm" },
-      { color: "red", texto: "Peligroso: > 1000 ppm" }
+      { color: "green", texto: "Recomendable: < 450 mg/m³" },
+      { color: "yellow", texto: "Máximo Permitido: 450 - 1000 mg/m³" },
+      { color: "red", texto: "Peligroso: > 1000 mg/m³" }
     ],
     consejos: ["Ventila las habitaciones frecuentemente.", "Mantén plantas en interiores.", "Revisa los sistemas de calefacción."]
   },

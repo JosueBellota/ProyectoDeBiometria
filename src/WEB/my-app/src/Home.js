@@ -54,7 +54,7 @@ const getSeverityLevel = (tipoSensor, medida) => {
 };
 
 const units = {
-    'co': 'ppm',
+    'co': 'mg/m³',
     'no2': 'µg/m³',
     'o3': 'µg/m³',
     'calidad': ''
@@ -127,21 +127,21 @@ const legendData = {
     },
     'co': {
         title: 'Monóxido de Carbono (CO)',
-        green: 'Recomendable (< 450)',
-        yellow: 'Máximo Permitido (450 - 1000)',
-        red: 'Peligroso (> 1000)',
+        green: 'Recomendable (< 450 mg/m³)',
+        yellow: 'Máximo Permitido (450 - 1000 mg/m³)',
+        red: 'Peligroso (> 1000 mg/m³)',
     },
     'no2': {
         title: 'Dióxido de Nitrógeno (NO2)',
-        green: 'Recomendable (< 100)',
-        yellow: 'Máximo Permitido (100 - 200)',
-        red: 'Peligroso (> 200)',
+        green: 'Recomendable (< 100 µg/m³)',
+        yellow: 'Máximo Permitido (100 - 200 µg/m³)',
+        red: 'Peligroso (> 200 µg/m³)',
     },
     'o3': {
         title: 'Ozono (O3)',
-        green: 'Recomendable (< 120)',
-        yellow: 'Máximo Permitido (120 - 180)',
-        red: 'Peligroso (> 180)',
+        green: 'Recomendable (< 120 µg/m³)',
+        yellow: 'Máximo Permitido (120 - 180 µg/m³)',
+        red: 'Peligroso (> 180 µg/m³)',
     }
 };
 
@@ -290,7 +290,13 @@ function Home() {
                 mapView === 'points' ? (
                 <DynamicRadiusCircleMarkers lecturas={allLecturas} />
                 ) : (
-                <InterpolationLayer lecturas={lecturasParaMapa} colorScale={colorScales[selectedSensor]} isAirQualityView={selectedSensor === 'calidad'} />
+                <InterpolationLayer
+                    lecturas={lecturasParaMapa}
+                    colorScale={colorScales[selectedSensor]}
+                    isAirQualityView={selectedSensor === 'calidad'}
+                    sensorName={legendData[selectedSensor]?.title || selectedSensor}
+                    unit={units[selectedSensor]}
+                />
                 )
             )}
              {mapView === 'interpolation' && <Legend sensor={selectedSensor} />}
