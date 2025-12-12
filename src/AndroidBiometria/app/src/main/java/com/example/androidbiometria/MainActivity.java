@@ -103,10 +103,8 @@ import com.google.firebase.auth.FirebaseUser;
         private String dispositivoBuscadoActual = null;
 
         private static final long TIMEOUT_BEACON_MS = 5000; // 5 segundos para detectar desconexión
-        private static final long COOLDOWN_NOTIFICACION_MS = 3000; // 3 segundos entre notificaciones
         private long ultimaDeteccionBeacon = 0;
         private boolean beaconConectado = false;
-        private long ultimaNotificacion = 0;
         private boolean escaneoActivo = false;
 
 
@@ -146,19 +144,17 @@ import com.google.firebase.auth.FirebaseUser;
                     long tiempoActual = System.currentTimeMillis();
                     long tiempoDesdeUltimaDeteccion = ultimaDeteccionBeacon > 0 ?
                             tiempoActual - ultimaDeteccionBeacon : Long.MAX_VALUE;
-                    long tiempoDesdeUltimaNotificacion = tiempoActual - ultimaNotificacion;
 
                     // Solo notificar si alguna vez se detectó el beacon (ultimaDeteccionBeacon > 0)
                     boolean algunaVezDetectado = ultimaDeteccionBeacon > 0;
 
                     // Si ha pasado más de 5 segundos desde la última detección Y alguna vez se detectó
                     if (algunaVezDetectado && tiempoDesdeUltimaDeteccion > TIMEOUT_BEACON_MS) {
-                        // Y ha pasado el cooldown desde la última notificación
-                        if (tiempoDesdeUltimaNotificacion > COOLDOWN_NOTIFICACION_MS) {
+                        // Solo notificar si el estado anterior era "conectado" (para evitar notificaciones constantes)
+                        if (beaconConectado) {
                             String nodeName = (nombreNodoUsuario != null) ? nombreNodoUsuario : codigoNodoQR;
                             if (nodeName != null && !nodeName.isEmpty()) {
                                 generarNotificacion("El nodo " + nodeName + " está apagado o desconectado", "rojo");
-                                ultimaNotificacion = tiempoActual;
                                 beaconConectado = false;
                                 Log.w(ETIQUETA_LOG, "⚠️ Watchdog: Beacon desconectado - " + nodeName);
 
@@ -1146,7 +1142,6 @@ import com.google.firebase.auth.FirebaseUser;
             // Debe ser actualizado SOLO cuando realmente se detecte el beacon
 
             beaconConectado = false; // Empezamos asumiendo que NO está conectado
-            ultimaNotificacion = 0;
 
             // Limpiar cualquier watchdog previo
             watchdogHandler.removeCallbacks(watchdogRunnable);

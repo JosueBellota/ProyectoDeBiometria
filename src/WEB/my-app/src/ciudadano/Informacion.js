@@ -56,6 +56,30 @@ const contaminantes = [
       { color: "red", texto: "Peligroso: > 180 µg/m³" }
     ],
     consejos: ["En días calurosos, mejor hacer deporte temprano por la mañana.", "Evita correr al aire libre por la tarde en episodios de ozono."]
+  },
+  {
+    id: "so2",
+    nombre: "Dióxido de azufre",
+    abreviatura: "SO₂",
+    descripcionCorta:
+      "Gas procedente de combustibles con azufre y algunas actividades industriales.",
+    resumenRapido:
+      "Riesgo localizado cerca de zonas industriales. Afecta sobre todo a personas con asma.",
+    fuentes: ["Centrales térmicas", "Algunas industrias", "Volcanes"],
+    efectos: [
+      "Tos y dificultad respiratoria",
+      "Empeoramiento del asma",
+      "Irritación de ojos y garganta",
+    ],
+    rangos: [
+      { color: "green", texto: "Recomendable: < 40 µg/m³" },
+      { color: "yellow", texto: "Máximo Permitido: 40 - 125 µg/m³" },
+      { color: "red", texto: "Peligroso: > 125 µg/m³" }
+    ],
+    consejos: [
+      "Evita ejercicio intenso cerca de zonas industriales en días de mala dispersión.",
+      "Consulta los avisos locales si vives cerca de un área industrial.",
+    ],
   }
 ];
 

@@ -261,9 +261,10 @@ function Intranet() {
       <main className="home-content">
         {/* Hero */}
         <section className="home-hero">
-          <h1 className="home-hero-title">Tu ruta, tu aire, tu impacto.</h1>
-          <div>
-            <select onChange={handleSensorChange} value={selectedSensor}>
+          <h1 className="home-hero-title">CLOUDMETRIC</h1>
+          <p className="home-hero-subtitle">Tu ruta, tu aire, tu impacto.</p>
+          <div className="mb-3" style={{maxWidth: '300px', margin: '0 auto'}}>
+            <select className="form-select" onChange={handleSensorChange} value={selectedSensor}>
                 <option value="calidad">Calidad del Aire</option>
                 <option value="co">CO</option>
                 <option value="no2">NO2</option>
@@ -288,7 +289,7 @@ function Intranet() {
                 </div>
             </div>
             {error && <div className="alert alert-danger mt-3">{error}</div>}
-          <button onClick={toggleMapView}>
+          <button onClick={toggleMapView} className="btn btn-outline-secondary mb-2">
             {mapView === 'points' ? "Mostrar Mapa de Interpolación" : "Mostrar Lecturas"}
           </button>
           <MapContainer center={gandiaPosition} zoom={13} className="home-main-map">
