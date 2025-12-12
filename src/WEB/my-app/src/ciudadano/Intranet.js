@@ -156,21 +156,55 @@ const Legend = ({ sensor }) => {
 function Intranet() {
   const [featureIndex, setFeatureIndex] = useState(0);
   const [faqAbierta, setFaqAbierta] = useState(null);
-  const [mapView, setMapView] = useState('interpolation'); // Default to interpolation view
-  const [selectedSensor, setSelectedSensor] = useState('calidad'); // Default to 'calidad'
+  const [mapView, setMapView] = useState('interpolation'); 
   const gandiaPosition = [38.96667, -0.18333];
   
-  const [allLecturas, setAllLecturas] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null); // New state for error handling
+  // --- ESTADO CON PERSISTENCIA (LOCALSTORAGE) ---
+  const [selectedSensor, setSelectedSensor] = useState(() => localStorage.getItem('selectedSensor') || 'calidad');
 
   const hoy = new Date();
   const semanaPasada = new Date();
   semanaPasada.setDate(hoy.getDate() - 7);
 
-  const [fechaInicio, setFechaInicio] = useState(semanaPasada.toISOString().split('T')[0]);
-  const [fechaFin, setFechaFin] = useState(hoy.toISOString().split('T')[0]);
-  const [radio, setRadio] = useState(5000);
+  const [fechaInicio, setFechaInicio] = useState(() => localStorage.getItem('fechaInicio') || semanaPasada.toISOString().split('T')[0]);
+  const [fechaFin, setFechaFin] = useState(() => localStorage.getItem('fechaFin') || hoy.toISOString().split('T')[0]);
+  const [radio, setRadio] = useState(() => {
+      const saved = localStorage.getItem('radio');
+      return saved ? parseInt(saved, 10) : 5000;
+  });
+
+  // Lecturas cacheadas
+  const [allLecturas, setAllLecturas] = useState(() => {
+      const saved = localStorage.getItem('cachedLecturas');
+      if (saved) {
+          console.log("✅ Lecturas cargadas desde localStorage.");
+          return JSON.parse(saved);
+      }
+      console.log("❌ No hay lecturas en localStorage, se realizará una consulta inicial a la API.");
+      return [];
+  });
+
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  // Guardar configuración en localStorage al cambiar
+  useEffect(() => {
+    localStorage.setItem('fechaInicio', fechaInicio);
+    localStorage.setItem('fechaFin', fechaFin);
+    localStorage.setItem('radio', radio);
+    localStorage.setItem('selectedSensor', selectedSensor);
+  }, [fechaInicio, fechaFin, radio, selectedSensor]);
+
+
+  // --- LÓGICA DE FILTRADO Y MAPA ---
+
+  // Filtramos las lecturas que tenemos en memoria según el sensor seleccionado
+  // Esto evita llamar a la API cuando cambiamos de pestaña
+  const lecturasFiltradas = useMemo(() => {
+      if (selectedSensor === 'calidad') return allLecturas;
+      // Filtro en cliente
+      return allLecturas.filter(l => l.tipo_sensor.toLowerCase() === selectedSensor.toLowerCase());
+  }, [allLecturas, selectedSensor]);
 
   const airQualityPoints = useMemo(() => {
     if (selectedSensor !== 'calidad') return [];
@@ -193,7 +227,7 @@ function Intranet() {
   }, [allLecturas, selectedSensor]);
 
   const handleFiltrar = async () => {
-    console.log("Botón 'Aplicar filtros' clickeado");
+    console.log("Botón 'Aplicar filtros' clickeado - Realizando consulta a la API.");
     setLoading(true);
     setError(null);
     const opciones = {
@@ -202,37 +236,40 @@ function Intranet() {
         radio: radio,
         fechaInicio: new Date(fechaInicio),
         fechaFin: new Date(fechaFin),
-        // Para 'calidad' no filtramos por tipo de sensor, los queremos todos
-        tiposensor: selectedSensor === 'calidad' ? '' : selectedSensor, 
+        tiposensor: '' // OPTIMIZACIÓN: Pedimos TODOS los sensores para filtrar localmente
     };
-    console.log("Opciones de filtrado:", opciones);
+    console.log("Opciones de filtrado (API):", opciones);
     try {
         const res = await obtenerLecturas(opciones);
-        console.log("Respuesta de obtenerLecturas:", res);
+        console.log("Respuesta API:", res);
         if (res.error) {
-            console.error("❌ Error al obtener lecturas en la fase de filtrado:", res.error);
+            console.error("❌ Error al obtener lecturas:", res.error);
             setError(res.error);
-            setAllLecturas([]); 
+            // No borramos allLecturas si hay error, mantenemos caché vieja o vacía
         } else {
-            console.log("Lecturas actualizadas:", res);
+            console.log("Lecturas actualizadas y guardadas en memoria.");
             setAllLecturas(res);
+            localStorage.setItem('cachedLecturas', JSON.stringify(res));
         }
     } catch (err) {
-        console.error("❌ Error inesperado durante el filtrado de lecturas:", err.message);
+        console.error("❌ Error inesperado:", err.message);
         setError(err.message);
-        setAllLecturas([]); 
     } finally {
         setLoading(false);
     }
   };
 
+  // Carga inicial: Solo si no hay datos en caché
   useEffect(() => {
-    handleFiltrar();
-  }, [selectedSensor]); // Refrescar datos cuando cambia el sensor
+      if (allLecturas.length === 0) {
+          handleFiltrar();
+      }
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); 
 
   const handleSensorChange = (event) => {
     setSelectedSensor(event.target.value);
-    // No cambiamos la vista, el usuario decide si ve puntos o interpolación
+    // YA NO LLAMAMOS A handleFiltrar(). El cambio es instantáneo vía lecturasFiltradas.
   };
 
   const siguienteFeature = () => {
@@ -251,7 +288,7 @@ function Intranet() {
     setMapView(mapView === 'points' ? 'interpolation' : 'points');
   };
   
-  const lecturasParaMapa = selectedSensor === 'calidad' ? airQualityPoints : allLecturas;
+  const lecturasParaMapa = selectedSensor === 'calidad' ? airQualityPoints : lecturasFiltradas;
 
 
   return (
@@ -428,6 +465,102 @@ function Intranet() {
                 }}
             >
                 🗑️ Eliminar Nodos de Prueba
+            </button>
+            <button 
+                className="btn btn-info ms-2" 
+                onClick={async () => {
+                    const confirm = window.confirm("¿Crear 20 lecturas en forma de cuadrado (Nodo 0)?");
+                    if (!confirm) return;
+
+                    console.log("🚀 Iniciando prueba cuadrado (Nodo 0)...");
+                    const BASE_URL = "https://us-central1-proyectodebiometria.cloudfunctions.net/ServidorREST";
+                    const PROPIETARIO_ID = "mcJtObhq2iOpCnm6AT6xbFB8zYT2";
+                    const NODO_ID = "nodo0";
+                    
+                    // Coordenadas Gandía Playa
+                    const START_LAT = 39.006;
+                    const START_LNG = -0.165;
+                    const STEP = 0.001; // ~100 metros
+
+                    // Crear Nodo 0
+                    try {
+                        await fetch(`${BASE_URL}/nodos`, {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ nombre: NODO_ID, propietarioId: PROPIETARIO_ID }),
+                        });
+                    } catch (e) { console.error("Error creando nodo 0", e); }
+
+                    // 5x4 Grid = 20 puntos
+                    let count = 0;
+                    for (let latIdx = 0; latIdx < 5; latIdx++) {
+                        for (let lngIdx = 0; lngIdx < 4; lngIdx++) {
+                            const lat = START_LAT + (latIdx * STEP);
+                            const lng = START_LNG + (lngIdx * STEP);
+                            
+                            // Valor aleatorio
+                            const valorCO = 300 + Math.random() * 500; 
+
+                            try {
+                                await fetch(`${BASE_URL}/lecturas`, {
+                                    method: "POST",
+                                    headers: { "Content-Type": "application/json" },
+                                    body: JSON.stringify({
+                                        nombreNodo: NODO_ID,
+                                        propietarioId: PROPIETARIO_ID,
+                                        lecturas: [{ tipo: 'CO', valor: valorCO }],
+                                        latitud: lat,
+                                        longitud: lng,
+                                    }),
+                                });
+                                count++;
+                                console.log(`Lectura ${count}/20 enviada para ${NODO_ID}`);
+                            } catch (e) { console.error("Error enviando lectura", e); }
+                        }
+                    }
+                    alert("✅ Prueba Cuadrado (20 lecturas) finalizada. Recargando mapa...");
+                    handleFiltrar();
+                }}
+            >
+                🟦 Prueba Cuadrado (Nodo 0)
+            </button>
+            <button 
+                className="btn btn-warning ms-2" 
+                onClick={async () => {
+                    const confirm = window.confirm("¿Eliminar Nodo 0 y sus lecturas?");
+                    if (!confirm) return;
+
+                    console.log("🚀 Eliminando Nodo 0...");
+                    const BASE_URL = "https://us-central1-proyectodebiometria.cloudfunctions.net/ServidorREST";
+                    const NODO_ID = "nodo0";
+                    const PROPIETARIO_ID = "mcJtObhq2iOpCnm6AT6xbFB8zYT2";
+
+                    try {
+                        const response = await fetch(`${BASE_URL}/nodos`, {
+                            method: "DELETE",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ 
+                                nombreNodo: NODO_ID, 
+                                propietarioId: PROPIETARIO_ID 
+                            }),
+                        });
+                        
+                        if (response.ok) {
+                            console.log(`Nodo ${NODO_ID} eliminado.`);
+                            alert(`🗑️ Nodo ${NODO_ID} eliminado correctamente.`);
+                        } else {
+                            console.error(`Error eliminando nodo ${NODO_ID}: ${response.statusText}`);
+                            alert(`❌ Error al eliminar Nodo ${NODO_ID}.`);
+                        }
+
+                    } catch (e) { 
+                        console.error(`Excepción eliminando nodo ${NODO_ID}`, e);
+                        alert(`❌ Excepción al eliminar Nodo ${NODO_ID}.`);
+                    }
+                    handleFiltrar();
+                }}
+            >
+                🗑️ Eliminar Nodo 0
             </button>
           </div>
         </section>
