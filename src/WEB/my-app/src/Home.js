@@ -42,6 +42,13 @@ const colorScales = {
     }
 };
 
+const sensorLimits = {
+    'co': { low: 0, med: 450, high: 1000 },
+    'no2': { low: 0, med: 100, high: 200 },
+    'o3': { low: 0, med: 120, high: 180 },
+    'calidad': { low: 1, med: 2, high: 3 }
+};
+
 const getSeverityLevel = (tipoSensor, medida) => {
     const scale = colorScales[tipoSensor];
     if (!scale) return 0; // Sin severidad
@@ -296,6 +303,7 @@ function Home() {
                     isAirQualityView={selectedSensor === 'calidad'}
                     sensorName={legendData[selectedSensor]?.title || selectedSensor}
                     unit={units[selectedSensor]}
+                    limits={sensorLimits[selectedSensor]}
                 />
                 )
             )}

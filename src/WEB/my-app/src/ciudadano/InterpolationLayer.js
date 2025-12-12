@@ -141,8 +141,18 @@ const InterpolationLayer = ({ lecturas, colorScale: propColorScale, isAirQuality
         // Si no hay puntos dentro del radio, ignorar celda (transparente)
         if (denominator === 0) return null;
 
-        const interpolatedValue = numerator / denominator;
+        let interpolatedValue = numerator / denominator;
         
+        // --- DECAIMIENTO ESPACIAL SUAVE HACIA 'NEUTRO' (MED) ---
+        // Esto asegura que una lectura aislada roja o verde decaiga hacia amarillo (med) en los bordes
+        if (limits) {
+             const ratio = Math.min(minDist / MAX_RADIUS, 1);
+             const target = limits.med;
+             
+             // Decaimiento lineal simple para gradiente suave continuo
+             interpolatedValue = interpolatedValue * (1 - ratio) + target * ratio;
+        }
+
         // Obtener color degradado
         const color = getGradientColor(interpolatedValue);
 
