@@ -1,120 +1,108 @@
-// ---------------------------------------------------------
-//
-// Fichero:App.js
+// --------------------------------------------------------------------------
+// Fichero: App.js
 // Responsable: Josue Bellota Ichaso
 //
-// ----------------------------------------------------------
+// Descripción:
+// Este fichero es el componente principal de la aplicación React.
+// Se encarga de gestionar el enrutamiento de la aplicación y de controlar
+// el estado de la sesión del usuario para proteger las rutas.
+// --------------------------------------------------------------------------
 
 import React, { useEffect, useState } from "react";
-import { main } from "./logicaFake/obtenerMedida";
+import { Routes, Route, Navigate, useNavigate } from "react-router-dom";
 
-// ---------------------------------------------------------
-// Variable global para controlar si ya se ejecutó la petición
-// ---------------------------------------------------------
-let testEjecutado = false;
+// --------------------------------------------------------------------------
+// 📝 Vistas y Componentes
+// --------------------------------------------------------------------------
+import Login from "./Login";
+import Registro from "./Registro";
+import IntranetCiudadano from "./ciudadano/Intranet";
+import IntranetAdmin from "./admin/Intranet";
+import PerfilAdmin from "./admin/Perfil";
+import Autologin from "./Autologin";
+import Home from "./Home";
+import CalidadAire from "./CalidadAire";
+import InformacionCiudadano from "./ciudadano/Informacion";
+import Lecturas from "./ciudadano/Lecturas";
+import Tienda from "./ciudadano/Tienda";
+import PerfilCiudadano from "./ciudadano/Perfil";
+import { escucharSesion } from "./logicaFake/auth";
+import VerificarEmail from "./VerificarEmail"; // <-- Importado
+import Condiciones from "./Condiciones";
 
+// --------------------------------------------------------------------------
+// ✅ Componente Principal: App
+// --------------------------------------------------------------------------
 function App() {
-  // ---------------------------------------------------------
-  // State:
-  //   - resultados: guarda la lista de respuestas recibidas
-  //   - cargando: indica si se está realizando la petición
-  // ---------------------------------------------------------
-  const [resultados, setResultados] = useState([]);
+  // --------------------------------------------------------------------------
+  // ✨ Estado del Componente
+  //
+  // - usuario: Almacena la información del usuario logueado (o null si no hay sesión).
+  // - cargando: Indica si se está verificando el estado de la sesión.
+  // --------------------------------------------------------------------------
+  const [usuario, setUsuario] = useState(null);
   const [cargando, setCargando] = useState(true);
+  const navigate = useNavigate();
 
-  // ---------------------------------------------------------
-  // Función auxiliar para formatear el tiempo recibido
-  // ---------------------------------------------------------
-  const formatearTiempo = (tiempo) => {
-    if (!tiempo) return "Sin fecha";
-
-    // Caso Firestore Timestamp { _seconds, _nanoseconds }
-    if (tiempo._seconds) {
-      return new Date(tiempo._seconds * 1000).toLocaleString();
-    }
-
-    // Caso Firestore Timestamp { seconds, nanoseconds }
-    if (tiempo.seconds) {
-      return new Date(tiempo.seconds * 1000).toLocaleString();
-    }
-
-    // Caso número en milisegundos (Date.now())
-    if (typeof tiempo === "number") {
-      return new Date(tiempo).toLocaleString();
-    }
-
-    // Caso string ISO (ej: "2025-10-03T13:45:00.000Z")
-    if (typeof tiempo === "string") {
-      return new Date(tiempo).toLocaleString();
-    }
-
-    return "Formato de tiempo desconocido";
-  };
-
-  // ---------------------------------------------------------
-  // useEffect:
-  //   • Se ejecuta solo la primera vez que se monta el componente.
-  //   • Llama a la función "main()" (que a su vez invoca RecibirMedida).
-  //   • Actualiza el estado con los datos obtenidos.
-  // ---------------------------------------------------------
+  // --------------------------------------------------------------------------
+  // ✨ Efecto de Carga de Sesión
+  //
+  // Se ejecuta al montar el componente para suscribirse a los cambios
+  // de estado de la sesión de Firebase.
+  // --------------------------------------------------------------------------
   useEffect(() => {
-    if (!testEjecutado) {
-      const ejecutarPeticion = async () => {
-        const res = await main(); // aquí llegan los valores reales
-        setResultados(res);
-        setCargando(false);
-      };
-      ejecutarPeticion();
-      testEjecutado = true;
-    } else {
+    const unsubscribe = escucharSesion(async (user) => {
+      if (user) {
+        setUsuario(user);
+      } else {
+        setUsuario(null);
+      }
       setCargando(false);
-    }
+    });
+
+    return () => unsubscribe();
   }, []);
 
-  // ---------------------------------------------------------
-  // Renderizado:
-  //   • Mientras está cargando muestra un mensaje.
-  //   • Si no hay resultados, avisa que no hay medidas aún.
-  //   • Si hay resultados, muestra sensor, valor y fecha legible.
-  // ---------------------------------------------------------
+  // Muestra un mensaje de carga mientras se verifica la sesión.
+  if (cargando) return <p>Cargando sesión...</p>;
+
+  // Si el usuario existe pero no ha verificado su email, muestra la pantalla de verificación
+  if (usuario && !usuario.emailVerified) {
+    return <VerificarEmail usuario={usuario} />;
+  }
+
+  // -----------------------------------------------------------------------------------
+  // 🚀 Sistema de Enrutamiento (React Router)
+  //
+  // Define las rutas de la aplicación y las protege según el rol del usuario.
+  // -----------------------------------------------------------------------------------
   return (
-    <div style={{ padding: 20, fontFamily: "Arial, sans-serif" }}>
-      <h1>Medida</h1>
-      {cargando ? (
-        <p>Ejecutando petición...</p>
-      ) : resultados.length === 0 ? (
-        <p>No hay medidas recibidas aún.</p>
-      ) : (
-        resultados.map((r, index) => (
-          <div
-            key={index}
-            style={{
-              marginBottom: 12,
-              padding: 10,
-              border: "1px solid #ddd",
-              borderRadius: 6,
-            }}
-          >
-            {r.error ? (
-              <span style={{ color: "red" }}>
-                ❌ Error:{" "}
-                {typeof r.error === "string"
-                  ? r.error
-                  : JSON.stringify(r.error)}
-              </span>
-            ) : (
-              <>
-                <strong>Sensor:</strong> {r.resultado.sensor} <br />
-                <strong>Valor:</strong> {r.resultado.valor} <br />
-                <strong>Tiempo:</strong> {formatearTiempo(r.resultado.tiempo)}{" "}
-                <br />
-              </>
-            )}
-          </div>
-        ))
-      )}
-    </div>
+    <Routes>
+      <Route path="/autologin" element={<Autologin />} />
+
+      {/* ------------------ Rutas Públicas ------------------ */}
+      <Route path="/" element={!usuario ? <Home /> : (usuario.rol === "admin" ? <Navigate to="/admin/intranet" /> : <Navigate to="/ciudadano/intranet" />)} />
+      <Route path="/login" element={!usuario ? <Login /> : (usuario.rol === "admin" ? <Navigate to="/admin/intranet" /> : <Navigate to="/ciudadano/intranet" />)} />
+      <Route path="/registro" element={!usuario ? <Registro /> : <Navigate to="/ciudadano/intranet" />} />
+      <Route path="/condiciones" element={<Condiciones />} />
+      <Route path="/calidad-aire" element={<CalidadAire />} />
+
+      {/* ------------------ Rutas de Ciudadano ------------------ */}
+      <Route path="/ciudadano/intranet" element={usuario && usuario.rol === "ciudadano" ? <IntranetCiudadano /> : <Navigate to="/login" />} />
+      <Route path="/ciudadano/lecturas" element={usuario && usuario.rol === "ciudadano" ? <Lecturas /> : <Navigate to="/login" />} />
+      <Route path="/ciudadano/informacion" element={usuario && usuario.rol === "ciudadano" ? <InformacionCiudadano/> : <Navigate to="/login" />} />
+      <Route path="/ciudadano/tienda" element={usuario && usuario.rol === "ciudadano" ? <Tienda /> : <Navigate to="/login" />} />
+      <Route path="/ciudadano/perfil" element={usuario && usuario.rol === "ciudadano" ? <PerfilCiudadano /> : <Navigate to="/login" />} />
+
+      {/* ------------------ Rutas de Administrador ------------------ */}
+      <Route path="/admin/intranet" element={usuario && usuario.rol === "admin" ? <IntranetAdmin /> : <Navigate to="/login" />} />
+      <Route path="/admin/perfil" element={usuario && usuario.rol === "admin" ? <PerfilAdmin /> : <Navigate to="/login" />} />
+
+      {/* ------------------ Redirección por Defecto ------------------ */}
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
   );
 }
 
 export default App;
+

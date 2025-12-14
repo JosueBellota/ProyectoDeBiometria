@@ -1,5 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <color name="colorPrimary">#22604D</color>
+    <color name="colorPrimaryDark">#1B4C3E</color>
+    <color name="colorError">#B52929</color>
+    <color name="colorBg">#D9D9D9</color>
+    <color name="colorSurface">#EBEBEB</color>
+    <color name="colorBorder">#3B3939</color>
+    <color name="colorText">#000000</color>
+    <color name="headerText">#EBEBEB</color>
+    <color name="logoBg">#F7F2EA</color>
     <color name="black">#FF000000</color>
-    <color name="white">#FFFFFFFF</color>
+    <color name="white">#FFFDF8</color>
+    <color name="colorBackground">#fffef9</color>
+    <color name="colorLogoBorder">#6dc682</color>
 </resources>

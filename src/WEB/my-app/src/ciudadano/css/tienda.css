@@ -1,0 +1,182 @@
+/* TIENDA ----------------------------------------------- */
+
+.tienda-header {
+  text-align: center;
+  margin-bottom: 32px;
+}
+
+.tienda-monedas {
+  margin-top: -8px;
+  font-size: 16px;
+}
+
+.tienda-monedas-numero {
+  font-weight: 700;
+  color: var(--color-primary);
+}
+
+.tienda-subtexto {
+  margin-top: 8px;
+  font-size: 14px;
+  font-weight: 400;
+}
+
+/* Grid de tarjetas */
+.tienda-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+  justify-content: center;
+}
+
+/* Tarjeta tipo landing */
+.tienda-card {
+  background: var(--color-surface);
+  border-radius: 10px;
+  border: 1px solid var(--color-border);
+  max-width: 330px;
+  cursor: pointer;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.tienda-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.12);
+}
+
+.tienda-card-imagen {
+  width: 100%;
+  height: 180px;
+  object-fit: cover;
+}
+
+.tienda-card-contenido {
+  padding: 16px;
+  text-align: center;
+}
+
+.tienda-card-titulo {
+  margin-bottom: 8px;
+}
+
+.tienda-card-descripcion {
+  font-size: 14px;
+  font-weight: 400;
+  margin-bottom: 8px;
+}
+
+.tienda-card-coste {
+  font-size: 14px;
+  margin-bottom: 12px;
+}
+
+/* Código del cupón */
+.tienda-card-codigo {
+  position: relative;
+  border-radius: 8px;
+  padding: 10px 12px;
+  border: 1px dashed var(--color-border);
+  background: #ffffff;
+  min-height: 46px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tienda-card-codigo.oculto {
+  background: #f3f3f3;
+}
+
+.tienda-card-codigo-tapado {
+  position: absolute;
+  inset: 6px;
+  border-radius: 6px;
+  background: #d9d9d9;
+}
+
+.tienda-card-codigo-mensaje {
+  position: relative;
+  font-size: 12px;
+  font-weight: 600;
+  color: #555555;
+}
+
+.tienda-card-codigo.visible {
+  background: #ffffff;
+}
+
+.tienda-card-codigo-texto {
+  font-family: "Courier New", monospace;
+  letter-spacing: 0.12em;
+  font-weight: 700;
+}
+
+@media (max-width: 768px) {
+  .tienda-grid {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .tienda-card {
+    width: 100%;
+    max-width: 360px;
+  }
+}
+/* Modal Styles */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background: white;
+  padding: 24px;
+  border-radius: 8px;
+  max-width: 400px;
+  width: 90%;
+  text-align: center;
+}
+
+.modal-content h2 {
+  margin-top: 0;
+}
+
+.modal-actions {
+  margin-top: 24px;
+  display: flex;
+  justify-content: space-around;
+}
+
+.modal-confirm {
+  background-color: var(--color-primary);
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.modal-cancel {
+  background-color: #ccc;
+  color: black;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.tienda-card.desbloqueada {
+  opacity: 0.7;
+}
+

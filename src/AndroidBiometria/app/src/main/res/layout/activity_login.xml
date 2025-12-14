@@ -1,0 +1,78 @@
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:orientation="vertical"
+    android:padding="24dp"
+    android:gravity="center"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/colorBackground">
+
+    <ImageView
+        android:id="@+id/logo"
+        android:layout_width="100dp"
+        android:layout_height="100dp"
+        android:src="@drawable/logo"
+        android:layout_marginBottom="24dp"
+        android:background="@drawable/rounded_logo_background"
+        android:padding="10dp"/>
+
+    <TextView android:text="Iniciar Sesión"
+        android:textSize="22sp"
+        android:layout_marginBottom="16dp"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textColor="@color/colorText"/>
+
+    <EditText
+        android:id="@+id/email"
+        android:hint="Correo electrónico"
+        android:inputType="textEmailAddress"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content" />
+
+    <EditText
+        android:id="@+id/password"
+        android:hint="Contraseña"
+        android:inputType="textPassword"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content" />
+
+    <Button
+        android:id="@+id/loginButton"
+        android:text="INICIAR SESIÓN"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:backgroundTint="@color/colorPrimary"
+        android:textColor="@color/white"/>
+
+    <Button
+        android:id="@+id/registerButton"
+        android:text="REGISTRARSE"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:backgroundTint="@color/colorPrimary"
+        android:textColor="@color/white"/>
+
+    <Button
+        android:id="@+id/enrollFingerprintButton"
+        android:text="Enrolar Huella"
+        style="?android:attr/borderlessButtonStyle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginTop="8dp"
+        android:textColor="@color/colorPrimary" />
+
+    <Button
+        android:id="@+id/fingerprintButton"
+        android:text="Iniciar con Huella"
+        style="?android:attr/borderlessButtonStyle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginTop="16dp"
+        android:textColor="@color/colorPrimary"
+        android:visibility="gone"
+        tools:visibility="visible" />
+</LinearLayout>

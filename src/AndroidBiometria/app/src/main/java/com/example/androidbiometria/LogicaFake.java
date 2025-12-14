@@ -4,21 +4,32 @@ import android.util.Log;
 import okhttp3.*;
 import org.json.JSONObject;
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
-/**
- * -----------------------------------------------------------------------------
- * Fichero: LogicaFake.java
- * Responsable: Josue Bellota Ichaso
- * -----------------------------------------------------------------------------
- * Clase para construir y enviar mediciones a Firebase Functions.
- * Ahora usa la nueva función: ManejarPOST
- * -----------------------------------------------------------------------------
- */
 public class LogicaFake {
+    private static final String BASE_URL = "https://us-central1-proyectodebiometria.cloudfunctions.net/ServidorREST";
+    private OkHttpClient client = new OkHttpClient();
 
-    // ----------------------------------------------------------
-    // Atributos principales
-    // ----------------------------------------------------------
+    // -------------------------------------------------------------------------
+    // NUEVAS VARIABLES PARA LA LÓGICA DE TIMEOUT Y DETECCIÓN MÚLTIPLE
+    // -------------------------------------------------------------------------
+    private static final long TIMEOUT_DETECCION_MS = 2000; // 2 segundos por sensor
+    private static final long COOLDOWN_ENVIO_MS = 30000; // 30 segundos entre envíos
+
+    // Mapa para trackear los últimos tiempos de detección por major/minor
+    private static final Map<String, Long> ultimaDeteccionPorSensor = new ConcurrentHashMap<>();
+    private static final Map<String, Integer> valoresPendientes = new ConcurrentHashMap<>();
+    private static long ultimoEnvioExitoso = 0;
+
+    // Variables para trackear el estado de los sensores
+    private static boolean co2DetectadoRecientemente = false;
+    private static boolean tempDetectadoRecientemente = false;
+
+    // -------------------------------------------------------------------------
+    // VARIABLES EXISTENTES
+    // -------------------------------------------------------------------------
     private String nombre;
     private String direccion;
     private int rssi;
@@ -31,24 +42,20 @@ public class LogicaFake {
     private int iBeaconLength;
     private String uuidHex;
     private String uuidString;
+    private int txPower;
+    private String idUsuario;
+    private String nombreNodo;
+    private String idNodo;
     private int major;
     private int minor;
-    private int txPower;
 
-    // ----------------------------------------------------------
-    // URL actualizada del servicio en Firebase
-    // ----------------------------------------------------------
-    // 🔹 Cambia "proyectodebiometria" por tu ID real si es distinto.
-    private static final String URL_MANEJAR_POST =
-            "https://us-central1-proyectodebiometria.cloudfunctions.net/ManejarPOST";
-
-    // ----------------------------------------------------------
-    // Constructor
-    // ----------------------------------------------------------
-    public LogicaFake(String nombre, String direccion, int rssi, String bytesHex,
-                      String prefijo, String advFlags, String advHeader,
-                      String companyID, int iBeaconType, int iBeaconLength,
-                      String uuidHex, String uuidString, int major, int minor, int txPower) {
+    // -------------------------------------------------------------------------
+    // CONSTRUCTOR
+    // -------------------------------------------------------------------------
+    public LogicaFake(String nombre, String direccion, int rssi, String bytesHex, String prefijo,
+                      String advFlags, String advHeader, String companyID, int iBeaconType,
+                      int iBeaconLength, String uuidHex, String uuidString, int major, int minor,
+                      int txPower, String idUsuario, String nombreNodo) {
         this.nombre = nombre;
         this.direccion = direccion;
         this.rssi = rssi;
@@ -61,53 +68,148 @@ public class LogicaFake {
         this.iBeaconLength = iBeaconLength;
         this.uuidHex = uuidHex;
         this.uuidString = uuidString;
+        this.txPower = txPower;
         this.major = major;
         this.minor = minor;
-        this.txPower = txPower;
+        this.idUsuario = idUsuario;
+        this.nombreNodo = nombreNodo;
     }
 
-    // ----------------------------------------------------------
-    // Método toString()
-    // ----------------------------------------------------------
-    @Override
-    public String toString() {
-        return "TramaIBeaconConvertido{" +
-                "nombre='" + nombre + '\'' +
-                ", direccion='" + direccion + '\'' +
-                ", rssi=" + rssi +
-                ", bytesHex='" + bytesHex + '\'' +
-                ", prefijo='" + prefijo + '\'' +
-                ", advFlags='" + advFlags + '\'' +
-                ", advHeader='" + advHeader + '\'' +
-                ", companyID='" + companyID + '\'' +
-                ", iBeaconType=" + iBeaconType +
-                ", iBeaconLength=" + iBeaconLength +
-                ", uuidHex='" + uuidHex + '\'' +
-                ", uuidString='" + uuidString + '\'' +
-                ", major=" + major +
-                ", minor=" + minor +
-                ", txPower=" + txPower +
-                '}';
+    // -------------------------------------------------------------------------
+    // NUEVA LÓGICA DE DETECCIÓN CON TIMEOUT
+    // -------------------------------------------------------------------------
+    public void procesarDeteccionConTimeout() {
+        long tiempoActual = System.currentTimeMillis();
+        String claveSensor = major + ":" + minor;
+
+        // Actualizar última detección de este sensor
+        ultimaDeteccionPorSensor.put(claveSensor, tiempoActual);
+
+        // Determinar tipo de sensor y actualizar estado
+        if (major >= 2800 && major <= 2999) {
+            valoresPendientes.put("co2", minor);
+            co2DetectadoRecientemente = true;
+            Log.d(">>>>>>", "CO₂ detectado: " + minor + " (Major: " + major + ")");
+        } else if (major >= 3000 && major <= 4099) {
+            valoresPendientes.put("temp", minor);
+            tempDetectadoRecientemente = true;
+            Log.d(">>>>>>", "Temp detectada: " + minor + " (Major: " + major + ")");
+        }
+
+        // Verificar si ambos sensores fueron detectados dentro del timeout
+        boolean ambosDetectados = co2DetectadoRecientemente && tempDetectadoRecientemente;
+        long tiempoDesdeUltimoEnvio = tiempoActual - ultimoEnvioExitoso;
+
+        if (ambosDetectados && tiempoDesdeUltimoEnvio >= COOLDOWN_ENVIO_MS) {
+            // Ambos detectados y ha pasado el cooldown → enviar
+            Integer co2 = valoresPendientes.get("co2");
+            Integer temp = valoresPendientes.get("temp");
+
+            if (co2 != null && temp != null) {
+                enviarMediciones(co2, temp);
+                ultimoEnvioExitoso = tiempoActual;
+                Log.d(">>>>>>", "✅ Enviando mediciones - CO₂: " + co2 + ", Temp: " + temp);
+
+                // Resetear estados después del envío exitoso
+                co2DetectadoRecientemente = false;
+                tempDetectadoRecientemente = false;
+            }
+        }
     }
 
-    // ----------------------------------------------------------
-    // Método guardarMedida()
-    // ----------------------------------------------------------
-    // Envía un JSON:
-    //   { "sensor": "CO2", "valor": minor }
-    // a la función Firebase "ManejarPOST" (POST HTTP)
-    // ----------------------------------------------------------
+    // -------------------------------------------------------------------------
+    // MÉTODOS EXISTENTES (modificar guardarMedida para usar nueva lógica)
+    // -------------------------------------------------------------------------
     public void guardarMedida() {
+        // En lugar de la lógica anterior, usamos la nueva lógica con timeout
+        procesarDeteccionConTimeout();
+    }
 
-        OkHttpClient client = new OkHttpClient();
-        String sensor = "CO2"; // sensor fijo
+    // -------------------------------------------------------------------------
+    // MÉTODOS EXISTENTES (sin cambios)
+    // -------------------------------------------------------------------------
+    public void obtenerNodo(String nombreNodo) {
+        this.nombreNodo = nombreNodo;
+        Request request = new Request.Builder()
+                .url(BASE_URL + "/nodos/propietario/" + idUsuario)
+                .get()
+                .build();
 
-        Log.d(">>>>>>", "Enviando medida con minor: " + this.minor);
+        client.newCall(request).enqueue(new Callback() {
+            @Override
+            public void onFailure(Call call, IOException e) {
+                Log.e(">>>>>>", "Error al obtener nodos: " + e.getMessage());
+            }
 
+            @Override
+            public void onResponse(Call call, Response response) throws IOException {
+                try {
+                    String jsonStr = response.body().string();
+                    if (!response.isSuccessful()) {
+                        Log.e(">>>>>>", "Error respuesta: " + jsonStr);
+                        return;
+                    }
+                    if (jsonStr.contains("\"" + nombreNodo + "\"")) {
+                        Log.d(">>>>>>", "Nodo encontrado: " + nombreNodo);
+                        return;
+                    }
+                    Log.d(">>>>>>", "Nodo no existe. Creando nodo: " + nombreNodo);
+                    JSONObject json = new JSONObject();
+                    json.put("nombre", nombreNodo);
+                    json.put("propietarioId", idUsuario);
+                    RequestBody body = RequestBody.create(
+                            json.toString(),
+                            MediaType.parse("application/json; charset=utf-8")
+                    );
+                    Request reqCreate = new Request.Builder()
+                            .url(BASE_URL + "/nodos")
+                            .post(body)
+                            .build();
+                    client.newCall(reqCreate).enqueue(new Callback() {
+                        @Override
+                        public void onFailure(Call call, IOException e) {
+                            Log.e(">>>>>>", "Error creando nodo: " + e.getMessage());
+                        }
+
+                        @Override
+                        public void onResponse(Call call, Response response) {
+                            Log.d(">>>>>>", "Nodo creado OK: " + nombreNodo);
+                        }
+                    });
+                } catch (Exception ex) {
+                    Log.e(">>>>>>", "Error parseando nodos: ", ex);
+                }
+            }
+        });
+    }
+
+    private void enviarMediciones(int co2, int temp) {
         try {
             JSONObject json = new JSONObject();
-            json.put("valor", this.minor);
-            json.put("sensor", sensor);
+            json.put("nombreNodo", this.nombreNodo);
+            json.put("propietarioId", this.idUsuario);
+
+            // Obtener ubicación real del DistanciaManager
+            android.location.Location ubicacion = DistanciaManager.getUltimaUbicacionConocida();
+            double lat = (ubicacion != null) ? ubicacion.getLatitude() : 0.0;
+            double lon = (ubicacion != null) ? ubicacion.getLongitude() : 0.0;
+
+            json.put("latitud", lat);
+            json.put("longitud", lon);
+
+            org.json.JSONArray lecturas = new org.json.JSONArray();
+
+            JSONObject co2Lectura = new JSONObject();
+            co2Lectura.put("tipo", "CO");
+            co2Lectura.put("valor", co2);
+            lecturas.put(co2Lectura);
+
+            JSONObject tempLectura = new JSONObject();
+            tempLectura.put("tipo", "NO2");
+            tempLectura.put("valor", temp);
+            lecturas.put(tempLectura);
+
+            json.put("lecturas", lecturas);
 
             RequestBody body = RequestBody.create(
                     json.toString(),
@@ -115,28 +217,54 @@ public class LogicaFake {
             );
 
             Request request = new Request.Builder()
-                    .url(URL_MANEJAR_POST)
+                    .url(BASE_URL + "/lecturas") // <-- Endpoint actualizado
                     .post(body)
                     .build();
 
             client.newCall(request).enqueue(new Callback() {
                 @Override
                 public void onFailure(Call call, IOException e) {
-                    Log.e(">>>>>>", "Error al enviar medida: " + e.getMessage(), e);
+                    Log.e(">>>>>>", "Error enviando lecturas:", e);
                 }
 
                 @Override
                 public void onResponse(Call call, Response response) throws IOException {
                     if (!response.isSuccessful()) {
-                        Log.e(">>>>>>", "Error al enviar medida: " + response.body().string());
+                        Log.e(">>>>>>", "Error del servidor al guardar lecturas: " + response.body().string());
                     } else {
-                        Log.d(">>>>>>", "Medida enviada correctamente: " + response.body().string());
+                        Log.d(">>>>>>", "Servidor respondió a /lecturas: " + response.body().string());
                     }
                 }
             });
-
         } catch (Exception e) {
-            Log.e(">>>>>>", "Excepción al construir/enviar medida: " + e.getMessage(), e);
+            Log.e(">>>>>>", "Error creando JSON de lecturas:", e);
+        }
+    }
+
+    public void borrarMediciones(String uid, okhttp3.Callback callback) {
+        RequestBody body = RequestBody.create(null, new byte[0]);
+        Request request = new Request.Builder()
+                .url(BASE_URL + "/borrarMediciones")
+                .post(body)
+                .build();
+        client.newCall(request).enqueue(callback);
+    }
+
+    public void actualizarDistancia(String idUsuario, int distancia, okhttp3.Callback callback) {
+        try {
+            JSONObject json = new JSONObject();
+            json.put("distancia", distancia);
+            RequestBody body = RequestBody.create(
+                    json.toString(),
+                    MediaType.parse("application/json; charset=utf-8")
+            );
+            Request request = new Request.Builder()
+                    .url(BASE_URL + "/usuarios/" + idUsuario)
+                    .put(body)
+                    .build();
+            client.newCall(request).enqueue(callback);
+        } catch (Exception e) {
+            Log.e(">>>>>>", "Error JSON:", e);
         }
     }
 }

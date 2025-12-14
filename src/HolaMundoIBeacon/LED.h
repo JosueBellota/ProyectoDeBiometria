@@ -16,6 +16,10 @@
 // Internamente guarda el estado (encendido/apagado) y el número de pin.
 // ----------------------------------------------------------
 
+/**
+ * @brief Pausa la ejecución del programa durante un tiempo determinado en milisegundos.
+ * @param tiempo El tiempo a esperar.
+ */
 // ----------------------------------------------------------
 // tiempo: numeros (de entrada)
 // -->
@@ -30,6 +34,9 @@ void esperar (long tiempo) {
 // ----------------------------------------------------------
 // Clase LED
 // ----------------------------------------------------------
+/**
+ * @brief Clase que representa un LED físico conectado a un pin digital.
+ */
 class LED {
 private:
   int numeroLED;   // numeros (pin digital asociado al LED)
@@ -37,6 +44,10 @@ private:
 
 public:
 
+  /**
+   * @brief Constructor de la clase LED. Inicializa el pin y apaga el LED.
+   * @param numero El pin digital al que está conectado el LED.
+   */
   //------------------------------------------------------------------------------------
   // numero: numeros (de entrada)
   // -->
@@ -51,6 +62,9 @@ public:
 	apagar ();
   }
 
+  /**
+   * @brief Enciende el LED.
+   */
   //------------------------------------------------------------------------------------
   // sin parámetros (de entrada)
   // -->
@@ -63,6 +77,9 @@ public:
 	encendido = true;
   }
 
+  /**
+   * @brief Apaga el LED.
+   */
   //------------------------------------------------------------------------------------
   // sin parámetros (de entrada)
   // -->
@@ -75,6 +92,9 @@ public:
 	encendido = false;
   }
 
+  /**
+   * @brief Alterna el estado del LED (si está encendido lo apaga, y viceversa).
+   */
   //------------------------------------------------------------------------------------
   // sin parámetros (de entrada)
   // -->
@@ -90,6 +110,10 @@ public:
 	}
   } // ()
 
+  /**
+   * @brief Enciende el LED, espera un tiempo y lo apaga.
+   * @param tiempo El tiempo en milisegundos que el LED permanecerá encendido.
+   */
   //------------------------------------------------------------------------------------
   // tiempo: numeros (de entrada)
   // -->
