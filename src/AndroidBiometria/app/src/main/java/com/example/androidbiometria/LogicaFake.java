@@ -189,20 +189,23 @@ public class LogicaFake {
             json.put("nombreNodo", this.nombreNodo);
             json.put("propietarioId", this.idUsuario);
 
-            // TODO: Reemplazar con la latitud y longitud reales del dispositivo.
-            // Este es un valor de marcador de posición.
-            json.put("latitud", 0.0);
-            json.put("longitud", 0.0);
+            // Obtener ubicación real del DistanciaManager
+            android.location.Location ubicacion = DistanciaManager.getUltimaUbicacionConocida();
+            double lat = (ubicacion != null) ? ubicacion.getLatitude() : 0.0;
+            double lon = (ubicacion != null) ? ubicacion.getLongitude() : 0.0;
+
+            json.put("latitud", lat);
+            json.put("longitud", lon);
 
             org.json.JSONArray lecturas = new org.json.JSONArray();
 
             JSONObject co2Lectura = new JSONObject();
-            co2Lectura.put("tipo", "co2");
+            co2Lectura.put("tipo", "CO");
             co2Lectura.put("valor", co2);
             lecturas.put(co2Lectura);
 
             JSONObject tempLectura = new JSONObject();
-            tempLectura.put("tipo", "temperatura");
+            tempLectura.put("tipo", "NO2");
             tempLectura.put("valor", temp);
             lecturas.put(tempLectura);
 

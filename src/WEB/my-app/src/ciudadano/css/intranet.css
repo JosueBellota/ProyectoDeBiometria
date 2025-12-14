@@ -3,10 +3,7 @@
     max-width: none;
     margin: 0;
     min-height: 100vh;
-    background-image: url('../../../public/Fondo.png');
-    background-size: cover;
-    background-position: center;
-    background-repeat: no-repeat;
+    background-color: #D9D9D9;
     padding: 40px 16px;
     box-sizing: border-box;
 }
@@ -93,4 +90,43 @@
 
 .valores-maximos-card h3 {
     margin-top: 0;
+}
+
+/* --- SCROLLBARS (Copied from main.css for consistency) --- */
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #22604D #f1f1f1;
+}
+
+/* Chrome, Edge, Safari */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+::-webkit-scrollbar-thumb {
+  background: #22604D; /* var(--color-primary) not defined here, using literal */
+  border-radius: 5px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #1b4c3e; /* var(--color-primary-dark) */
+}
+
+/* RESPONSIVE */
+@media (max-width: 767px) {
+    .intranet-container {
+        padding: 20px 10px;
+    }
+    .intranet-content-block {
+        padding: 20px 16px;
+    }
+    .intranet-title {
+        font-size: 1.8rem;
+    }
+    .intranet-subtitle {
+        font-size: 1rem;
+    }
 }

@@ -198,96 +198,35 @@ export default function CalidadAire() {
       <HeaderNoRegistrado />
 
       {/* Contenedor a pantalla completa con fondo */}
-      <div
-        className="container"
-        style={{
-          width: "100%",
-          maxWidth: "none",
-          margin: 0,
-          minHeight: "100vh",
-          backgroundImage: "url(/Fondo.png)",
-          backgroundSize: "cover",
-          backgroundPosition: "center",
-          backgroundRepeat: "no-repeat",
-          padding: "40px 16px",
-          boxSizing: "border-box",
-        }}
-      >
+      <div className="calidad-page-container">
         {/* Bloque central con contenido organizado */}
-        <div
-          style={{
-            maxWidth: "960px",
-            margin: "0 auto",
-            backgroundColor: "rgba(255, 255, 255, 0.9)",
-            padding: "30px 20px",
-            borderRadius: "16px",
-            boxShadow: "0 4px 16px rgba(0, 0, 0, 0.15)",
-          }}
-        >
-          <h1 style={{ textAlign: "center", marginBottom: "16px" }}>
+        <div className="calidad-content-block">
+          <h1 className="calidad-title">
             Guía de calidad del aire
           </h1>
 
-          <p
-            style={{
-              textAlign: "center",
-              marginBottom: "28px",
-              maxWidth: "700px",
-              marginLeft: "auto",
-              marginRight: "auto",
-            }}
-          >
+          <p className="calidad-subtitle">
             Consulta los principales contaminantes, sus efectos en la salud, los
             valores recomendados, los valores máximos permitidos y consejos para
             protegerte en tu día a día.
           </p>
 
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "1fr",
-              gap: "16px",
-            }}
-          >
+          <div className="calidad-grid">
             {contaminantes.map((c) => (
               <div key={c.id} className="medida-card">
                 <h2 style={{ marginTop: 0 }}>
                   {c.nombre}{" "}
-                  <span
-                    style={{
-                      fontSize: "0.8rem",
-                      backgroundColor: "#007bff",
-                      color: "white",
-                      padding: "2px 8px",
-                      borderRadius: "999px",
-                      marginLeft: "6px",
-                    }}
-                  >
+                  <span className="calidad-abrev-span">
                     {c.abreviatura}
                   </span>
                 </h2>
 
-                <p
-                  style={{
-                    marginTop: "4px",
-                    marginBottom: "8px",
-                    color: "#555",
-                  }}
-                >
+                <p className="calidad-desc-short">
                   {c.descripcionCorta}
                 </p>
 
                 {/* 🌟 Resumen rápido */}
-                <p
-                  style={{
-                    marginTop: 0,
-                    marginBottom: "12px",
-                    fontSize: "0.9rem",
-                    backgroundColor: "#f3f6ff",
-                    borderRadius: "8px",
-                    padding: "8px 10px",
-                  }}
-                >
+                <p className="calidad-quick-summary">
                   <strong>Resumen rápido: </strong>
                   {c.resumenRapido}
                 </p>
@@ -308,22 +247,8 @@ export default function CalidadAire() {
                 </ul>
 
                 {/* 📏 Valores en dos columnas */}
-                <div
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "1fr",
-                    gap: "10px",
-                    marginTop: "8px",
-                    marginBottom: "8px",
-                  }}
-                >
-                  <div
-                    style={{
-                      borderRadius: "8px",
-                      padding: "8px 10px",
-                      backgroundColor: "#f7f9ff",
-                    }}
-                  >
+                <div className="calidad-values-grid">
+                  <div className="calidad-values-card-rec">
                     <h3 style={{ marginTop: 0 }}>📏 Valores recomendados</h3>
                     <ul>
                       {c.valoresRecomendados.map((v, i) => (
@@ -336,13 +261,7 @@ export default function CalidadAire() {
                     </ul>
                   </div>
 
-                  <div
-                    style={{
-                      borderRadius: "8px",
-                      padding: "8px 10px",
-                      backgroundColor: "#fff7f7",
-                    }}
-                  >
+                  <div className="calidad-values-card-max">
                     <h3 style={{ marginTop: 0 }}>⚠️ Valores máximos permitidos</h3>
                     <ul>
                       {c.valoresMaximos.map((v, i) => (

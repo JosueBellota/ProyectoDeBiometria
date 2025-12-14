@@ -42,6 +42,13 @@ const colorScales = {
     }
 };
 
+const sensorLimits = {
+    'co': { low: 0, med: 450, high: 1000 },
+    'no2': { low: 0, med: 100, high: 200 },
+    'o3': { low: 0, med: 120, high: 180 },
+    'calidad': { low: 1, med: 2, high: 3 }
+};
+
 const getSeverityLevel = (tipoSensor, medida) => {
     const scale = colorScales[tipoSensor];
     if (!scale) return 0; // Sin severidad
@@ -54,7 +61,7 @@ const getSeverityLevel = (tipoSensor, medida) => {
 };
 
 const units = {
-    'co': 'ppm',
+    'co': 'mg/m³',
     'no2': 'µg/m³',
     'o3': 'µg/m³',
     'calidad': ''
@@ -121,27 +128,27 @@ const DynamicRadiusCircleMarkers = ({ lecturas }) => {
 const legendData = {
     'calidad': {
         title: 'Calidad del Aire General',
-        green: 'Verde: Recomendable',
-        yellow: 'Amarillo: Máximo Permitido',
-        red: 'Rojo: Peligroso',
+        green: 'Recomendable',
+        yellow: 'Aceptable',
+        red: 'Peligroso',
     },
     'co': {
         title: 'Monóxido de Carbono (CO)',
-        green: 'Verde: Recomendable (< 450)',
-        yellow: 'Amarillo: Máximo Permitido (450 - 1000)',
-        red: 'Rojo: Peligroso (> 1000)',
+        green: 'Recomendable (< 450 mg/m³)',
+        yellow: 'Máximo Permitido (450 - 1000 mg/m³)',
+        red: 'Peligroso (> 1000 mg/m³)',
     },
     'no2': {
         title: 'Dióxido de Nitrógeno (NO2)',
-        green: 'Verde: Recomendable (< 100)',
-        yellow: 'Amarillo: Máximo Permitido (100 - 200)',
-        red: 'Rojo: Peligroso (> 200)',
+        green: 'Recomendable (< 100 µg/m³)',
+        yellow: 'Máximo Permitido (100 - 200 µg/m³)',
+        red: 'Peligroso (> 200 µg/m³)',
     },
     'o3': {
         title: 'Ozono (O3)',
-        green: 'Verde: Recomendable (< 120)',
-        yellow: 'Amarillo: Máximo Permitido (120 - 180)',
-        red: 'Rojo: Peligroso (> 180)',
+        green: 'Recomendable (< 120 µg/m³)',
+        yellow: 'Máximo Permitido (120 - 180 µg/m³)',
+        red: 'Peligroso (> 180 µg/m³)',
     }
 };
 
@@ -263,7 +270,8 @@ function Home() {
       <main className="home-content">
         {/* Hero */}
         <section className="home-hero">
-          <h1 className="home-hero-title">Tu ruta, tu aire, tu impacto.</h1>
+          <h1 className="home-hero-title">CLOUDMETRIC</h1>
+          <p className="home-hero-subtitle">Tu ruta, tu aire, tu impacto.</p>
           
           <div className="mb-3" style={{maxWidth: '300px', margin: '0 auto'}}>
             <select className="form-select" onChange={handleSensorChange} value={selectedSensor}>
@@ -289,7 +297,14 @@ function Home() {
                 mapView === 'points' ? (
                 <DynamicRadiusCircleMarkers lecturas={allLecturas} />
                 ) : (
-                <InterpolationLayer lecturas={lecturasParaMapa} colorScale={colorScales[selectedSensor]} isAirQualityView={selectedSensor === 'calidad'} />
+                <InterpolationLayer
+                    lecturas={lecturasParaMapa}
+                    colorScale={colorScales[selectedSensor]}
+                    isAirQualityView={selectedSensor === 'calidad'}
+                    sensorName={legendData[selectedSensor]?.title || selectedSensor}
+                    unit={units[selectedSensor]}
+                    limits={sensorLimits[selectedSensor]}
+                />
                 )
             )}
              {mapView === 'interpolation' && <Legend sensor={selectedSensor} />}

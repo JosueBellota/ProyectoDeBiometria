@@ -46,6 +46,12 @@ public class DistanciaManager {
     private ScheduledExecutorService executorService;
     private Location lastSignificantLocation = null;
 
+    private static Location ultimaUbicacionConocida;
+
+    public static Location getUltimaUbicacionConocida() {
+        return ultimaUbicacionConocida;
+    }
+
     public DistanciaManager(Context ctx, TextView tv) {
         this.context = ctx;
         this.textoDistancia = tv;
@@ -123,6 +129,12 @@ public class DistanciaManager {
         @Override
         public void onLocationResult(LocationResult result) {
             if (!tracking || result == null) return;
+            
+            // Actualizar ubicación global inmediatamente (sin filtros estrictos)
+            if (result.getLastLocation() != null) {
+                ultimaUbicacionConocida = result.getLastLocation();
+            }
+
             synchronized (locationBatch) {
                 locationBatch.addAll(result.getLocations());
             }
@@ -180,6 +192,7 @@ public class DistanciaManager {
 
         if (lastSignificantLocation == null) {
             lastSignificantLocation = accurateLocations.get(accurateLocations.size() - 1);
+            ultimaUbicacionConocida = lastSignificantLocation;
             Log.d(">>>>", "📍 Primera ubicación significativa obtenida. Precisión: " + lastSignificantLocation.getAccuracy() + "m");
             return;
         }
@@ -194,6 +207,7 @@ public class DistanciaManager {
             if (speed < 10.0f && distance > 3.0f) {
                 distanciaTotal += distance;
                 lastSignificantLocation = currentLocation;
+                ultimaUbicacionConocida = lastSignificantLocation;
                  Log.d(">>>>", "📏 Distancia añadida: " + distance + "m @ " + speed + "m/s. Total: " + distanciaTotal + "m");
             } else {
                 Log.d(">>>>", "⏭️ Movimiento ignorado. Velocidad: " + speed + " m/s, Distancia: " + distance + "m");
