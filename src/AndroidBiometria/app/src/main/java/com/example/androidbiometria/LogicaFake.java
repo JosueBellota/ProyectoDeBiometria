@@ -8,6 +8,17 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+/**
+ * @file LogicaFake.java
+ * @author josue bellota ichaso
+ * @date 11/23/2025
+ * @brief Clase que encapsula la lógica de negocio relacionada con los nodos sensores.
+ *
+ * Esta clase simula parte de la lógica (de ahí el nombre "Fake") y actúa como intermediario
+ * entre la recepción de datos BLE y el backend REST. Gestiona la interpretación de
+ * tramas iBeacon, la detección de sensores (CO2, Temperatura) y el envío periódico
+ * de mediciones al servidor.
+ */
 public class LogicaFake {
     private static final String BASE_URL = "https://us-central1-proyectodebiometria.cloudfunctions.net/ServidorREST";
     private OkHttpClient client = new OkHttpClient();
@@ -49,9 +60,29 @@ public class LogicaFake {
     private int major;
     private int minor;
 
-    // -------------------------------------------------------------------------
-    // CONSTRUCTOR
-    // -------------------------------------------------------------------------
+    /**
+     * @brief Constructor de la clase LogicaFake.
+     *
+     * Inicializa un objeto con todos los datos extraídos de una trama iBeacon.
+     *
+     * @param nombre Nombre del dispositivo BLE.
+     * @param direccion Dirección MAC del dispositivo.
+     * @param rssi Potencia de la señal recibida.
+     * @param bytesHex Trama en crudo (hex).
+     * @param prefijo Prefijo de la trama.
+     * @param advFlags Flags de publicidad.
+     * @param advHeader Cabecera de anuncio.
+     * @param companyID ID de la compañía.
+     * @param iBeaconType Tipo de iBeacon.
+     * @param iBeaconLength Longitud del iBeacon.
+     * @param uuidHex UUID en formato hex.
+     * @param uuidString UUID como String.
+     * @param major Valor Major.
+     * @param minor Valor Minor (usado como valor de medición).
+     * @param txPower Potencia de transmisión.
+     * @param idUsuario UID del usuario actual.
+     * @param nombreNodo Nombre lógico del nodo.
+     */
     public LogicaFake(String nombre, String direccion, int rssi, String bytesHex, String prefijo,
                       String advFlags, String advHeader, String companyID, int iBeaconType,
                       int iBeaconLength, String uuidHex, String uuidString, int major, int minor,
@@ -75,9 +106,13 @@ public class LogicaFake {
         this.nombreNodo = nombreNodo;
     }
 
-    // -------------------------------------------------------------------------
-    // NUEVA LÓGICA DE DETECCIÓN CON TIMEOUT
-    // -------------------------------------------------------------------------
+    /**
+     * @brief Procesa la detección de un sensor aplicando lógica de timeout y cooldown.
+     *
+     * Almacena temporalmente los valores recibidos (CO2 o Temperatura según el Major)
+     * y, si se han recibido ambos recientemente y ha pasado el tiempo de enfriamiento,
+     * envía las mediciones al servidor.
+     */
     public void procesarDeteccionConTimeout() {
         long tiempoActual = System.currentTimeMillis();
         String claveSensor = major + ":" + minor;
@@ -117,17 +152,18 @@ public class LogicaFake {
         }
     }
 
-    // -------------------------------------------------------------------------
-    // MÉTODOS EXISTENTES (modificar guardarMedida para usar nueva lógica)
-    // -------------------------------------------------------------------------
+    /**
+     * @brief Método público para invocar el procesamiento de la medida.
+     */
     public void guardarMedida() {
         // En lugar de la lógica anterior, usamos la nueva lógica con timeout
         procesarDeteccionConTimeout();
     }
 
-    // -------------------------------------------------------------------------
-    // MÉTODOS EXISTENTES (sin cambios)
-    // -------------------------------------------------------------------------
+    /**
+     * @brief Verifica si el nodo existe en el backend y lo crea si no es así.
+     * @param nombreNodo Nombre del nodo a verificar/crear.
+     */
     public void obtenerNodo(String nombreNodo) {
         this.nombreNodo = nombreNodo;
         Request request = new Request.Builder()
@@ -183,6 +219,11 @@ public class LogicaFake {
         });
     }
 
+    /**
+     * @brief Envía las mediciones de CO2 y temperatura al backend.
+     * @param co2 Valor de CO2.
+     * @param temp Valor de temperatura (NO2).
+     */
     private void enviarMediciones(int co2, int temp) {
         try {
             JSONObject json = new JSONObject();
@@ -241,6 +282,11 @@ public class LogicaFake {
         }
     }
 
+    /**
+     * @brief Solicita el borrado de mediciones al backend.
+     * @param uid UID del usuario.
+     * @param callback Callback para manejar la respuesta.
+     */
     public void borrarMediciones(String uid, okhttp3.Callback callback) {
         RequestBody body = RequestBody.create(null, new byte[0]);
         Request request = new Request.Builder()
@@ -250,6 +296,12 @@ public class LogicaFake {
         client.newCall(request).enqueue(callback);
     }
 
+    /**
+     * @brief Actualiza la distancia acumulada del usuario en el backend.
+     * @param idUsuario UID del usuario.
+     * @param distancia Nueva distancia (o incremento).
+     * @param callback Callback para manejar la respuesta.
+     */
     public void actualizarDistancia(String idUsuario, int distancia, okhttp3.Callback callback) {
         try {
             JSONObject json = new JSONObject();

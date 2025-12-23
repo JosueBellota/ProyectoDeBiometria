@@ -8,12 +8,25 @@ import android.widget.Toast;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
+/**
+ * @file FingerprintEnrollActivity.java
+ * @author josue bellota ichaso
+ * @date 11/23/2025
+ * @brief Actividad para el enrolamiento de la huella dactilar.
+ *
+ * Muestra una pantalla de confirmación antes de iniciar el proceso de vinculación
+ * de la huella dactilar a las credenciales del usuario.
+ */
 public class FingerprintEnrollActivity extends AppCompatActivity {
 
     private BiometricAuthHelper biometricAuthHelper;
     private String email;
     private String password;
 
+    /**
+     * @brief Inicializa la actividad y gestiona la interacción del usuario para enrolar la huella.
+     * @param savedInstanceState Estado guardado de la instancia anterior.
+     */
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -57,6 +70,9 @@ public class FingerprintEnrollActivity extends AppCompatActivity {
         });
     }
 
+    /**
+     * @brief Navega de vuelta a la actividad principal.
+     */
     private void goToMain() {
         Intent intent = new Intent(this, MainActivity.class);
         intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);

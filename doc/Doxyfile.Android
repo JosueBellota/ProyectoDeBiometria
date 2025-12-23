@@ -1,0 +1,11 @@
+# Doxyfile for Android project
+PROJECT_NAME           = "Android Application"
+OUTPUT_DIRECTORY       = Android
+INPUT                  = ../src/AndroidBiometria
+RECURSIVE              = YES
+EXTRACT_ALL            = YES
+GENERATE_HTML          = YES
+GENERATE_LATEX         = NO
+EXTENSION_MAPPING      = java=Java
+FILE_PATTERNS          = *.java
+EXCLUDE_PATTERNS       = build/* node_modules/*

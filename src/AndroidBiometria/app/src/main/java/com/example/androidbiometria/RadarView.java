@@ -7,6 +7,15 @@ import android.graphics.Paint;
 import android.util.AttributeSet;
 import android.view.View;
 
+/**
+ * @file RadarView.java
+ * @author josue bellota ichaso
+ * @date 11/23/2025
+ * @brief Vista personalizada que simula un radar para indicar la proximidad.
+ *
+ * Dibuja tres zonas concéntricas (anillos) y las ilumina con diferentes colores
+ * según la distancia detectada (zona actual).
+ */
 public class RadarView extends View {
 
     // 0 = Cerca (<1m), 1 = Media (1-3m), 2 = Lejos (>3m), -1 = Inactivo
@@ -15,16 +24,28 @@ public class RadarView extends View {
     private Paint paintFill;
     private Paint paintStroke;
 
+    /**
+     * @brief Constructor programático.
+     * @param context Contexto de la aplicación.
+     */
     public RadarView(Context context) {
         super(context);
         init();
     }
 
+    /**
+     * @brief Constructor XML.
+     * @param context Contexto de la aplicación.
+     * @param attrs Atributos XML.
+     */
     public RadarView(Context context, AttributeSet attrs) {
         super(context, attrs);
         init();
     }
 
+    /**
+     * @brief Inicializa los pinceles para el dibujo.
+     */
     private void init() {
         paintFill = new Paint();
         paintFill.setStyle(Paint.Style.FILL);
@@ -37,11 +58,19 @@ public class RadarView extends View {
         paintStroke.setAntiAlias(true);
     }
 
+    /**
+     * @brief Establece la zona actual y fuerza el redibujado.
+     * @param zone Zona a iluminar (0: Cerca, 1: Media, 2: Lejos, -1: Ninguna).
+     */
     public void setZone(int zone) {
         this.currentZone = zone;
         invalidate(); // Redibujar
     }
 
+    /**
+     * @brief Dibuja el radar y los anillos en el canvas.
+     * @param canvas Canvas donde se dibuja.
+     */
     @Override
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);

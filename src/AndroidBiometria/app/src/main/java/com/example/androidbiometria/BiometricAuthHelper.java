@@ -31,6 +31,16 @@ import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.IvParameterSpec;
 
+/**
+ * @file BiometricAuthHelper.java
+ * @author josue bellota ichaso
+ * @date 11/23/2025
+ * @brief Helper para gestionar la autenticación biométrica segura.
+ *
+ * Utiliza Android KeyStore para generar claves criptográficas vinculadas a la autenticación biométrica.
+ * Permite cifrar y guardar las credenciales del usuario (contraseña) y descifrarlas
+ * únicamente tras una autenticación biométrica exitosa.
+ */
 public class BiometricAuthHelper {
 
     private static final String KEY_NAME_PREFIX = "biometric_key_";
@@ -40,26 +50,44 @@ public class BiometricAuthHelper {
     private Context context;
     private SharedPreferences sharedPreferences;
 
+    /**
+     * @brief Interfaz para callbacks de autenticación.
+     */
     public interface AuthCallback {
         void onAuthSuccess(String email, String password);
         void onAuthError(String errorMessage);
     }
 
+    /**
+     * @brief Interfaz para callbacks de selección de cuenta.
+     */
     public interface AccountSelectCallback {
         void onAccountSelected(FragmentActivity activity, String email);
     }
 
+    /**
+     * @brief Constructor del helper.
+     * @param context Contexto de la aplicación.
+     */
     public BiometricAuthHelper(Context context) {
         this.context = context;
         this.sharedPreferences = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
     }
 
+    /**
+     * @brief Verifica si el dispositivo soporta autenticación biométrica fuerte.
+     * @return true si es compatible, false en caso contrario.
+     */
     public boolean canAuthenticate() {
         BiometricManager biometricManager = BiometricManager.from(context);
         int result = biometricManager.canAuthenticate(BiometricManager.Authenticators.BIOMETRIC_STRONG);
         return result == BiometricManager.BIOMETRIC_SUCCESS;
     }
 
+    /**
+     * @brief Obtiene la lista de correos electrónicos enrolados.
+     * @return Lista de emails de usuarios con biometría configurada.
+     */
     public List<String> getEnrolledUsers() {
         List<String> userEmails = new ArrayList<>();
         String jsonString = sharedPreferences.getString(PREF_USER_LIST, "[]");
@@ -75,6 +103,11 @@ public class BiometricAuthHelper {
         return userEmails;
     }
 
+    /**
+     * @brief Muestra un diálogo para seleccionar una cuenta enrolada.
+     * @param activity Actividad donde mostrar el diálogo.
+     * @param callback Callback con la cuenta seleccionada.
+     */
     public void showAccountSelector(FragmentActivity activity, AccountSelectCallback callback) {
         List<String> userEmails = getEnrolledUsers();
         if (userEmails.isEmpty()) {
@@ -90,11 +123,21 @@ public class BiometricAuthHelper {
                 .show();
     }
 
+    /**
+     * @brief Interfaz para callbacks de enrolamiento.
+     */
     public interface EnrollmentCallback {
         void onEnrollmentSuccess();
         void onEnrollmentFailure(String error);
     }
 
+    /**
+     * @brief Enrola una nueva huella, cifrando y guardando las credenciales.
+     * @param activity Actividad actual.
+     * @param email Correo del usuario.
+     * @param password Contraseña a cifrar.
+     * @param callback Callback con el resultado del enrolamiento.
+     */
     public void enroll(FragmentActivity activity, String email, String password, EnrollmentCallback callback) {
         try {
             String keyAlias = KEY_NAME_PREFIX + email;
@@ -165,6 +208,10 @@ public class BiometricAuthHelper {
         }
     }
     
+    /**
+     * @brief Elimina los datos biométricos y claves asociadas a un usuario.
+     * @param email Correo del usuario a eliminar.
+     */
     public void removeUser(String email) {
         try {
             String jsonString = sharedPreferences.getString(PREF_USER_LIST, "[]");
@@ -221,6 +268,12 @@ public class BiometricAuthHelper {
         }
     }
 
+    /**
+     * @brief Autentica al usuario usando biometría y descifra su contraseña.
+     * @param activity Actividad actual.
+     * @param email Email de la cuenta a autenticar.
+     * @param callback Callback con el resultado (éxito con contraseña descifrada o error).
+     */
     public void authenticate(FragmentActivity activity, String email, AuthCallback callback) {
         String jsonString = sharedPreferences.getString(PREF_USER_LIST, "[]");
 

@@ -1,0 +1,6 @@
+@echo off
+echo Generando documentacion para Arduino...
+doxygen Doxyfile.Arduino
+echo Abriendo documentacion...
+start Arduino\html\index.html
+pause

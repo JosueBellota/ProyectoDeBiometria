@@ -7,6 +7,16 @@ import android.content.Intent;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 
+/**
+ * @file Register.java
+ * @author josue bellota ichaso
+ * @date 11/23/2025
+ * @brief Actividad para el registro de nuevos usuarios.
+ *
+ * Permite a los usuarios crear una cuenta proporcionando nombre, correo y contraseña.
+ * Realiza validaciones de entrada, crea el usuario en Firebase Authentication y
+ * registra los datos adicionales en el backend REST.
+ */
 public class Register extends AppCompatActivity {
 
     private static final String API_BASE = "https://us-central1-proyectodebiometria.cloudfunctions.net/ServidorREST";
@@ -14,18 +24,31 @@ public class Register extends AppCompatActivity {
     private EditText nameField, emailField, passwordField, passwordField2;
     private Button registerButton;
 
-    // Métodos de validación
+    /**
+     * @brief Valida el formato del correo electrónico.
+     * @param correo Dirección de correo a validar.
+     * @return true si el formato es válido, false en caso contrario.
+     */
     private boolean validarCorreo(String correo) {
         String regexCorreo = "^[\\w!#$%&'*+/=?`{|}~^-]+(?:\\.[\\w!#$%&'*+/=?`{|}~^-]+)*@(?:[a-zA-Z0-9-]+\\.)+[a-zA-Z]{2,6}$";
         return correo.matches(regexCorreo);
     }
 
+    /**
+     * @brief Valida la fortaleza de la contraseña.
+     * @param password Contraseña a validar.
+     * @return true si cumple con los requisitos (mínimo 8 caracteres, mayúscula, minúscula, número).
+     */
     private boolean validarPassword(String password) {
         // La contraseña debe tener al menos 8 caracteres, incluyendo una letra mayúscula, una letra minúscula y un número.
         String regexPassword = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d).{8,}$";
         return password.matches(regexPassword);
     }
 
+    /**
+     * @brief Inicializa la actividad y los componentes de la interfaz.
+     * @param savedInstanceState Estado guardado de la instancia anterior.
+     */
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -41,6 +64,12 @@ public class Register extends AppCompatActivity {
         registerButton.setOnClickListener(v -> registrarUsuario());
     }
 
+    /**
+     * @brief Ejecuta el proceso de registro del usuario.
+     *
+     * Valida los campos, crea el usuario en Firebase Auth, envía correo de verificación
+     * y registra los datos del usuario en la base de datos a través del servidor REST.
+     */
     private void registrarUsuario() {
         String nombre = nameField.getText().toString().trim();
         String correo = emailField.getText().toString().trim();

@@ -1,0 +1,11 @@
+# Doxyfile for Arduino project
+PROJECT_NAME           = "Arduino Sensor Node"
+OUTPUT_DIRECTORY       = Arduino
+INPUT                  = ../src/HolaMundoIBeacon
+RECURSIVE              = YES
+EXTRACT_ALL            = YES
+GENERATE_HTML          = YES
+GENERATE_LATEX         = NO
+# Doxygen defaults should cover .h and .ino files.
+# FILE_PATTERNS can be set explicitly if needed:
+# FILE_PATTERNS          = *.h *.ino

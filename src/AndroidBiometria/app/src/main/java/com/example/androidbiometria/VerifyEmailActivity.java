@@ -13,6 +13,12 @@ import android.widget.Toast;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 
+/**
+ * @file VerifyEmailActivity.java
+ * @author josue bellota ichaso
+ * @date 11/23/2025
+ * @brief Actividad para gestionar la verificación del correo electrónico del usuario.
+ */
 public class VerifyEmailActivity extends AppCompatActivity {
 
     private FirebaseAuth mAuth;
@@ -21,6 +27,10 @@ public class VerifyEmailActivity extends AppCompatActivity {
     private Handler handler;
     private Runnable verificationChecker;
 
+    /**
+     * @brief Inicializa la actividad y la lógica de verificación.
+     * @param savedInstanceState Estado guardado de la instancia anterior.
+     */
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -82,6 +92,9 @@ public class VerifyEmailActivity extends AppCompatActivity {
         };
     }
 
+    /**
+     * @brief Inicia la verificación periódica cuando la actividad es visible.
+     */
     @Override
     protected void onStart() {
         super.onStart();
@@ -89,6 +102,9 @@ public class VerifyEmailActivity extends AppCompatActivity {
         handler.post(verificationChecker);
     }
 
+    /**
+     * @brief Detiene la verificación periódica cuando la actividad no es visible.
+     */
     @Override
     protected void onStop() {
         super.onStop();
@@ -96,6 +112,9 @@ public class VerifyEmailActivity extends AppCompatActivity {
         handler.removeCallbacks(verificationChecker);
     }
 
+    /**
+     * @brief Redirige al usuario a la pantalla de inicio de sesión.
+     */
     private void goToLogin() {
         Intent intent = new Intent(VerifyEmailActivity.this, Login.class);
         intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
@@ -103,6 +122,9 @@ public class VerifyEmailActivity extends AppCompatActivity {
         finish();
     }
 
+    /**
+     * @brief Redirige al usuario a la actividad principal.
+     */
     private void goToMain() {
         Intent intent = new Intent(VerifyEmailActivity.this, MainActivity.class);
         intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
