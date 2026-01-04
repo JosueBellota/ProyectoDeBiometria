@@ -29,6 +29,7 @@ import PerfilCiudadano from "./ciudadano/Perfil";
 import { escucharSesion } from "./logicaFake/auth";
 import VerificarEmail from "./VerificarEmail"; // <-- Importado
 import Condiciones from "./Condiciones";
+import Nodos from "./admin/nodos"; 
 
 // --------------------------------------------------------------------------
 // ✅ Componente Principal: App
@@ -97,6 +98,11 @@ function App() {
       {/* ------------------ Rutas de Administrador ------------------ */}
       <Route path="/admin/intranet" element={usuario && usuario.rol === "admin" ? <IntranetAdmin /> : <Navigate to="/login" />} />
       <Route path="/admin/perfil" element={usuario && usuario.rol === "admin" ? <PerfilAdmin /> : <Navigate to="/login" />} />
+      <Route
+      path="/admin/nodos"
+      element={usuario && usuario.rol === "admin" ? <Nodos /> : <Navigate to="/login" />}
+      />
+
 
       {/* ------------------ Redirección por Defecto ------------------ */}
       <Route path="*" element={<Navigate to="/" replace />} />

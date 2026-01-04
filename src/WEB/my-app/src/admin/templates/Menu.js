@@ -30,6 +30,9 @@ function Menu() {
         <li>
           <button onClick={handleCerrarSesion}>Cerrar sesión</button>
         </li>
+        <li>
+          <button onClick={() => navigate("/admin/nodos")}>nodos</button>
+        </li>
       </ul>
     </nav>
   );

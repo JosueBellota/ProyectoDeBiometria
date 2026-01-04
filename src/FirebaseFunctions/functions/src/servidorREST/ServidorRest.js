@@ -116,6 +116,18 @@ exports.ServidorREST = functions.https.onRequest((req, res) => {
       // ===================================================================================
       // ================================ RUTAS DE USUARIOS ================================
       // ===================================================================================
+      // -----------------------------------------------------------------------------------
+      // GET /admin/nodos/:idAdmin
+      // Devuelve todos los nodos con info del usuario y si están activos en las últimas 24h
+      // -----------------------------------------------------------------------------------
+      if (req.method === "GET" && rutaLower.startsWith("/admin/nodos/")) {
+        const idAdmin = ruta.split("/")[3];
+        const nodos = await logica.obtenerNodosDesdeAdmin(idAdmin);
+
+        return nodos
+          ? res.status(200).json(nodos)
+          : res.status(403).json({ error: "No autorizado" });
+      }
 
       // -----------------------------------------------------------------------------------
       // GET /usuarios/completo/:uid
@@ -183,6 +195,24 @@ exports.ServidorREST = functions.https.onRequest((req, res) => {
       // ===================================================================================
       // ================================= RUTAS DE NODOS ==================================
       // ===================================================================================
+
+      // -----------------------------------------------------------------------------------
+      // GET /admin/nodos/:idAdmin
+      //
+      // Devuelve todos los nodos (de todos los usuarios) con:
+      // - datos del nodo
+      // - datos del propietario (nombre/correo)
+      // - última lectura
+      // - activo24h (si hay lectura en las últimas 24h)
+      //
+      // -----------------------------------------------------------------------------------
+      if (req.method === "GET" && rutaLower.startsWith("/admin/nodos/")) {
+        const idAdmin = ruta.split("/")[3];
+        const resultado = await logica.obtenerNodosDesdeAdmin(idAdmin);
+        return resultado
+        ? res.status(200).json(resultado)
+        : res.status(403).json({ error: "No autorizado" });
+      }
 
       // -----------------------------------------------------------------------------------
       // GET /nodos/ubicacion
