@@ -82,10 +82,11 @@ function isReadingErronea(lectura) {
   if (!Number.isFinite(v)) return true;
   if (v < 0) return true;
 
-  // Regla CO (tu proyecto)
+  // Regla CO 
   if (sensor === "co") {
     return v > 200; // >200 ppm = erróneo
   }
+  //TODO:Falta poner las reglas para el resto de gases, if e.t.c
 
   return false;
 }
