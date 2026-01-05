@@ -3,104 +3,147 @@
 // Responsable: Willyrex
 //
 // Descripción:
-// Pantalla de admin para ver los nodos de cada usuario y si están activos
-// (activo = tiene lecturas en las últimas 24 horas).
+// Panel de admin para ver nodos:
+// - activo24h: si tiene lecturas en las últimas 24h
+// - medicionesCorrectas: si NO todas las lecturas de las últimas 4h son erróneas
 // --------------------------------------------------------------------------
 
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Menu from "./templates/Menu";
 import { obtenerUsuarioLogueado } from "../logicaFake/auth";
-import { obtenerNodosAdmin } from "../logicaFake/logicaFake";
+import { obtenerNodosAdmin, obtenerLecturas } from "../logicaFake/logicaFake";
 
 const MS_24H = 24 * 60 * 60 * 1000;
+const MS_4H = 4 * 60 * 60 * 1000;
+
+// ======================================================================
+// Helpers de fecha
+// ======================================================================
 
 function toDateSafe(ts) {
   if (!ts) return null;
 
-  // 1) Firestore Timestamp real
   if (typeof ts === "object" && typeof ts.toDate === "function") {
     const d = ts.toDate();
     return isNaN(d.getTime()) ? null : d;
   }
 
-  // 2) Timestamp serializado: {seconds} / {_seconds}
   if (typeof ts === "object" && (ts.seconds || ts._seconds)) {
     const s = ts.seconds ?? ts._seconds;
     const d = new Date(s * 1000);
     return isNaN(d.getTime()) ? null : d;
   }
 
-  // 3) number (ms)
   if (typeof ts === "number") {
     const d = new Date(ts);
     return isNaN(d.getTime()) ? null : d;
   }
 
-  // 4) string ISO o parseable por JS
   if (typeof ts === "string") {
-    // intento normal
-    let d = new Date(ts);
+    const d = new Date(ts);
     if (!isNaN(d.getTime())) return d;
-
-    // 5) string tipo "4/1/2026, 18:07:39" o "04/01/2026, 18:07:39"
-    // interpretamos como D/M/YYYY
-    const m = ts.match(
-      /^\s*(\d{1,2})\/(\d{1,2})\/(\d{4})(?:,?\s+(\d{1,2}):(\d{2})(?::(\d{2}))?)?\s*$/
-    );
-    if (m) {
-      const day = parseInt(m[1], 10);
-      const month = parseInt(m[2], 10) - 1; // 0-11
-      const year = parseInt(m[3], 10);
-      const hour = m[4] ? parseInt(m[4], 10) : 0;
-      const min = m[5] ? parseInt(m[5], 10) : 0;
-      const sec = m[6] ? parseInt(m[6], 10) : 0;
-
-      d = new Date(year, month, day, hour, min, sec);
-      return isNaN(d.getTime()) ? null : d;
-    }
-
-    return null;
   }
 
-  // 6) fallback
-  const d = new Date(ts);
-  return isNaN(d.getTime()) ? null : d;
+  return null;
 }
 
-
-function isActiveByLastReading(lastReadingTimestamp) {
-  const d = toDateSafe(lastReadingTimestamp);
+function isActiveByLastReading(ts) {
+  const d = toDateSafe(ts);
   if (!d) return false;
-  const diff = Math.abs(Date.now() - d.getTime());
-  return diff <= MS_24H;
+  return Date.now() - d.getTime() <= MS_24H;
 }
 
+function fmt(v) {
+  const d = toDateSafe(v);
+  return d ? d.toLocaleString() : "Sin fecha";
+}
+
+// ======================================================================
+// Calidad de mediciones
+// ======================================================================
+
+function normalizeSensorName(v) {
+  return String(v || "").trim().toLowerCase();
+}
+
+function getSensorName(l) {
+  return normalizeSensorName(l?.tipo_sensor ?? l?.sensor ?? l?.tipo);
+}
+
+function getSensorValue(l) {
+  return Number(l?.valor ?? l?.value ?? l?.v);
+}
+
+function isReadingErronea(lectura) {
+  const sensor = getSensorName(lectura);
+  const v = getSensorValue(lectura);
+
+  if (!Number.isFinite(v)) return true;
+  if (v < 0) return true;
+
+  // Regla CO (tu proyecto)
+  if (sensor === "co") {
+    return v > 200; // >200 ppm = erróneo
+  }
+
+  return false;
+}
+
+function getReadingTimeMs(l) {
+  const d = toDateSafe(l?.timestamp ?? l?.tiempo ?? l?.time);
+  return d ? d.getTime() : null;
+}
+
+/**
+ * Regla FINAL:
+ * - Si hay lecturas en las últimas 4h
+ * - y TODAS son erróneas
+ * => mediciones incorrectas
+ */
+function evaluarCalidadUltimas4h(lecturas) {
+  if (!Array.isArray(lecturas) || lecturas.length === 0) {
+    return { medicionesCorrectas: true, motivo: "Sin lecturas en 4h" };
+  }
+
+  const validas = lecturas
+    .map(l => ({ l, t: getReadingTimeMs(l) }))
+    .filter(x => x.t !== null);
+
+  if (validas.length === 0) {
+    return { medicionesCorrectas: true, motivo: "Lecturas sin timestamp" };
+  }
+
+  const todasErroneas = validas.every(x => isReadingErronea(x.l));
+
+  if (todasErroneas) {
+    return { medicionesCorrectas: false, motivo: "Erróneas en últimas 4h" };
+  }
+
+  return { medicionesCorrectas: true, motivo: "OK" };
+}
+
+// ======================================================================
+// Componente
+// ======================================================================
 
 export default function NodosAdmin() {
   const navigate = useNavigate();
-
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState("");
   const [rows, setRows] = useState([]);
 
-  // ✅ Verificar si el usuario está logueado y es admin
+  // Auth
   useEffect(() => {
     const user = obtenerUsuarioLogueado();
-
-    if (!user) {
-      navigate("/");
-      return;
-    }
-
+    if (!user) return navigate("/");
     if (user.rol !== "admin") {
-      alert("⚠️ Acceso denegado. Solo los administradores pueden ingresar.");
+      alert("Acceso solo para administradores");
       navigate("/");
-      return;
     }
   }, [navigate]);
 
-  // ✅ Cargar nodos desde el ServidorREST (NO Firestore directo)
+  // Carga datos
   useEffect(() => {
     let cancel = false;
 
@@ -109,74 +152,76 @@ export default function NodosAdmin() {
       setError("");
 
       try {
-        const data = await obtenerNodosAdmin();
+        const nodos = await obtenerNodosAdmin();
 
-        const normalizado = (Array.isArray(data) ? data : []).map((r) => {
-  const last =
-    r.lastReadingAt ??
-    r.ultimaLectura ??
-    r.timestampUltimaLectura ??
-    r.tiempo ??
-    null;
+        const base = (Array.isArray(nodos) ? nodos : []).map(r => {
+          const last =
+            r.lastReadingAt ??
+            r.ultimaLectura ??
+            r.timestampUltimaLectura ??
+            r.tiempo ??
+            null;
 
-  // ✅ SIEMPRE recalcular en frontend
-  const activo = isActiveByLastReading(last);
-
-  return {
-    uid: r.uid ?? r.propietarioId ?? r.usuarioId ?? "",
-    nombreUsuario: r.nombreUsuario ?? r.nombre ?? "(Sin nombre)",
-    correoUsuario: r.correoUsuario ?? r.correo ?? "(Sin correo)",
-    nodoId: r.nodoId ?? r.id_nodo ?? r.idNodo ?? r.id ?? "",
-    nodoNombre:
-      r.nodoNombre ??
-      r.nombreNodo ??
-      r.nombre_nodo ??
-      r.nombre ??
-      "(Sin nombre)",
-    encendido: !!r.encendido,
-    creadoEn: r.creadoEn ?? r.createdAt ?? null,
-    lastReadingAt: last,
-    activo24h: activo,
-  };
-});
-
-
-        // Orden por usuario y nodo
-        normalizado.sort((a, b) => {
-          const ua = (a.nombreUsuario || "").toLowerCase();
-          const ub = (b.nombreUsuario || "").toLowerCase();
-          if (ua !== ub) return ua.localeCompare(ub);
-          return (a.nodoNombre || "").toLowerCase().localeCompare((b.nodoNombre || "").toLowerCase());
+          return {
+            uid: r.uid ?? r.propietarioId ?? "",
+            nombreUsuario: r.nombreUsuario ?? r.nombre ?? "(Sin nombre)",
+            correoUsuario: r.correoUsuario ?? r.correo ?? "(Sin correo)",
+            nodoId: r.nodoId ?? r.id_nodo ?? r.id ?? "",
+            nodoNombre: r.nodoNombre ?? r.nombreNodo ?? "(Sin nombre)",
+            creadoEn: r.creadoEn ?? r.createdAt ?? null,
+            lastReadingAt: last,
+            activo24h: isActiveByLastReading(last),
+            medicionesCorrectas: true,
+            motivoCalidad: "Cargando…",
+          };
         });
 
-        if (!cancel) setRows(normalizado);
+        const ahora = Date.now();
+        const fechaInicio = new Date(ahora - MS_4H);
+        const fechaFin = new Date(ahora);
+
+        const enriched = await Promise.all(
+          base.map(async row => {
+            try {
+              const lect = await obtenerLecturas({
+                nombreNodo: row.nodoNombre,
+                propietarioId: row.uid,
+                fechaInicio,
+                fechaFin,
+              });
+
+              const calidad = evaluarCalidadUltimas4h(lect || []);
+
+              return {
+                ...row,
+                medicionesCorrectas: calidad.medicionesCorrectas,
+                motivoCalidad: calidad.motivo,
+              };
+            } catch {
+              return { ...row, motivoCalidad: "Error leyendo lecturas" };
+            }
+          })
+        );
+
+        if (!cancel) setRows(enriched);
       } catch (e) {
-        console.error(e);
-        if (!cancel) setError(e?.message || "Error desconocido");
+        if (!cancel) setError("Error cargando nodos");
       } finally {
         if (!cancel) setCargando(false);
       }
     };
 
     cargar();
-
-    return () => {
-      cancel = true;
-    };
+    return () => (cancel = true);
   }, []);
 
-  const totalUsuarios = useMemo(() => {
-    const s = new Set(rows.map((r) => r.uid).filter(Boolean));
-    return s.size;
-  }, [rows]);
+  const totalUsuarios = useMemo(
+    () => new Set(rows.map(r => r.uid).filter(Boolean)).size,
+    [rows]
+  );
 
-  const totalNodos = rows.length;
-  const activos = rows.filter((r) => r.activo24h).length;
-
-  const fmt = (v) => {
-    const d = toDateSafe(v);
-    return d ? d.toLocaleString() : "Sin fecha";
-  };
+  const activos24h = rows.filter(r => r.activo24h).length;
+  const medidasMal = rows.filter(r => !r.medicionesCorrectas).length;
 
   return (
     <div className="container">
@@ -184,51 +229,49 @@ export default function NodosAdmin() {
       <h1>📡 Panel de Administración - Nodos</h1>
 
       {cargando ? (
-        <p>Cargando nodos...</p>
+        <p>Cargando nodos…</p>
       ) : error ? (
         <span className="error">❌ {error}</span>
       ) : (
         <>
-          <p style={{ marginTop: 8 }}>
-            Usuarios: <b>{totalUsuarios}</b> · Nodos: <b>{totalNodos}</b> · Activos (24h): <b>{activos}</b>
+          <p>
+            Usuarios: <b>{totalUsuarios}</b> · Nodos: <b>{rows.length}</b> ·
+            Activos (24h): <b>{activos24h}</b> ·
+            Medidas mal (4h): <b>{medidasMal}</b>
           </p>
 
-          {rows.length === 0 ? (
-            <p>No hay nodos registrados.</p>
-          ) : (
-            <table className="usuarios-tabla">
-              <thead>
-                <tr>
-                  <th>#</th>
-                  <th>Usuario</th>
-                  <th>Correo</th>
-                  <th>Nombre nodo</th>
-                  <th>ID nodo</th>
-                  <th>Encendido</th>
-                  <th>Activo (24h)</th>
-                  <th>Última lectura</th>
-                  <th>Creado</th>
+          <table className="usuarios-tabla">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Usuario</th>
+                <th>Correo</th>
+                <th>Nombre nodo</th>
+                <th>ID nodo</th>
+                <th>Activo (24h)</th>
+                <th>Última lectura</th>
+                <th>Creado</th>
+                <th>Mediciones correctas</th>
+                <th>Motivo</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((r, i) => (
+                <tr key={r.nodoId || i}>
+                  <td>{i + 1}</td>
+                  <td>{r.nombreUsuario}</td>
+                  <td>{r.correoUsuario}</td>
+                  <td>{r.nodoNombre}</td>
+                  <td style={{ fontFamily: "monospace" }}>{r.nodoId}</td>
+                  <td>{r.activo24h ? "🟢 Activo" : "⚪ Inactivo"}</td>
+                  <td>{fmt(r.lastReadingAt)}</td>
+                  <td>{fmt(r.creadoEn)}</td>
+                  <td>{r.medicionesCorrectas ? "✅ Correctas" : "⚠️ Erróneas"}</td>
+                  <td>{r.motivoCalidad}</td>
                 </tr>
-              </thead>
-              <tbody>
-                {rows.map((r, i) => (
-                  <tr key={r.nodoId || i}>
-                    <td data-label="#">{i + 1}</td>
-                    <td data-label="Usuario">{r.nombreUsuario}</td>
-                    <td data-label="Correo">{r.correoUsuario}</td>
-                    <td data-label="Nombre nodo">{r.nodoNombre}</td>
-                    <td data-label="ID nodo" style={{ fontFamily: "monospace" }}>
-                      {r.nodoId}
-                    </td>
-                    <td data-label="Encendido">{r.encendido ? "✅ Sí" : "❌ No"}</td>
-                    <td data-label="Activo (24h)">{r.activo24h ? "🟢 Activo" : "⚪ Inactivo"}</td>
-                    <td data-label="Última lectura">{fmt(r.lastReadingAt)}</td>
-                    <td data-label="Creado">{fmt(r.creadoEn)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
+              ))}
+            </tbody>
+          </table>
         </>
       )}
     </div>
