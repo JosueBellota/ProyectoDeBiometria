@@ -10,6 +10,107 @@ import "./css/lecturas.css";
 // Ubicación fija para la búsqueda general
 const GANDIA_LOCATION = { lat: 38.96667, lon: -0.18333 };
 
+// Componente para ver SÓLO las lecturas de los nodos del usuario
+function MyReadingsView({ usuario }) {
+    const [misLecturas, setMisLecturas] = useState([]);
+    const [cargando, setCargando] = useState(false);
+    const [error, setError] = useState(null);
+    const [nodeIdToNameMap, setNodeIdToNameMap] = useState(new Map());
+
+    // Mismos filtros de fecha que en la búsqueda general
+    const hoy = new Date();
+    const semanaPasada = new Date();
+    semanaPasada.setDate(hoy.getDate() - 7);
+
+    const [fechaInicio, setFechaInicio] = useState(semanaPasada.toISOString().split('T')[0]);
+    const [fechaFin, setFechaFin] = useState(hoy.toISOString().split('T')[0]);
+
+    const cargarMisLecturas = async () => {
+        if (!usuario) return;
+        setCargando(true);
+        setError(null);
+        try {
+            // 1. Obtener mis nodos
+            const nodos = await obtenerNodosPorPropietario(usuario.uid);
+            if (nodos.error) throw new Error(nodos.error);
+            if (!nodos.length) {
+                setMisLecturas([]);
+                return;
+            }
+
+            // Crear mapa de ID -> Nombre
+            const map = new Map(nodos.map(n => [n.id, n.nombre]));
+            setNodeIdToNameMap(map);
+
+            // 2. Para cada nodo, obtener sus lecturas históricas
+            const promesasLecturas = nodos.map(async (nodo) => {
+                const opciones = {
+                    nombreNodo: nodo.nombre,
+                    propietarioId: usuario.uid,
+                    fechaInicio: new Date(fechaInicio),
+                    fechaFin: new Date(fechaFin)
+                };
+                const lecturasNodo = await obtenerLecturas(opciones);
+                return lecturasNodo.error ? [] : lecturasNodo;
+            });
+
+            const resultadosArray = await Promise.all(promesasLecturas);
+            // Aplanar el array de arrays en uno solo
+            const todasLasLecturas = resultadosArray.flat();
+            
+            // Ordenar por fecha descendente
+            todasLasLecturas.sort((a, b) => {
+                const timeA = a.timestamp?._seconds || 0;
+                const timeB = b.timestamp?._seconds || 0;
+                return timeB - timeA;
+            });
+
+            setMisLecturas(todasLasLecturas);
+        } catch (err) {
+            setError(err.message);
+        } finally {
+            setCargando(false);
+        }
+    };
+
+    return (
+        <div className="mt-5">
+             <div className="d-flex justify-content-between align-items-center mb-3">
+                <h5 className="mb-0">MIS NODOS (Historial)</h5>
+            </div>
+            <div className="card p-3 bg-light">
+                <div className="row g-3 align-items-end">
+                    <div className="col-md-3">
+                        <label className="form-label small">Fecha Inicio</label>
+                        <input type="date" className="form-control" value={fechaInicio} onChange={e => setFechaInicio(e.target.value)} />
+                    </div>
+                    <div className="col-md-3">
+                        <label className="form-label small">Fecha Fin</label>
+                        <input type="date" className="form-control" value={fechaFin} onChange={e => setFechaFin(e.target.value)} />
+                    </div>
+                    <div className="col-md-3">
+                         <button className="btn btn-success w-100" onClick={cargarMisLecturas} disabled={cargando}>
+                            {cargando ? 'Cargando...' : 'Ver Historial de Mis Nodos'}
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            {error && <div className="alert alert-danger mt-3">{error}</div>}
+            
+            {!cargando && !error && misLecturas.length > 0 && (
+                <div className="readings-container mt-3">
+                    <ReadingsTable lecturas={misLecturas} showNodeColumn={true} nodeIdToNameMap={nodeIdToNameMap} />
+                </div>
+            )}
+            
+            {!cargando && !error && misLecturas.length === 0 && (
+                <p className="text-muted mt-3">No hay lecturas para mostrar en este rango de fechas.</p>
+            )}
+        </div>
+    );
+}
+
 // Componente para la vista de búsqueda general
 function GeneralSearchView({ misNodos }) {
     const [resultados, setResultados] = useState([]);
@@ -135,6 +236,8 @@ function Lecturas() {
                     <div className="row">
                         <div className="col-lg-12">
                             <GeneralSearchView misNodos={misNodos} />
+                            <hr className="my-5" />
+                            <MyReadingsView usuario={usuario} />
                         </div>
                     </div>
                 </main>

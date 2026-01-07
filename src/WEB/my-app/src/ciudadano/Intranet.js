@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import HeaderRegistrado from "./templates/HeaderRegistrado";
 import "../css/main.css";
-import { MapContainer, TileLayer, CircleMarker, Popup, useMapEvents, Marker } from "react-leaflet";
+import { MapContainer, TileLayer, Popup, useMapEvents, Marker } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import InterpolationLayer from "./InterpolationLayer";
@@ -10,6 +10,7 @@ import { obtenerLecturas } from "./../logicaFake/logicaFake";
 import { agregarMedidasVariadas, eliminarMedidasVariadas } from "./../logicaFake/medidasVariadas";
 import { renderToStaticMarkup } from 'react-dom/server';
 import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
+import SensorsIcon from '@mui/icons-material/Sensors';
 
 const gandiaCenterLat = 38.96667;
 const gandiaCenterLng = -0.18333;
@@ -26,13 +27,27 @@ const officialStations = [
 
 const officialStationIcon = L.divIcon({
     html: renderToStaticMarkup(
-        <div style={{ color: 'blue', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <AccountBalanceIcon style={{ fontSize: '30px', filter: 'drop-shadow(2px 2px 2px rgba(0,0,0,0.5))' }} />
+        <div style={{ 
+            backgroundColor: 'white', 
+            width: '40px', 
+            height: '40px', 
+            borderRadius: '8px', 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'center',
+            border: '2px solid white', // Borde blanco igual que el fondo
+            boxShadow: '0 4px 8px rgba(0,0,0,0.4)',
+            zIndex: 1000
+        }}>
+            <AccountBalanceIcon style={{ 
+                color: '#007bff', 
+                fontSize: '24px'
+            }} />
         </div>
     ),
-    className: 'custom-div-icon',
-    iconSize: [30, 30],
-    iconAnchor: [15, 15]
+    className: '', 
+    iconSize: [40, 40],
+    iconAnchor: [20, 20]
 });
 
 const StationPopup = ({ station }) => {
@@ -166,20 +181,22 @@ const units = {
     'calidad': ''
 };
 
-const DynamicRadiusCircleMarkers = ({ lecturas }) => {
+
+const DynamicSensorIcons = ({ lecturas }) => {
   const [zoomLevel, setZoomLevel] = useState(13);
 
-  const mapEvents = useMapEvents({
-    zoomend: () => {
-      setZoomLevel(mapEvents.getZoom());
+  useMapEvents({
+    zoomend: (e) => {
+      setZoomLevel(e.target.getZoom());
     },
   });
 
-  const getRadius = (zoom) => {
-    if (zoom < 12) return 2;
-    if (zoom < 14) return 4;
-    if (zoom < 16) return 8;
-    return 12;
+  const getSize = (zoom) => {
+    // Aumentamos ligeramente el tamaño base para que el contenedor se vea bien
+    if (zoom < 12) return 20; 
+    if (zoom < 14) return 25;
+    if (zoom < 16) return 30;
+    return 40;
   };
 
   const getColor = (medida, tipoSensor) => {
@@ -202,23 +219,50 @@ const DynamicRadiusCircleMarkers = ({ lecturas }) => {
 
   return (
     <>
-      {lecturas.map((lectura, index) => (
-        <CircleMarker
-          key={`${lectura.id || 'no_id'}-${index}`}
-          center={[lectura.latitud, lectura.longitud]}
-          radius={getRadius(zoomLevel)}
-          pathOptions={{
-              color: getColor(lectura.valor, lectura.tipo_sensor.toLowerCase()),
-              fillColor: getColor(lectura.valor, lectura.tipo_sensor.toLowerCase()),
-              fillOpacity: 0.8
-          }}
-        >
-          <Popup>
-            {getDisplaySensorName(lectura.tipo_sensor.toLowerCase())}: {lectura.valor.toFixed(2)} {getDisplayUnit(lectura.tipo_sensor.toLowerCase())} <br />
-            Tiempo: {new Date(lectura.timestamp._seconds * 1000).toLocaleString()}
-          </Popup>
-        </CircleMarker>
-      ))}
+      {lecturas.map((lectura, index) => {
+        const size = getSize(zoomLevel);
+        const bgColor = getColor(lectura.valor, lectura.tipo_sensor.toLowerCase());
+        
+        // Creamos un contenedor circular con el color de fondo
+        const iconHtml = renderToStaticMarkup(
+            <div style={{ 
+                backgroundColor: bgColor, 
+                width: size + 'px', 
+                height: size + 'px', 
+                borderRadius: '50%', 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center',
+                border: '2px solid rgba(255,255,255,0.8)', // Borde blanco suave para resaltar
+                boxShadow: '0 2px 5px rgba(0,0,0,0.3)' // Sombra para dar profundidad
+            }}>
+                <SensorsIcon style={{ 
+                    color: 'white', 
+                    fontSize: (size * 0.7) + 'px' // El icono es un 70% del contenedor
+                }} />
+            </div>
+        );
+
+        const icon = L.divIcon({
+            html: iconHtml,
+            className: '', // Sin clase extra
+            iconSize: [size, size],
+            iconAnchor: [size / 2, size / 2]
+        });
+
+        return (
+            <Marker
+            key={`${lectura.id || 'no_id'}-${index}`}
+            position={[lectura.latitud, lectura.longitud]}
+            icon={icon}
+            >
+            <Popup>
+                {getDisplaySensorName(lectura.tipo_sensor.toLowerCase())}: {lectura.valor.toFixed(2)} {getDisplayUnit(lectura.tipo_sensor.toLowerCase())} <br />
+                Tiempo: {new Date(lectura.timestamp._seconds * 1000).toLocaleString()}
+            </Popup>
+            </Marker>
+        );
+      })}
     </>
   );
 };
@@ -450,7 +494,7 @@ function Intranet() {
             />
             {loading ? <p>Cargando...</p> : (
                 mapView === 'points' ? (
-                <DynamicRadiusCircleMarkers lecturas={lecturasFiltradas} />
+                <DynamicSensorIcons lecturas={lecturasFiltradas} />
                 ) : (
                 <InterpolationLayer 
                     lecturas={lecturasParaMapa} 
@@ -470,6 +514,7 @@ function Intranet() {
                     key={station.id} 
                     position={[station.lat, station.lng]} 
                     icon={officialStationIcon}
+                    zIndexOffset={1000} // Prioridad visual alta
                  >
                      <Popup>
                          <StationPopup station={station} />
