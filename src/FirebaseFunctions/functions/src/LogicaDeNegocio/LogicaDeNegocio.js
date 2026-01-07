@@ -140,7 +140,7 @@ class LogicaDeNegocio {
         const matchingDocs = [];
         for (const snap of snapshots) {
           for (const doc of snap.docs) {
-            matchingDocs.push(doc.data());
+            matchingDocs.push({ id: doc.id, ...doc.data() });
           }
         }
 
