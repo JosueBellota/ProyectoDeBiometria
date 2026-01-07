@@ -132,7 +132,19 @@ const InterpolationLayer = ({ lecturas, colorScale: propColorScale, isAirQuality
             if (d <= MAX_RADIUS) {
                 // Evitar división por cero si cae exacto encima
                 const dist = Math.max(d, 0.001); 
-                const weight = 1 / Math.pow(dist, POWER);
+                let weight = 1 / Math.pow(dist, POWER);
+
+                // --- MODIFICACIÓN ESPECÍFICA PARA CALIDAD DEL AIRE ---
+                if (isAirQualityView) {
+                    // Requisito: Las lecturas malas (3) deben influir mucho más que las verdes (1).
+                    // Elevamos el valor de severidad (1, 2, 3) a una potencia alta.
+                    // 1^6 = 1
+                    // 2^6 = 64
+                    // 3^6 = 729
+                    // Esto asegura que un punto rojo "opaque" casi totalmente a uno verde cercano.
+                    weight *= Math.pow(p.value, 6);
+                }
+
                 numerator += p.value * weight;
                 denominator += weight;
             }
