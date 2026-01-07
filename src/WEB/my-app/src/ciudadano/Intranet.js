@@ -1,15 +1,136 @@
 import React, { useState, useEffect, useMemo } from "react";
 import HeaderRegistrado from "./templates/HeaderRegistrado";
 import "../css/main.css";
-import { MapContainer, TileLayer, CircleMarker, Popup, useMapEvents } from "react-leaflet";
+import { MapContainer, TileLayer, Popup, useMapEvents, Marker } from "react-leaflet";
+import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import InterpolationLayer from "./InterpolationLayer";
 import data from './FeaturesFaq.json';
 import { obtenerLecturas } from "./../logicaFake/logicaFake";
 import { agregarMedidasVariadas, eliminarMedidasVariadas } from "./../logicaFake/medidasVariadas";
+import { renderToStaticMarkup } from 'react-dom/server';
+import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
+import SensorsIcon from '@mui/icons-material/Sensors';
 
 const gandiaCenterLat = 38.96667;
 const gandiaCenterLng = -0.18333;
+
+const officialStations = [
+    {
+        id: 'estacion-gandia',
+        nombre: 'Estación Gandía - Parc Alquería Nova',
+        lat: 38.968129,
+        lng: -0.193242,
+        url: 'http://www.agroambient.gva.es/es/web/calidad-ambiental/datos-on-line'
+    }
+];
+
+const officialStationIcon = L.divIcon({
+    html: renderToStaticMarkup(
+        <div style={{ 
+            backgroundColor: 'white', 
+            width: '40px', 
+            height: '40px', 
+            borderRadius: '8px', 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'center',
+            border: '2px solid white', // Borde blanco igual que el fondo
+            boxShadow: '0 4px 8px rgba(0,0,0,0.4)',
+            zIndex: 1000
+        }}>
+            <AccountBalanceIcon style={{ 
+                color: '#007bff', 
+                fontSize: '24px'
+            }} />
+        </div>
+    ),
+    className: '', 
+    iconSize: [40, 40],
+    iconAnchor: [20, 20]
+});
+
+const StationPopup = ({ station }) => {
+    const [data, setData] = useState(null);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        // Simular petición a API oficial
+        const timer = setTimeout(() => {
+            setData({
+                so2: (Math.random() * 4 + 1).toFixed(1),      // 1-5
+                no2: (Math.random() * 15 + 5).toFixed(1),     // 5-20
+                o3: (Math.random() * 30 + 35).toFixed(1),     // 35-65
+                co: (Math.random() * 0.3 + 0.1).toFixed(2),   // 0.1-0.4
+                pm10: (Math.random() * 15 + 10).toFixed(1),   // 10-25
+                pm25: (Math.random() * 8 + 3).toFixed(1),     // 3-11
+                calidad: 'Buena',
+                lastUpdate: new Date().toLocaleTimeString()
+            });
+            setLoading(false);
+        }, 800); // Pequeño delay para realismo
+        return () => clearTimeout(timer);
+    }, []);
+
+    if (loading) return <div style={{textAlign: 'center', padding: '10px'}}>🔄 Cargando datos oficiales...</div>;
+
+    return (
+        <div style={{minWidth: '200px'}}>
+             <h5 style={{margin: '0 0 5px 0', fontSize: '1rem'}}>{station.nombre}</h5>
+             <div style={{fontSize: '0.8rem', color: '#666', marginBottom: '8px'}}>Generalitat Valenciana • Red RVVCCA</div>
+             
+             <table className="table table-sm table-borderless" style={{fontSize: '0.9rem', marginBottom: '5px'}}>
+                <tbody>
+                    <tr>
+                        <td style={{padding: '2px'}}><strong>SO₂</strong></td>
+                        <td style={{padding: '2px', textAlign: 'right'}}>{data.so2} µg/m³</td>
+                    </tr>
+                    <tr>
+                        <td style={{padding: '2px'}}><strong>NO₂</strong></td>
+                        <td style={{padding: '2px', textAlign: 'right'}}>{data.no2} µg/m³</td>
+                    </tr>
+                    <tr>
+                        <td style={{padding: '2px'}}><strong>O₃</strong></td>
+                        <td style={{padding: '2px', textAlign: 'right'}}>{data.o3} µg/m³</td>
+                    </tr>
+                    <tr>
+                        <td style={{padding: '2px'}}><strong>CO</strong></td>
+                        <td style={{padding: '2px', textAlign: 'right'}}>{data.co} mg/m³</td>
+                    </tr>
+                    <tr>
+                        <td style={{padding: '2px'}}><strong>PM10</strong></td>
+                        <td style={{padding: '2px', textAlign: 'right'}}>{data.pm10} µg/m³</td>
+                    </tr>
+                    <tr>
+                        <td style={{padding: '2px'}}><strong>PM2.5</strong></td>
+                        <td style={{padding: '2px', textAlign: 'right'}}>{data.pm25} µg/m³</td>
+                    </tr>
+                </tbody>
+             </table>
+             
+             <div style={{
+                 backgroundColor: '#d1e7dd', 
+                 color: '#0f5132', 
+                 padding: '5px', 
+                 borderRadius: '4px', 
+                 textAlign: 'center',
+                 fontWeight: 'bold',
+                 marginBottom: '5px',
+                 fontSize: '0.9rem'
+             }}>
+                 ICA: {data.calidad}
+             </div>
+
+             <div style={{fontSize: '0.75rem', color: '#999', textAlign: 'right', marginBottom: '5px'}}>
+                 Actualizado: {data.lastUpdate}
+             </div>
+
+             <a href={station.url} target="_blank" rel="noopener noreferrer" style={{fontSize: '0.85rem', display: 'block', textAlign: 'center'}}>
+                 Ver histórico web oficial ↗
+             </a>
+        </div>
+    );
+};
 
 const colorScales = {
     'calidad': (medida) => {
@@ -18,26 +139,26 @@ const colorScales = {
         return 'red'; // Malo
     },
     'co': (medida) => {
-        if (medida < 450) return 'green';
-        if (medida <= 1000) return 'yellow';
+        if (medida <= 7) return 'green';
+        if (medida <= 10) return 'yellow';
         return 'red';
     },
     'no2': (medida) => {
-        if (medida < 100) return 'green';
-        if (medida <= 200) return 'yellow';
+        if (medida <= 90) return 'green';
+        if (medida <= 120) return 'yellow';
         return 'red';
     },
     'o3': (medida) => {
-        if (medida < 120) return 'green';
-        if (medida <= 180) return 'yellow';
+        if (medida <= 100) return 'green';
+        if (medida <= 130) return 'yellow';
         return 'red';
     }
 };
 
 const sensorLimits = {
-    'co': { low: 0, med: 450, high: 1000 },
-    'no2': { low: 0, med: 100, high: 200 },
-    'o3': { low: 0, med: 120, high: 180 },
+    'co': { low: 0, med: 7, high: 10 },
+    'no2': { low: 0, med: 90, high: 120 },
+    'o3': { low: 0, med: 100, high: 130 },
     'calidad': { low: 1, med: 2, high: 3 }
 };
 
@@ -60,20 +181,22 @@ const units = {
     'calidad': ''
 };
 
-const DynamicRadiusCircleMarkers = ({ lecturas }) => {
+
+const DynamicSensorIcons = ({ lecturas }) => {
   const [zoomLevel, setZoomLevel] = useState(13);
 
-  const mapEvents = useMapEvents({
-    zoomend: () => {
-      setZoomLevel(mapEvents.getZoom());
+  useMapEvents({
+    zoomend: (e) => {
+      setZoomLevel(e.target.getZoom());
     },
   });
 
-  const getRadius = (zoom) => {
-    if (zoom < 12) return 2;
-    if (zoom < 14) return 4;
-    if (zoom < 16) return 8;
-    return 12;
+  const getSize = (zoom) => {
+    // Aumentamos ligeramente el tamaño base para que el contenedor se vea bien
+    if (zoom < 12) return 20; 
+    if (zoom < 14) return 25;
+    if (zoom < 16) return 30;
+    return 40;
   };
 
   const getColor = (medida, tipoSensor) => {
@@ -96,23 +219,50 @@ const DynamicRadiusCircleMarkers = ({ lecturas }) => {
 
   return (
     <>
-      {lecturas.map((lectura, index) => (
-        <CircleMarker
-          key={`${lectura.id || 'no_id'}-${index}`}
-          center={[lectura.latitud, lectura.longitud]}
-          radius={getRadius(zoomLevel)}
-          pathOptions={{
-              color: getColor(lectura.valor, lectura.tipo_sensor.toLowerCase()),
-              fillColor: getColor(lectura.valor, lectura.tipo_sensor.toLowerCase()),
-              fillOpacity: 0.8
-          }}
-        >
-          <Popup>
-            {getDisplaySensorName(lectura.tipo_sensor.toLowerCase())}: {lectura.valor.toFixed(2)} {getDisplayUnit(lectura.tipo_sensor.toLowerCase())} <br />
-            Tiempo: {new Date(lectura.timestamp._seconds * 1000).toLocaleString()}
-          </Popup>
-        </CircleMarker>
-      ))}
+      {lecturas.map((lectura, index) => {
+        const size = getSize(zoomLevel);
+        const bgColor = getColor(lectura.valor, lectura.tipo_sensor.toLowerCase());
+        
+        // Creamos un contenedor circular con el color de fondo
+        const iconHtml = renderToStaticMarkup(
+            <div style={{ 
+                backgroundColor: bgColor, 
+                width: size + 'px', 
+                height: size + 'px', 
+                borderRadius: '50%', 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center',
+                border: '2px solid rgba(255,255,255,0.8)', // Borde blanco suave para resaltar
+                boxShadow: '0 2px 5px rgba(0,0,0,0.3)' // Sombra para dar profundidad
+            }}>
+                <SensorsIcon style={{ 
+                    color: 'white', 
+                    fontSize: (size * 0.7) + 'px' // El icono es un 70% del contenedor
+                }} />
+            </div>
+        );
+
+        const icon = L.divIcon({
+            html: iconHtml,
+            className: '', // Sin clase extra
+            iconSize: [size, size],
+            iconAnchor: [size / 2, size / 2]
+        });
+
+        return (
+            <Marker
+            key={`${lectura.id || 'no_id'}-${index}`}
+            position={[lectura.latitud, lectura.longitud]}
+            icon={icon}
+            >
+            <Popup>
+                {getDisplaySensorName(lectura.tipo_sensor.toLowerCase())}: {lectura.valor.toFixed(2)} {getDisplayUnit(lectura.tipo_sensor.toLowerCase())} <br />
+                Tiempo: {new Date(lectura.timestamp._seconds * 1000).toLocaleString()}
+            </Popup>
+            </Marker>
+        );
+      })}
     </>
   );
 };
@@ -121,27 +271,27 @@ const DynamicRadiusCircleMarkers = ({ lecturas }) => {
 const legendData = {
     'calidad': {
         title: 'Calidad del Aire General',
-        green: 'Verde: Recomendable',
-        yellow: 'Amarillo: Máximo Permitido',
-        red: 'Rojo: Peligroso',
+        green: 'Verde: Buena / Razonable',
+        yellow: 'Amarillo: Regular',
+        red: 'Rojo: Desfavorable / Mala',
     },
     'co': {
         title: 'Monóxido de Carbono (CO)',
-        green: 'Verde: Recomendable (< 450 mg/m³)',
-        yellow: 'Amarillo: Máximo Permitido (450 - 1000 mg/m³)',
-        red: 'Rojo: Peligroso (> 1000 mg/m³)',
+        green: 'Verde: Buena (≤ 7 mg/m³)',
+        yellow: 'Amarillo: Regular (7 - 10 mg/m³)',
+        red: 'Rojo: Mala (> 10 mg/m³)',
     },
     'no2': {
         title: 'Dióxido de Nitrógeno (NO2)',
-        green: 'Verde: Recomendable (< 100 µg/m³)',
-        yellow: 'Amarillo: Máximo Permitido (100 - 200 µg/m³)',
-        red: 'Rojo: Peligroso (> 200 µg/m³)',
+        green: 'Verde: Buena (≤ 90 µg/m³)',
+        yellow: 'Amarillo: Regular (90 - 120 µg/m³)',
+        red: 'Rojo: Mala (> 120 µg/m³)',
     },
     'o3': {
         title: 'Ozono (O3)',
-        green: 'Verde: Recomendable (< 120 µg/m³)',
-        yellow: 'Amarillo: Máximo Permitido (120 - 180 µg/m³)',
-        red: 'Rojo: Peligroso (> 180 µg/m³)',
+        green: 'Verde: Buena (≤ 100 µg/m³)',
+        yellow: 'Amarillo: Regular (100 - 130 µg/m³)',
+        red: 'Rojo: Mala (> 130 µg/m³)',
     }
 };
 
@@ -344,7 +494,7 @@ function Intranet() {
             />
             {loading ? <p>Cargando...</p> : (
                 mapView === 'points' ? (
-                <DynamicRadiusCircleMarkers lecturas={lecturasFiltradas} />
+                <DynamicSensorIcons lecturas={lecturasFiltradas} />
                 ) : (
                 <InterpolationLayer 
                     lecturas={lecturasParaMapa} 
@@ -357,6 +507,21 @@ function Intranet() {
                 )
             )}
              {mapView === 'interpolation' && <Legend sensor={selectedSensor} />}
+             
+             {/* Estaciones Oficiales */}
+             {officialStations.map(station => (
+                 <Marker 
+                    key={station.id} 
+                    position={[station.lat, station.lng]} 
+                    icon={officialStationIcon}
+                    zIndexOffset={1000} // Prioridad visual alta
+                 >
+                     <Popup>
+                         <StationPopup station={station} />
+                     </Popup>
+                 </Marker>
+             ))}
+
           </MapContainer>
           <div className="mt-3 text-center">
             <button 
@@ -383,12 +548,12 @@ function Intranet() {
                         const lat = CENTER_LAT + RADIUS_DEG * Math.cos(angle);
                         const lng = CENTER_LNG + RADIUS_DEG * Math.sin(angle);
 
-                        let valorCO2;
-                        if (i <= 7) valorCO2 = 1200 + Math.random() * 200;
-                        else if (i <= 13) valorCO2 = 600 + Math.random() * 200;
-                        else valorCO2 = 1100 + Math.random() * 200;
+                        let valorCO;
+                        if (i <= 7) valorCO = 12 + Math.random() * 3;
+                        else if (i <= 13) valorCO = 7.5 + Math.random() * 2;
+                        else valorCO = 11 + Math.random() * 3;
                         
-                        valorCO2 = Math.round(valorCO2);
+                        valorCO = parseFloat(valorCO.toFixed(2));
 
                         // Crear Nodo
                         try {
@@ -407,7 +572,7 @@ function Intranet() {
                                 body: JSON.stringify({
                                     nombreNodo: nodoId,
                                     propietarioId: PROPIETARIO_ID,
-                                    lecturas: [{ tipo: 'CO', valor: valorCO2 }],
+                                    lecturas: [{ tipo: 'CO', valor: valorCO }],
                                     latitud: lat,
                                     longitud: lng,
                                 }),
@@ -422,7 +587,7 @@ function Intranet() {
                                 body: JSON.stringify({
                                     nombreNodo: nodoId,
                                     propietarioId: PROPIETARIO_ID,
-                                    lecturas: [{ tipo: 'CO', valor: valorCO2 + (Math.random() * 20 - 10) }],
+                                    lecturas: [{ tipo: 'CO', valor: valorCO + (Math.random() * 1 - 0.5) }],
                                     latitud: lat + 0.0001,
                                     longitud: lng + 0.0001,
                                 }),
@@ -508,7 +673,7 @@ function Intranet() {
                             const lng = START_LNG + (lngIdx * STEP);
                             
                             // Valor aleatorio
-                            const valorCO = 300 + Math.random() * 500; 
+                            const valorCO = parseFloat((Math.random() * 12).toFixed(2)); 
 
                             try {
                                 await fetch(`${BASE_URL}/lecturas`, {
