@@ -6,6 +6,7 @@ import "leaflet/dist/leaflet.css";
 import InterpolationLayer from "./InterpolationLayer";
 import data from './FeaturesFaq.json';
 import { obtenerLecturas } from "./../logicaFake/logicaFake";
+import { agregarMedidasVariadas, eliminarMedidasVariadas } from "./../logicaFake/medidasVariadas";
 
 const gandiaCenterLat = 38.96667;
 const gandiaCenterLng = -0.18333;
@@ -95,9 +96,9 @@ const DynamicRadiusCircleMarkers = ({ lecturas }) => {
 
   return (
     <>
-      {lecturas.map(lectura => (
+      {lecturas.map((lectura, index) => (
         <CircleMarker
-          key={`${lectura.id}-${lectura.timestamp._seconds}-${lectura.latitud}-${lectura.longitud}`}
+          key={`${lectura.id || 'no_id'}-${index}`}
           center={[lectura.latitud, lectura.longitud]}
           radius={getRadius(zoomLevel)}
           pathOptions={{
@@ -569,6 +570,34 @@ function Intranet() {
                 }}
             >
                 🗑️ Eliminar Nodo 0
+            </button>
+            <button
+                className="btn btn-success ms-2"
+                onClick={async () => {
+                    const confirm = window.confirm("¿Añadir 60 lecturas variadas en Gandía?");
+                    if (!confirm) return;
+                    await agregarMedidasVariadas();
+                    alert("✅ 60 lecturas variadas añadidas.");
+                    handleFiltrar();
+                }}
+            >
+                📊 Lecturas Variadas Añadir
+            </button>
+            <button
+                className="btn btn-danger ms-2"
+                onClick={async () => {
+                    const confirm = window.confirm("¿Eliminar lecturas variadas?");
+                    if (!confirm) return;
+                    try {
+                        await eliminarMedidasVariadas();
+                        alert("🗑️ Lecturas variadas eliminadas.");
+                    } catch (e) {
+                        alert("❌ Error eliminando lecturas variadas.");
+                    }
+                    handleFiltrar();
+                }}
+            >
+                🗑️ Lecturas Variadas Eliminar
             </button>
           </div>
         </section>
