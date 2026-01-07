@@ -124,26 +124,26 @@ const colorScales = {
         return 'red'; // Malo
     },
     'co': (medida) => {
-        if (medida < 450) return 'green';
-        if (medida <= 1000) return 'yellow';
+        if (medida <= 7) return 'green';
+        if (medida <= 10) return 'yellow';
         return 'red';
     },
     'no2': (medida) => {
-        if (medida < 100) return 'green';
-        if (medida <= 200) return 'yellow';
+        if (medida <= 90) return 'green';
+        if (medida <= 120) return 'yellow';
         return 'red';
     },
     'o3': (medida) => {
-        if (medida < 120) return 'green';
-        if (medida <= 180) return 'yellow';
+        if (medida <= 100) return 'green';
+        if (medida <= 130) return 'yellow';
         return 'red';
     }
 };
 
 const sensorLimits = {
-    'co': { low: 0, med: 450, high: 1000 },
-    'no2': { low: 0, med: 100, high: 200 },
-    'o3': { low: 0, med: 120, high: 180 },
+    'co': { low: 0, med: 7, high: 10 },
+    'no2': { low: 0, med: 90, high: 120 },
+    'o3': { low: 0, med: 100, high: 130 },
     'calidad': { low: 1, med: 2, high: 3 }
 };
 
@@ -227,27 +227,27 @@ const DynamicRadiusCircleMarkers = ({ lecturas }) => {
 const legendData = {
     'calidad': {
         title: 'Calidad del Aire General',
-        green: 'Verde: Recomendable',
-        yellow: 'Amarillo: Máximo Permitido',
-        red: 'Rojo: Peligroso',
+        green: 'Verde: Buena / Razonable',
+        yellow: 'Amarillo: Regular',
+        red: 'Rojo: Desfavorable / Mala',
     },
     'co': {
         title: 'Monóxido de Carbono (CO)',
-        green: 'Verde: Recomendable (< 450 mg/m³)',
-        yellow: 'Amarillo: Máximo Permitido (450 - 1000 mg/m³)',
-        red: 'Rojo: Peligroso (> 1000 mg/m³)',
+        green: 'Verde: Buena (≤ 7 mg/m³)',
+        yellow: 'Amarillo: Regular (7 - 10 mg/m³)',
+        red: 'Rojo: Mala (> 10 mg/m³)',
     },
     'no2': {
         title: 'Dióxido de Nitrógeno (NO2)',
-        green: 'Verde: Recomendable (< 100 µg/m³)',
-        yellow: 'Amarillo: Máximo Permitido (100 - 200 µg/m³)',
-        red: 'Rojo: Peligroso (> 200 µg/m³)',
+        green: 'Verde: Buena (≤ 90 µg/m³)',
+        yellow: 'Amarillo: Regular (90 - 120 µg/m³)',
+        red: 'Rojo: Mala (> 120 µg/m³)',
     },
     'o3': {
         title: 'Ozono (O3)',
-        green: 'Verde: Recomendable (< 120 µg/m³)',
-        yellow: 'Amarillo: Máximo Permitido (120 - 180 µg/m³)',
-        red: 'Rojo: Peligroso (> 180 µg/m³)',
+        green: 'Verde: Buena (≤ 100 µg/m³)',
+        yellow: 'Amarillo: Regular (100 - 130 µg/m³)',
+        red: 'Rojo: Mala (> 130 µg/m³)',
     }
 };
 
@@ -503,12 +503,12 @@ function Intranet() {
                         const lat = CENTER_LAT + RADIUS_DEG * Math.cos(angle);
                         const lng = CENTER_LNG + RADIUS_DEG * Math.sin(angle);
 
-                        let valorCO2;
-                        if (i <= 7) valorCO2 = 1200 + Math.random() * 200;
-                        else if (i <= 13) valorCO2 = 600 + Math.random() * 200;
-                        else valorCO2 = 1100 + Math.random() * 200;
+                        let valorCO;
+                        if (i <= 7) valorCO = 12 + Math.random() * 3;
+                        else if (i <= 13) valorCO = 7.5 + Math.random() * 2;
+                        else valorCO = 11 + Math.random() * 3;
                         
-                        valorCO2 = Math.round(valorCO2);
+                        valorCO = parseFloat(valorCO.toFixed(2));
 
                         // Crear Nodo
                         try {
@@ -527,7 +527,7 @@ function Intranet() {
                                 body: JSON.stringify({
                                     nombreNodo: nodoId,
                                     propietarioId: PROPIETARIO_ID,
-                                    lecturas: [{ tipo: 'CO', valor: valorCO2 }],
+                                    lecturas: [{ tipo: 'CO', valor: valorCO }],
                                     latitud: lat,
                                     longitud: lng,
                                 }),
@@ -542,7 +542,7 @@ function Intranet() {
                                 body: JSON.stringify({
                                     nombreNodo: nodoId,
                                     propietarioId: PROPIETARIO_ID,
-                                    lecturas: [{ tipo: 'CO', valor: valorCO2 + (Math.random() * 20 - 10) }],
+                                    lecturas: [{ tipo: 'CO', valor: valorCO + (Math.random() * 1 - 0.5) }],
                                     latitud: lat + 0.0001,
                                     longitud: lng + 0.0001,
                                 }),
@@ -628,7 +628,7 @@ function Intranet() {
                             const lng = START_LNG + (lngIdx * STEP);
                             
                             // Valor aleatorio
-                            const valorCO = 300 + Math.random() * 500; 
+                            const valorCO = parseFloat((Math.random() * 12).toFixed(2)); 
 
                             try {
                                 await fetch(`${BASE_URL}/lecturas`, {

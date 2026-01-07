@@ -26,19 +26,19 @@ const SENSORS = ['co', 'no2', 'o3'];
 // Rangos de valores
 const RANGES = {
     'co': [
-        { min: 0, max: 440, label: 'Bueno' },
-        { min: 450, max: 990, label: 'Regular' },
-        { min: 1010, max: 1500, label: 'Malo' }
+        { min: 0.5, max: 6.5, label: 'Bueno' },   // < 7
+        { min: 7.1, max: 9.9, label: 'Regular' }, // 7 - 10
+        { min: 10.1, max: 15.0, label: 'Malo' }   // > 10
     ],
     'no2': [
-        { min: 0, max: 90, label: 'Bueno' },
-        { min: 100, max: 190, label: 'Regular' },
-        { min: 210, max: 300, label: 'Malo' }
+        { min: 10, max: 85, label: 'Bueno' },     // < 90
+        { min: 91, max: 119, label: 'Regular' },  // 90 - 120
+        { min: 121, max: 200, label: 'Malo' }     // > 120
     ],
     'o3': [
-        { min: 0, max: 110, label: 'Bueno' },
-        { min: 120, max: 170, label: 'Regular' },
-        { min: 190, max: 250, label: 'Malo' }
+        { min: 20, max: 95, label: 'Bueno' },     // < 100
+        { min: 101, max: 129, label: 'Regular' }, // 100 - 130
+        { min: 131, max: 180, label: 'Malo' }     // > 130
     ]
 };
 
@@ -104,6 +104,73 @@ export async function agregarMedidasVariadas() {
         }
     }
     console.log("✅ Carga de medidas variadas completada.");
+    
+    // --- NUEVO: 20 Lecturas alrededor de la Estación Oficial ---
+    console.log("🚀 Añadiendo 20 lecturas cerca de la Estación Oficial...");
+    
+    const STATION_LAT = 38.968129;
+    const STATION_LNG = -0.193242;
+    const STATION_RADIUS_DEG = 0.003; // ~300 metros
+
+    // Valores de referencia (Simulando lo que mide la estación)
+    const STATION_REF = {
+        'co': 0.3,   // mg/m3
+        'no2': 12,   // µg/m3
+        'o3': 50     // µg/m3
+    };
+
+    let stationCount = 0;
+    for (let i = 0; i < 20; i++) {
+        const sensor = SENSORS[i % 3]; // Rotar sensores: CO, NO2, O3
+        
+        // Distancia aleatoria (más probabilidad cerca del centro)
+        const r = STATION_RADIUS_DEG * Math.pow(Math.random(), 2); 
+        const theta = Math.random() * 2 * Math.PI;
+        
+        const lat = STATION_LAT + r * Math.cos(theta);
+        const lng = STATION_LNG + r * Math.sin(theta);
+
+        // Calcular variabilidad basada en la distancia
+        // Si r es 0 (centro), variación es 0. Si es r_max, variación máxima.
+        const distRatio = r / STATION_RADIUS_DEG;
+        
+        // Base oficial
+        const baseValue = STATION_REF[sensor];
+        
+        // Ruido: A mayor distancia, más ruido (positivo o negativo)
+        // Ejemplo CO: base 0.3. Ruido max +/- 2.0. En el centro +/- 0.
+        // Ejemplo NO2: base 12. Ruido max +/- 30.
+        let maxNoise = 0;
+        if (sensor === 'co') maxNoise = 2.0; 
+        if (sensor === 'no2') maxNoise = 40;
+        if (sensor === 'o3') maxNoise = 40;
+
+        const noise = (Math.random() * 2 - 1) * maxNoise * distRatio;
+        
+        let finalValue = baseValue + noise;
+        
+        // Asegurar que no sea negativo
+        if (finalValue < 0) finalValue = 0;
+
+        try {
+            await fetch(`${BASE_URL}/lecturas`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    nombreNodo: NODO_ID,
+                    propietarioId: PROPIETARIO_ID,
+                    lecturas: [{ tipo: sensor.toUpperCase(), valor: finalValue }],
+                    latitud: lat,
+                    longitud: lng,
+                }),
+            });
+            stationCount++;
+            if (stationCount % 5 === 0) console.log(`Estación Oficial: ${stationCount}/20 lecturas...`);
+        } catch (e) {
+            console.error(`Error enviando lectura estación ${i}`, e);
+        }
+    }
+    console.log("✅ Lecturas de estación oficial añadidas.");
 }
 
 export async function eliminarMedidasVariadas() {

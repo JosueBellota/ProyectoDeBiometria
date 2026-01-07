@@ -67,21 +67,21 @@ async function main() {
 
         // 2. Determinar Valor (Color)
         // Patrón: Rojo (1-7) -> Amarillo (8-13) -> Rojo (14-20)
-        let valorCO2;
+        let valorCO;
         let colorLog;
 
         if (i <= 7) {
-            valorCO2 = 1200 + Math.random() * 200; // Rojo
+            valorCO = 12 + Math.random() * 3; // Rojo (> 10)
             colorLog = "🔴 Rojo";
         } else if (i <= 13) {
-            valorCO2 = 600 + Math.random() * 200;  // Amarillo
+            valorCO = 7.5 + Math.random() * 2;  // Amarillo (7 - 10)
             colorLog = "🟡 Amarillo";
         } else {
-            valorCO2 = 1100 + Math.random() * 200; // Rojo
+            valorCO = 11 + Math.random() * 3; // Rojo (> 10)
             colorLog = "🔴 Rojo";
         }
         
-        valorCO2 = Math.round(valorCO2);
+        valorCO = parseFloat(valorCO.toFixed(2));
 
         // 3. Crear Nodo
         console.log(`\n📍 Procesando ${nodoId} (${colorLog})...`);
@@ -94,7 +94,7 @@ async function main() {
         await callAPI("POST", "/lecturas", {
             nombreNodo: nodoId,
             propietarioId: PROPIETARIO_ID,
-            lecturas: [{ tipo: 'CO', valor: valorCO2 }],
+            lecturas: [{ tipo: 'CO', valor: valorCO }],
             latitud: lat,
             longitud: lng,
         });
@@ -102,7 +102,7 @@ async function main() {
         await callAPI("POST", "/lecturas", {
             nombreNodo: nodoId,
             propietarioId: PROPIETARIO_ID,
-            lecturas: [{ tipo: 'CO', valor: valorCO2 + (Math.random() * 20 - 10) }],
+            lecturas: [{ tipo: 'CO', valor: valorCO + (Math.random() * 1 - 0.5) }],
             latitud: lat + 0.0001, 
             longitud: lng + 0.0001,
         });
