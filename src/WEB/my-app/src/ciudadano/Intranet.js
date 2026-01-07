@@ -344,7 +344,7 @@ function Intranet() {
             />
             {loading ? <p>Cargando...</p> : (
                 mapView === 'points' ? (
-                <DynamicRadiusCircleMarkers lecturas={allLecturas} />
+                <DynamicRadiusCircleMarkers lecturas={lecturasFiltradas} />
                 ) : (
                 <InterpolationLayer 
                     lecturas={lecturasParaMapa} 
