@@ -7,7 +7,8 @@
 // --------------------------------------------------------------------------
 
 import { obtenerUsuarioLogueado } from "./auth";
-const API_BASE = "https://us-central1-proyectodebiometria.cloudfunctions.net/ServidorREST";
+// logicaFake/logicaFake.js
+import { API_BASE } from "./config";
 
 // --------------------------------------------------------------------------
 // 🚀 Funciones de obtención de datos
@@ -311,4 +312,55 @@ export async function mainAdmin() {
   } catch (error) {
     return [{ paso: "mainAdmin()", error: error.message }];
   }
+}
+
+
+/**
+ * Devuelve una lista de nodos con info del usuario y estado (activo 24h).
+ * Requiere un endpoint en tu ServidorREST.
+ */
+export async function obtenerNodosAdmin() {
+  const admin = obtenerUsuarioLogueado();
+  if (!admin?.uid) throw new Error("No hay admin logueado");
+
+  // 1) sacar usuarios desde admin (ruta existente)
+  const rUsers = await fetch(`${API_BASE}/usuarios/admin/${admin.uid}`);
+  if (!rUsers.ok) throw new Error("No se pudo obtener usuarios (admin)");
+
+  const usuarios = await rUsers.json(); // <- en tu backend devuelve array con {id, nombre, correo...}
+
+  // 2) por cada usuario, pedir sus nodos (ruta existente)
+  const rows = [];
+
+  for (const u of usuarios) {
+    const rNodos = await fetch(`${API_BASE}/nodos/propietario/${u.id}`);
+    if (!rNodos.ok) continue;
+
+    const nodos = await rNodos.json(); // tu obtenerNodos ya devuelve sensores/tiempo
+
+    nodos.forEach((n) => {
+      // activo: si tiene tiempo y es <24h
+      const lastTs = n.tiempo || null;
+      let activo24h = false;
+
+      if (lastTs?.seconds) {
+        const ms = lastTs.seconds * 1000;
+        activo24h = Date.now() - ms <= 24 * 60 * 60 * 1000;
+      }
+
+      rows.push({
+        uid: u.id,
+        nombreUsuario: u.nombre,
+        correoUsuario: u.correo,
+        nodoId: n.id,
+        nodoNombre: n.nombre,
+        encendido: !!n.encendido,
+        creadoEn: n.creadoEn || null,
+        lastReadingAt: lastTs,
+        activo24h,
+      });
+    });
+  }
+
+  return rows;
 }
