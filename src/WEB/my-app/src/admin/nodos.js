@@ -13,6 +13,7 @@ import { useNavigate } from "react-router-dom";
 import Menu from "./templates/Menu";
 import { obtenerUsuarioLogueado } from "../logicaFake/auth";
 import { obtenerNodosAdmin, obtenerLecturas } from "../logicaFake/logicaFake";
+import "./css/admin.css";
 
 const MS_24H = 24 * 60 * 60 * 1000;
 const MS_4H = 4 * 60 * 60 * 1000;
@@ -225,56 +226,60 @@ export default function NodosAdmin() {
   const medidasMal = rows.filter(r => !r.medicionesCorrectas).length;
 
   return (
-    <div className="container">
+    <div className="home-page">
       <Menu />
-      <h1>📡 Panel de Administración - Nodos</h1>
+      <main className="home-content">
+        <div className="intranet-content-block">
+            <h1 className="intranet-title">📡 Panel de Administración - Nodos</h1>
 
-      {cargando ? (
-        <p>Cargando nodos…</p>
-      ) : error ? (
-        <span className="error">❌ {error}</span>
-      ) : (
-        <>
-          <p>
-            Usuarios: <b>{totalUsuarios}</b> · Nodos: <b>{rows.length}</b> ·
-            Activos (24h): <b>{activos24h}</b> ·
-            Medidas mal (4h): <b>{medidasMal}</b>
-          </p>
+            {cargando ? (
+                <p>Cargando nodos…</p>
+            ) : error ? (
+                <span className="error">❌ {error}</span>
+            ) : (
+                <>
+                <p className="intranet-subtitle">
+                    Usuarios: <b>{totalUsuarios}</b> · Nodos: <b>{rows.length}</b> ·
+                    Activos (24h): <b>{activos24h}</b> ·
+                    Medidas mal (4h): <b>{medidasMal}</b>
+                </p>
 
-          <table className="usuarios-tabla">
-            <thead>
-              <tr>
-                <th>#</th>
-                <th>Usuario</th>
-                <th>Correo</th>
-                <th>Nombre nodo</th>
-                <th>ID nodo</th>
-                <th>Activo (24h)</th>
-                <th>Última lectura</th>
-                <th>Creado</th>
-                <th>Mediciones correctas</th>
-                <th>Motivo</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((r, i) => (
-                <tr key={r.nodoId || i}>
-                  <td>{i + 1}</td>
-                  <td>{r.nombreUsuario}</td>
-                  <td>{r.correoUsuario}</td>
-                  <td>{r.nodoNombre}</td>
-                  <td style={{ fontFamily: "monospace" }}>{r.nodoId}</td>
-                  <td>{r.activo24h ? "🟢 Activo" : "⚪ Inactivo"}</td>
-                  <td>{fmt(r.lastReadingAt)}</td>
-                  <td>{fmt(r.creadoEn)}</td>
-                  <td>{r.medicionesCorrectas ? "✅ Correctas" : "⚠️ Erróneas"}</td>
-                  <td>{r.motivoCalidad}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </>
-      )}
+                <table className="usuarios-tabla">
+                    <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Usuario</th>
+                        <th>Correo</th>
+                        <th>Nombre nodo</th>
+                        <th>ID nodo</th>
+                        <th>Activo (24h)</th>
+                        <th>Última lectura</th>
+                        <th>Creado</th>
+                        <th>Mediciones correctas</th>
+                        <th>Motivo</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {rows.map((r, i) => (
+                        <tr key={r.nodoId || i}>
+                        <td>{i + 1}</td>
+                        <td>{r.nombreUsuario}</td>
+                        <td>{r.correoUsuario}</td>
+                        <td>{r.nodoNombre}</td>
+                        <td style={{ fontFamily: "monospace" }}>{r.nodoId}</td>
+                        <td>{r.activo24h ? "🟢 Activo" : "⚪ Inactivo"}</td>
+                        <td>{fmt(r.lastReadingAt)}</td>
+                        <td>{fmt(r.creadoEn)}</td>
+                        <td>{r.medicionesCorrectas ? "✅ Correctas" : "⚠️ Erróneas"}</td>
+                        <td>{r.motivoCalidad}</td>
+                        </tr>
+                    ))}
+                    </tbody>
+                </table>
+                </>
+            )}
+        </div>
+      </main>
     </div>
   );
 }
