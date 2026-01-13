@@ -140,7 +140,7 @@ class LogicaDeNegocio {
         const matchingDocs = [];
         for (const snap of snapshots) {
           for (const doc of snap.docs) {
-            matchingDocs.push(doc.data());
+            matchingDocs.push({ id: doc.id, ...doc.data() });
           }
         }
 
@@ -334,6 +334,78 @@ class LogicaDeNegocio {
       throw error;
     }
   }
+// ## obtenerNodosDesdeAdmin:
+// -->  idAdmin: string
+// obtenerNodosDesdeAdmin() --> (consulta la clase <--)
+// ---> rows: [ { uid, nombreUsuario, correoUsuario, nodoId, nodoNombre, encendido, creadoEn, lastReadingAt, activo24h } ]
+async obtenerNodosDesdeAdmin(idAdmin) {
+  try {
+    // 1) Verificar admin
+    const adminDoc = await this.#db.collection("usuarios").doc(idAdmin).get();
+    if (!adminDoc.exists) return null;
+
+    const adminData = adminDoc.data();
+    if (adminData.rol !== "admin") return null;
+
+    // 2) Traer usuarios (map)
+    const usuariosSnap = await this.#db.collection("usuarios").get();
+    const usuariosMap = new Map();
+    usuariosSnap.forEach((doc) => {
+      usuariosMap.set(doc.id, doc.data());
+    });
+
+    // 3) Traer nodos
+    const nodosSnap = await this.#db.collection("nodos").get();
+    const nodos = nodosSnap.docs.map((doc) => ({
+      nodoId: doc.id,
+      ...doc.data(),
+    }));
+
+    const now = Date.now();
+    const MS_24H = 24 * 60 * 60 * 1000;
+
+    // 4) Enriquecer cada nodo con última lectura + activo24h + info usuario
+    const rows = await Promise.all(
+      nodos.map(async (n) => {
+        // última lectura (por id_nodo)
+        const lectSnap = await this.#db
+          .collection("lecturas")
+          .where("id_nodo", "==", n.nodoId)
+          .orderBy("timestamp", "desc")
+          .limit(1)
+          .get();
+
+        const last = lectSnap.empty ? null : lectSnap.docs[0].data();
+        const lastTs = last?.timestamp ?? null;
+
+        let lastMs = null;
+        if (lastTs?.toMillis) lastMs = lastTs.toMillis();
+        else if (lastTs?.seconds) lastMs = lastTs.seconds * 1000;
+
+        const activo24h = lastMs ? now - lastMs <= MS_24H : false;
+
+        const u = usuariosMap.get(n.propietarioId) || {};
+
+        return {
+          uid: n.propietarioId || "",
+          nombreUsuario: u.nombre || "(Sin nombre)",
+          correoUsuario: u.correo || "(Sin correo)",
+          nodoId: n.nodoId,
+          nodoNombre: n.nombre || "(Sin nombre)",
+          encendido: !!n.encendido,
+          creadoEn: n.creadoEn || null,
+          lastReadingAt: lastTs || null,
+          activo24h,
+        };
+      })
+    );
+
+    return rows;
+  } catch (error) {
+    functions.logger.error("❌ Error en obtenerNodosDesdeAdmin:", error);
+    return null;
+  }
+}
 
   // ## obtenerUsuariosDesdeAdmin:
   // -->  idAdmin: string

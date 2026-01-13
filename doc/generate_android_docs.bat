@@ -1,0 +1,6 @@
+@echo off
+echo Generando documentacion para Android...
+doxygen Doxyfile.Android
+echo Abriendo documentacion...
+start Android\html\index.html
+pause

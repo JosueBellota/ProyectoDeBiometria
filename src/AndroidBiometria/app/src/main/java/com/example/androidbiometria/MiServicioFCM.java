@@ -21,7 +21,26 @@ import androidx.core.content.ContextCompat;
 import com.google.firebase.messaging.FirebaseMessagingService;
 import com.google.firebase.messaging.RemoteMessage;
 
+/**
+ * @file MiServicioFCM.java
+ * @author josue bellota ichaso
+ * @date 11/23/2025
+ * @brief Servicio para el manejo de mensajes push de Firebase Cloud Messaging (FCM).
+ *
+ * Este servicio recibe notificaciones enviadas desde el backend (o consola de Firebase)
+ * y genera notificaciones locales visibles para el usuario, incluso si la app está en
+ * segundo plano o cerrada (dependiendo del tipo de carga útil).
+ */
 public class MiServicioFCM extends FirebaseMessagingService {
+
+    /**
+     * @brief Método invocado cuando se recibe un mensaje de FCM.
+     *
+     * Extrae los datos del mensaje, crea un canal de notificación (si es necesario)
+     * y muestra una notificación en la barra de estado con sonido y vibración.
+     *
+     * @param remoteMessage Objeto que contiene la información del mensaje recibido.
+     */
     @Override
     public void onMessageReceived(@NonNull RemoteMessage remoteMessage) {
         String mensaje = remoteMessage.getData().get("mensaje");

@@ -132,7 +132,14 @@ const InterpolationLayer = ({ lecturas, colorScale: propColorScale, isAirQuality
             if (d <= MAX_RADIUS) {
                 // Evitar división por cero si cae exacto encima
                 const dist = Math.max(d, 0.001); 
-                const weight = 1 / Math.pow(dist, POWER);
+                let weight = 1 / Math.pow(dist, POWER);
+
+                // --- MODIFICACIÓN ESPECÍFICA PARA CALIDAD DEL AIRE ---
+                if (isAirQualityView && p.value >= 2.5) {
+                    // Las lecturas malas (rojas) influyen 20 veces más que las demás
+                    weight *= 20;
+                }
+
                 numerator += p.value * weight;
                 denominator += weight;
             }

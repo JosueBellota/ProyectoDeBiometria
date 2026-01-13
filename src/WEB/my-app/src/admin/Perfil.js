@@ -10,6 +10,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { obtenerUsuarioLogueado, actualizarUsuario } from "../logicaFake/auth";
 import Menu from "./templates/Menu";
+import "./css/admin.css";
 
 function Perfil() {
   const navigate = useNavigate();
@@ -65,44 +66,48 @@ function Perfil() {
   };
 
   return (
-    <div className="container">
+    <div className="home-page">
       <Menu />
-      <h1>Perfil del Usuario</h1>
-      <form onSubmit={handleSubmit} className="perfil-form">
-        <div>
-          <label>Nombre:</label>
-          <input
-            type="text"
-            name="nombre"
-            value={usuario.nombre}
-            onChange={handleChange}
-            required
-          />
-        </div>
+      <main className="home-content">
+        <div className="intranet-content-block">
+          <h1 className="intranet-title">Perfil del Usuario</h1>
+          <form onSubmit={handleSubmit} className="form"> {/* Changed class to 'form' for consistency if defined in main.css, or keep profile-form if specific style exists */}
+            <div>
+              <label>Nombre:</label>
+              <input
+                type="text"
+                name="nombre"
+                value={usuario.nombre}
+                onChange={handleChange}
+                required
+              />
+            </div>
 
-        <div>
-          <label>Correo:</label>
-          <input
-            type="email"
-            name="correo"
-            value={usuario.correo}
-            onChange={handleChange}
-            required
-          />
-        </div>
+            <div>
+              <label>Correo:</label>
+              <input
+                type="email"
+                name="correo"
+                value={usuario.correo}
+                onChange={handleChange}
+                required
+              />
+            </div>
 
-        <div>
-          <label>Contraseña:</label>
-          <input
-            type="password"
-            name="contraseña"
-            value={usuario.contraseña}
-            onChange={handleChange}
-          />
-        </div>
+            <div>
+              <label>Contraseña:</label>
+              <input
+                type="password"
+                name="contraseña"
+                value={usuario.contraseña}
+                onChange={handleChange}
+              />
+            </div>
 
-        <button type="submit">Actualizar</button>
-      </form>
+            <button type="submit">Actualizar</button>
+          </form>
+        </div>
+      </main>
     </div>
   );
 }

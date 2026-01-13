@@ -29,6 +29,17 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
+/**
+ * @file DistanciaManager.java
+ * @author josue bellota ichaso
+ * @date 11/23/2025
+ * @brief Gestor de seguimiento de distancia recorrida por el usuario.
+ *
+ * Utiliza el GPS (FusedLocationProviderClient) y el detector de movimiento
+ * para calcular la distancia acumulada. Filtra las ubicaciones según su precisión
+ * y solo acumula distancia si se detecta movimiento físico real para ahorrar batería
+ * y mejorar la exactitud. Envía periódicamente la distancia al servidor.
+ */
 public class DistanciaManager {
 
     private final Context context;
@@ -48,10 +59,19 @@ public class DistanciaManager {
 
     private static Location ultimaUbicacionConocida;
 
+    /**
+     * @brief Obtiene la última ubicación conocida válida.
+     * @return Objeto Location con la última posición.
+     */
     public static Location getUltimaUbicacionConocida() {
         return ultimaUbicacionConocida;
     }
 
+    /**
+     * @brief Constructor de la clase.
+     * @param ctx Contexto de la aplicación.
+     * @param tv TextView donde se mostrará la distancia en la UI.
+     */
     public DistanciaManager(Context ctx, TextView tv) {
         this.context = ctx;
         this.textoDistancia = tv;
@@ -59,6 +79,15 @@ public class DistanciaManager {
         this.movementDetector = new MovementDetector(ctx);
     }
 
+    /**
+     * @brief Inicia el seguimiento de la distancia.
+     *
+     * Activa el detector de movimiento y solicita actualizaciones de ubicación de alta precisión.
+     * Inicia un hilo programado para procesar lotes de ubicaciones cada 3 segundos.
+     *
+     * @param propietarioId UID del usuario.
+     * @param nombreNodo Nombre lógico del dispositivo rastreado (usualmente el móvil).
+     */
     public void iniciar(String propietarioId, String nombreNodo) {
         if (tracking) {
             Log.d(">>>>", "⚠️ Tracking ya está activo");
@@ -105,6 +134,11 @@ public class DistanciaManager {
         }
     }
 
+    /**
+     * @brief Detiene el seguimiento y limpia recursos.
+     *
+     * Envía la última distancia acumulada al servidor antes de detenerse.
+     */
     public void detener() {
         if (tracking) {
             tracking = false;
@@ -141,6 +175,12 @@ public class DistanciaManager {
         }
     };
 
+    /**
+     * @brief Procesa un lote de ubicaciones acumuladas.
+     *
+     * Filtra las ubicaciones por precisión, calcula la distancia entre puntos válidos
+     * y actualiza el total si la velocidad y distancia son coherentes con caminar.
+     */
     private void processLocationBatch() {
         if (!movementDetector.isMoving()) {
             // Log.d(">>>>", "🚶‍➡️ No hay movimiento detectado, ignorando lote de GPS.");
@@ -229,6 +269,9 @@ public class DistanciaManager {
         }
     }
     
+    /**
+     * @brief Resetea el contador de distancia local y en el servidor.
+     */
     public void resetearDistancia() {
         distanciaTotal = 0f;
         distanciaEnviadaAlServidor = 0f;
@@ -244,6 +287,11 @@ public class DistanciaManager {
             enviarDistanciaServidor(0);
         }
     }
+
+    /**
+     * @brief Envía la distancia actual al servidor REST.
+     * @param distancia Distancia acumulada en metros.
+     */
     private void enviarDistanciaServidor(int distancia) {
         Log.d(">>>>", "🌐 Enviando distancia al servidor: " + distancia + "m");
         new Thread(() -> {
@@ -274,6 +322,10 @@ public class DistanciaManager {
         }).start();
     }
 
+    /**
+     * @brief Devuelve si el tracking está activo.
+     * @return true si está activo, false en caso contrario.
+     */
     public boolean isTracking() {
         return tracking;
     }

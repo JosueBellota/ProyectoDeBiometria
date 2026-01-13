@@ -1,0 +1,6 @@
+@echo off
+echo Generando documentacion para Firebase Functions...
+doxygen Doxyfile.FirebaseFunctions
+echo Abriendo documentacion...
+start FirebaseFunctions\html\index.html
+pause

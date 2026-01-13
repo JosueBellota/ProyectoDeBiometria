@@ -6,8 +6,18 @@ import android.webkit.CookieManager;
 import android.webkit.WebView;
 import android.webkit.WebSettings;
 
+/**
+ * @file WebNodoActivity.java
+ * @author josue bellota ichaso
+ * @date 11/23/2025
+ * @brief Actividad para mostrar una página web en un WebView.
+ */
 public class WebNodoActivity extends AppCompatActivity {
 
+    /**
+     * @brief Inicializa la actividad y carga la URL en el WebView.
+     * @param savedInstanceState Estado guardado de la instancia anterior.
+     */
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);

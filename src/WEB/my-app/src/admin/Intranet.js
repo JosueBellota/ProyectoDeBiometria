@@ -66,43 +66,48 @@ function IntranetAdmin() {
   }, []);
 
   return (
-    <div className="container">
+    <div className="home-page">
       <Menu />
-      <h1>👩‍💼 Panel de Administración - Usuarios Registrados</h1>
-      {cargando ? (
-        <p>Cargando lista de usuarios...</p>
-      ) : usuarios.length === 0 ? (
-        <p>No hay usuarios registrados.</p>
-      ) : usuarios[0].error ? (
-        <span className="error">{usuarios[0].error}</span>
-      ) : (
-        <table className="usuarios-tabla">
-          <thead>
-            <tr>
-              <th>#</th>
-              <th>Nombre</th>
-              <th>Correo</th>
-              <th>Rol</th>
-              <th>ID Usuario</th>
-              <th>Fecha Registro</th>
-            </tr>
-          </thead>
-          <tbody>
-            {usuarios.map((u, i) => (
-              <tr key={i}>
-                <td data-label="#"> {i + 1} </td>
-                <td data-label="Nombre">{u.resultado?.nombre}</td>
-                <td data-label="Correo">{u.resultado?.correo}</td>
-                <td data-label="Rol">{u.resultado?.rol}</td>
-                <td data-label="ID Usuario">{u.resultado?.idUsuario}</td>
-                <td data-label="Fecha Registro">
-                  {formatearFecha(u.resultado?.fechaRegistro)}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
+      <main className="home-content">
+        <div className="intranet-content-block">
+          <h1 className="intranet-title">👩‍💼 Panel de Administración - Usuarios Registrados</h1>
+          
+          {cargando ? (
+            <p>Cargando lista de usuarios...</p>
+          ) : usuarios.length === 0 ? (
+            <p>No hay usuarios registrados.</p>
+          ) : usuarios[0].error ? (
+            <span className="error">{usuarios[0].error}</span>
+          ) : (
+            <table className="usuarios-tabla">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Nombre</th>
+                  <th>Correo</th>
+                  <th>Rol</th>
+                  <th>ID Usuario</th>
+                  <th>Fecha Registro</th>
+                </tr>
+              </thead>
+              <tbody>
+                {usuarios.map((u, i) => (
+                  <tr key={i}>
+                    <td data-label="#"> {i + 1} </td>
+                    <td data-label="Nombre">{u.resultado?.nombre}</td>
+                    <td data-label="Correo">{u.resultado?.correo}</td>
+                    <td data-label="Rol">{u.resultado?.rol}</td>
+                    <td data-label="ID Usuario">{u.resultado?.idUsuario}</td>
+                    <td data-label="Fecha Registro">
+                      {formatearFecha(u.resultado?.fechaRegistro)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      </main>
     </div>
   );
 }

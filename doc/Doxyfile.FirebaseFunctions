@@ -1,0 +1,11 @@
+# Doxyfile for Firebase Functions project
+PROJECT_NAME           = "Firebase Functions Backend"
+OUTPUT_DIRECTORY       = FirebaseFunctions
+INPUT                  = ../src/FirebaseFunctions/functions/src
+RECURSIVE              = YES
+EXTRACT_ALL            = YES
+GENERATE_HTML          = YES
+GENERATE_LATEX         = NO
+EXTENSION_MAPPING      = js=Javascript
+FILE_PATTERNS          = *.js
+EXCLUDE_PATTERNS       = node_modules/*

@@ -1,0 +1,15 @@
+# Doxyfile for Web project
+PROJECT_NAME           = "Web Application"
+OUTPUT_DIRECTORY       = WEB
+INPUT                  = ../src/WEB/my-app/src
+RECURSIVE              = YES
+EXTRACT_ALL            = YES
+GENERATE_HTML          = YES
+GENERATE_LATEX         = NO
+EXTENSION_MAPPING      = js=Javascript jsx=Javascript
+FILE_PATTERNS          = *.js *.jsx
+EXCLUDE                = ../src/WEB/my-app/node_modules \
+                         ../src/WEB/my-app/build \
+                         ../src/WEB/my-app/.firebase
+EXCLUDE_PATTERNS       = */node_modules/* */build/* */.firebase/* *.min.js
+EXCLUDE_SYMBOLS        = DUMMY_CONSTANT

@@ -12,6 +12,16 @@ import com.google.firebase.auth.FirebaseUser;
 
 import java.util.List;
 
+/**
+ * @file Login.java
+ * @author josue bellota ichaso
+ * @date 11/23/2025
+ * @brief Actividad de inicio de sesión de la aplicación.
+ *
+ * Permite a los usuarios autenticarse mediante correo/contraseña o huella dactilar.
+ * Gestiona la navegación hacia el registro o la actividad principal si la autenticación
+ * es exitosa.
+ */
 public class Login extends AppCompatActivity {
 
     private EditText emailField, passwordField;
@@ -19,6 +29,10 @@ public class Login extends AppCompatActivity {
     private FirebaseAuth auth;
     private BiometricAuthHelper biometricAuthHelper;
 
+    /**
+     * @brief Inicializa la actividad, los componentes de UI y los listeners.
+     * @param savedInstanceState Estado guardado de la instancia anterior.
+     */
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -90,6 +104,9 @@ public class Login extends AppCompatActivity {
         }
     }
 
+    /**
+     * @brief Muestra un selector de cuentas enroladas para autenticación biométrica.
+     */
     private void showAccountSelectorAndAuthenticate() {
         biometricAuthHelper.showAccountSelector(this, (activity, email) -> {
             // After user selects an account, show biometric prompt for that account
@@ -107,6 +124,9 @@ public class Login extends AppCompatActivity {
         });
     }
 
+    /**
+     * @brief Inicia el proceso de login con correo y contraseña ingresados.
+     */
     private void loginUsuario() {
         String email = emailField.getText().toString().trim();
         String password = passwordField.getText().toString().trim();
@@ -118,6 +138,12 @@ public class Login extends AppCompatActivity {
         performFirebaseLogin(email, password, false);
     }
 
+    /**
+     * @brief Realiza la autenticación contra Firebase Auth.
+     * @param email Correo electrónico.
+     * @param password Contraseña.
+     * @param isBiometricLogin Indica si el login fue iniciado por biometría.
+     */
     private void performFirebaseLogin(String email, String password, boolean isBiometricLogin) {
         auth.signInWithEmailAndPassword(email, password)
                 .addOnSuccessListener(result -> {
@@ -137,6 +163,9 @@ public class Login extends AppCompatActivity {
                 );
     }
 
+    /**
+     * @brief Navega a la actividad principal.
+     */
     private void goToMain() {
         Intent intent = new Intent(this, MainActivity.class);
         intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
@@ -144,6 +173,11 @@ public class Login extends AppCompatActivity {
         finish();
     }
 
+    /**
+     * @brief Navega a la actividad de enrolamiento de huella.
+     * @param email Correo del usuario.
+     * @param password Contraseña del usuario.
+     */
     private void goToFingerprintEnroll(String email, String password) {
         Intent intent = new Intent(this, FingerprintEnrollActivity.class);
         intent.putExtra("email", email);

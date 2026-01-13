@@ -7,6 +7,16 @@ import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.util.Log;
 
+/**
+ * @file MovementDetector.java
+ * @author josue bellota ichaso
+ * @date 11/23/2025
+ * @brief Detector de movimiento basado en el acelerómetro del dispositivo.
+ *
+ * Esta clase monitorea el acelerómetro para detectar si el dispositivo está en movimiento.
+ * Filtra la gravedad utilizando un filtro paso bajo y compara la aceleración lineal
+ * resultante con un umbral predefinido.
+ */
 public class MovementDetector implements SensorEventListener {
 
     private final SensorManager sensorManager;
@@ -19,11 +29,18 @@ public class MovementDetector implements SensorEventListener {
     private final float[] gravity = new float[3];
     private final float[] linear_acceleration = new float[3];
 
+    /**
+     * @brief Constructor de la clase MovementDetector.
+     * @param context Contexto de la aplicación.
+     */
     public MovementDetector(Context context) {
         sensorManager = (SensorManager) context.getSystemService(Context.SENSOR_SERVICE);
         accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
     }
 
+    /**
+     * @brief Inicia la escucha del sensor acelerómetro.
+     */
     public void start() {
         if (accelerometer != null) {
             sensorManager.registerListener(this, accelerometer, SensorManager.SENSOR_DELAY_NORMAL);
@@ -33,11 +50,23 @@ public class MovementDetector implements SensorEventListener {
         }
     }
 
+    /**
+     * @brief Detiene la escucha del sensor para ahorrar batería.
+     */
     public void stop() {
         sensorManager.unregisterListener(this);
         Log.d(">>>>", "🛑 MovementDetector detenido");
     }
 
+    /**
+     * @brief Callback llamado cuando cambian los valores del sensor.
+     *
+     * Aplica un filtro paso bajo para aislar la gravedad y calcular la aceleración lineal.
+     * Determina si el dispositivo se está moviendo si la magnitud de la aceleración
+     * supera el umbral.
+     *
+     * @param event Evento del sensor con los nuevos datos.
+     */
     @Override
     public void onSensorChanged(SensorEvent event) {
         // Alpha for low-pass filter to isolate gravity
@@ -72,6 +101,10 @@ public class MovementDetector implements SensorEventListener {
         // Not needed for this use case
     }
 
+    /**
+     * @brief Devuelve el estado actual de movimiento.
+     * @return true si el dispositivo se está moviendo, false en caso contrario.
+     */
     public boolean isMoving() {
         return isMoving;
     }

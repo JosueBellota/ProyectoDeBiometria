@@ -4,40 +4,34 @@ import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.util.UUID;
 
-// -----------------------------------------------------------------------------------
-// Fichero: Ultilidades.java
-// Responsable: Josue Bellota Ichaso
-//
-// -----------------------------------------------------------------------------------
-//
-// Clase Utilidades
-// -----------------------------------------------------------------------------------
-// Esta clase contiene métodos estáticos de conversión entre diferentes tipos de datos:
-// cadenas de texto, bytes, enteros, long, UUID y representaciones hexadecimales.
-// Ninguno de los métodos modifica la clase ni mantiene estado interno,
-// simplemente realizan cálculos y transformaciones sobre los parámetros de entrada.
-// -----------------------------------------------------------------------------------
+/**
+ * @file Utilidades.java
+ * @author josue bellota ichaso
+ * @date 11/23/2025
+ * @brief Clase de utilidades para conversiones de tipos de datos.
+ *
+ * Esta clase contiene métodos estáticos de conversión entre diferentes tipos de datos:
+ * cadenas de texto, bytes, enteros, long, UUID y representaciones hexadecimales.
+ * Ninguno de los métodos modifica la clase ni mantiene estado interno.
+ */
 public class Utilidades {
 
-    // -----------------------------------------------------------------------------------
-    // texto: caracteres (de entrada)
-    // -->
-    // stringToBytes() --> (convierte un String en un array de bytes)
-    // -->
-    // array de bytes
-    // -----------------------------------------------------------------------------------
+    /**
+     * @brief Convierte un String en un array de bytes.
+     * @param texto Cadena de texto a convertir.
+     * @return Array de bytes resultante.
+     */
     public static byte[] stringToBytes ( String texto ) {
         return texto.getBytes();
         // byte[] b = string.getBytes(StandardCharsets.UTF_8); // Ja
     } // ()
 
-    // -----------------------------------------------------------------------------------
-    // uuid: caracteres (16 de entrada)
-    // -->
-    // stringToUUID() --> (convierte un String de 16 caracteres en un objeto UUID)
-    // -->
-    // objeto UUID
-    // -----------------------------------------------------------------------------------
+    /**
+     * @brief Convierte un String de 16 caracteres en un objeto UUID.
+     * @param uuid Cadena de 16 caracteres.
+     * @return Objeto UUID generado.
+     * @throws Error Si la cadena no tiene 16 caracteres.
+     */
     public static UUID stringToUUID( String uuid ) {
         if ( uuid.length() != 16 ) {
             throw new Error( "stringUUID: string no tiene 16 caracteres ");
@@ -54,39 +48,33 @@ public class Utilidades {
         return res;
     } // ()
 
-    // -----------------------------------------------------------------------------------
-    // uuid: objeto UUID (de entrada)
-    // -->
-    // uuidToString() --> (convierte un UUID en cadena de texto)
-    // -->
-    // texto (String)
-    // -----------------------------------------------------------------------------------
+    /**
+     * @brief Convierte un objeto UUID en una cadena de texto.
+     * @param uuid Objeto UUID a convertir.
+     * @return Representación en cadena del UUID.
+     */
     public static String uuidToString ( UUID uuid ) {
         return bytesToString(
                 dosLongToBytes( uuid.getMostSignificantBits(), uuid.getLeastSignificantBits() )
         );
     } // ()
 
-    // -----------------------------------------------------------------------------------
-    // uuid: objeto UUID (de entrada)
-    // -->
-    // uuidToHexString() --> (convierte un UUID en cadena de texto hexadecimal)
-    // -->
-    // texto (String en formato hex)
-    // -----------------------------------------------------------------------------------
+    /**
+     * @brief Convierte un UUID en una cadena de texto hexadecimal.
+     * @param uuid Objeto UUID a convertir.
+     * @return Cadena hexadecimal del UUID.
+     */
     public static String uuidToHexString ( UUID uuid ) {
         return bytesToHexString(
                 dosLongToBytes( uuid.getMostSignificantBits(), uuid.getLeastSignificantBits() )
         );
     } // ()
 
-    // -----------------------------------------------------------------------------------
-    // bytes: array de bytes (de entrada)
-    // -->
-    // bytesToString() --> (convierte un array de bytes en un String interpretando cada byte como carácter)
-    // -->
-    // texto (String)
-    // -----------------------------------------------------------------------------------
+    /**
+     * @brief Convierte un array de bytes en un String interpretando cada byte como carácter.
+     * @param bytes Array de bytes a convertir.
+     * @return Cadena de texto resultante.
+     */
     public static String bytesToString( byte[] bytes ) {
         if (bytes == null ) {
             return "";
@@ -99,14 +87,12 @@ public class Utilidades {
         return sb.toString();
     } // ()
 
-    // -----------------------------------------------------------------------------------
-    // masSignificativos: número entero largo
-    // menosSignificativos: número entero largo
-    // -->
-    // dosLongToBytes() --> (convierte dos valores long en un array de 16 bytes)
-    // -->
-    // array de bytes
-    // -----------------------------------------------------------------------------------
+    /**
+     * @brief Convierte dos valores long en un array de 16 bytes.
+     * @param masSignificativos Parte más significativa.
+     * @param menosSignificativos Parte menos significativa.
+     * @return Array de 16 bytes.
+     */
     public static byte[] dosLongToBytes( long masSignificativos, long menosSignificativos ) {
         ByteBuffer buffer = ByteBuffer.allocate( 2 * Long.BYTES );
         buffer.putLong( masSignificativos );
@@ -114,35 +100,30 @@ public class Utilidades {
         return buffer.array();
     } // ()
 
-    // -----------------------------------------------------------------------------------
-    // bytes: array de bytes (de entrada)
-    // -->
-    // bytesToInt() --> (convierte un array de bytes en un número entero int)
-    // -->
-    // número entero (int)
-    // -----------------------------------------------------------------------------------
+    /**
+     * @brief Convierte un array de bytes en un número entero int.
+     * @param bytes Array de bytes.
+     * @return Valor entero resultante.
+     */
     public static int bytesToInt( byte[] bytes ) {
         return new BigInteger(bytes).intValue();
     } // ()
 
-    // -----------------------------------------------------------------------------------
-    // bytes: array de bytes (de entrada)
-    // -->
-    // bytesToLong() --> (convierte un array de bytes en un número entero largo long)
-    // -->
-    // número entero largo (long)
-    // -----------------------------------------------------------------------------------
+    /**
+     * @brief Convierte un array de bytes en un número entero largo long.
+     * @param bytes Array de bytes.
+     * @return Valor long resultante.
+     */
     public static long bytesToLong( byte[] bytes ) {
         return new BigInteger(bytes).longValue();
     } // ()
 
-    // -----------------------------------------------------------------------------------
-    // bytes: array de bytes (máx 4 de entrada)
-    // -->
-    // bytesToIntOK() --> (convierte un array de hasta 4 bytes en un número entero int, con control de signo)
-    // -->
-    // número entero (int)
-    // -----------------------------------------------------------------------------------
+    /**
+     * @brief Convierte un array de hasta 4 bytes en un entero con control de signo.
+     * @param bytes Array de bytes (máximo 4).
+     * @return Valor entero resultante.
+     * @throws Error Si el array tiene más de 4 bytes.
+     */
     public static int bytesToIntOK( byte[] bytes ) {
         if (bytes == null ) {
             return 0;
@@ -164,13 +145,11 @@ public class Utilidades {
         return res;
     } // ()
 
-    // -----------------------------------------------------------------------------------
-    // bytes: array de bytes (de entrada)
-    // -->
-    // bytesToHexString() --> (convierte un array de bytes en una cadena de texto en formato hexadecimal)
-    // -->
-    // texto (String en formato hex con separadores ":")
-    // -----------------------------------------------------------------------------------
+    /**
+     * @brief Convierte un array de bytes en una cadena hexadecimal.
+     * @param bytes Array de bytes.
+     * @return Cadena en formato hexadecimal separada por dos puntos.
+     */
     public static String bytesToHexString( byte[] bytes ) {
         if (bytes == null ) {
             return "";
@@ -184,7 +163,3 @@ public class Utilidades {
         return sb.toString();
     } // ()
 } // class
-// -----------------------------------------------------------------------------------
-// -----------------------------------------------------------------------------------
-// -----------------------------------------------------------------------------------
-// -----------------------------------------------------------------------------------
