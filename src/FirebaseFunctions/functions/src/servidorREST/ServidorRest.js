@@ -274,6 +274,61 @@ exports.ServidorREST = functions.https.onRequest((req, res) => {
       }
       
       // ===================================================================================
+      // ============================= RUTAS DE INCIDENCIAS ==============================
+      // ===================================================================================
+
+      // -----------------------------------------------------------------------------------
+      // POST /incidencias
+      // -----------------------------------------------------------------------------------
+      if (req.method === "POST" && rutaLower === "/incidencias") {
+        const { usuarioId, titulo, descripcion } = req.body;
+        if (!usuarioId || !titulo || !descripcion) {
+          return res.status(400).json({ error: "Faltan datos: usuarioId, titulo, descripcion" });
+        }
+        const id = await logica.reportarIncidencia(usuarioId, titulo, descripcion);
+        return res.status(200).json({ mensaje: "✅ Incidencia reportada", idIncidencia: id });
+      }
+
+      // -----------------------------------------------------------------------------------
+      // GET /incidencias
+      // Query Params: ?usuarioId=...&estado=...
+      // -----------------------------------------------------------------------------------
+      if (req.method === "GET" && rutaLower === "/incidencias") {
+        const filtro = {};
+        if (req.query.usuarioId) filtro.usuarioId = req.query.usuarioId;
+        if (req.query.estado) filtro.estado = req.query.estado;
+
+        const incidencias = await logica.obtenerIncidencias(filtro);
+        return res.status(200).json(incidencias);
+      }
+
+      // -----------------------------------------------------------------------------------
+      // PUT /incidencias/asignar
+      // Body: { incidenciaId, adminId }
+      // -----------------------------------------------------------------------------------
+      if (req.method === "PUT" && rutaLower === "/incidencias/asignar") {
+        const { incidenciaId, adminId } = req.body;
+        if (!incidenciaId || !adminId) {
+          return res.status(400).json({ error: "Faltan datos: incidenciaId, adminId" });
+        }
+        await logica.asignarIncidencia(incidenciaId, adminId);
+        return res.status(200).json({ mensaje: "✅ Incidencia asignada" });
+      }
+
+      // -----------------------------------------------------------------------------------
+      // PUT /incidencias/resolver
+      // Body: { incidenciaId, adminId, respuesta }
+      // -----------------------------------------------------------------------------------
+      if (req.method === "PUT" && rutaLower === "/incidencias/resolver") {
+        const { incidenciaId, adminId, respuesta } = req.body;
+        if (!incidenciaId || !adminId || !respuesta) {
+          return res.status(400).json({ error: "Faltan datos: incidenciaId, adminId, respuesta" });
+        }
+        await logica.resolverIncidencia(incidenciaId, adminId, respuesta);
+        return res.status(200).json({ mensaje: "✅ Incidencia resuelta" });
+      }
+
+      // ===================================================================================
       // =============================== AUTOLOGIN Y LOGOUT ================================
       // ===================================================================================
 

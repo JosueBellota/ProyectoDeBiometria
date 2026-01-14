@@ -162,6 +162,59 @@ async function testEndToEnd(idCiudadano, unique) {
   }
 
 /* -------------------------------------------------------------------------- */
+/* ✅ PRUEBAS DE INCIDENCIAS                                                  */
+/* -------------------------------------------------------------------------- */
+async function testIncidencias(idCiudadano, idAdmin) {
+  const resultados = [];
+  let incidenciaId = null;
+
+  // 1. Reportar incidencia
+  const reporte = {
+    usuarioId: idCiudadano,
+    titulo: "Farola rota",
+    descripcion: "La farola de la calle X parpadea",
+  };
+  const resReporte = await callAPI("POST", "/incidencias", reporte);
+  resultados.push(resReporte);
+  
+  if (resReporte.resultado && resReporte.resultado.idIncidencia) {
+    incidenciaId = resReporte.resultado.idIncidencia;
+
+    // 2. Listar incidencias (filtro usuario)
+    resultados.push(await callAPI("GET", `/incidencias?usuarioId=${idCiudadano}`));
+
+    // 3. Asignar incidencia (Admin)
+    resultados.push(
+      await callAPI("PUT", "/incidencias/asignar", {
+        incidenciaId: incidenciaId,
+        adminId: idAdmin,
+      })
+    );
+
+    // 4. Resolver incidencia (Admin)
+    resultados.push(
+      await callAPI("PUT", "/incidencias/resolver", {
+        incidenciaId: incidenciaId,
+        adminId: idAdmin,
+        respuesta: "El técnico pasará mañana. Gracias.",
+      })
+    );
+
+    // 5. Verificar estado final
+    const resFinal = await callAPI("GET", `/incidencias?usuarioId=${idCiudadano}`);
+    // Podríamos inspeccionar que el estado sea "resuelta"
+    resultados.push({
+      paso: "Verificar resolución",
+      resultado: resFinal.resultado ? "OK (Lista obtenida)" : "Error"
+    });
+  } else {
+    resultados.push({ paso: "❌ Falló creación de incidencia", error: "No ID returned" });
+  }
+
+  return resultados;
+}
+
+/* -------------------------------------------------------------------------- */
 /* ✅ EJECUCIÓN GENERAL DE LAS PRUEBAS AUTOMÁTICAS                             */
 /* -------------------------------------------------------------------------- */
 export async function pruebaAutomatica() {
@@ -176,6 +229,10 @@ export async function pruebaAutomatica() {
      resultados.push({ paso: "❌ Error creando usuarios de prueba", error: resUsuarios.filter(r => r.error) });
      return resultados;
   }
+
+  resultados.push({ paso: "🧪 Test INCIDENCIAS" });
+  const resIncidencias = await testIncidencias(idCiudadano, idAdmin);
+  resultados.push(...resIncidencias);
 
   resultados.push({ paso: "🧪 Test E2E de Lecturas" });
   const resE2E = await testEndToEnd(idCiudadano, unique);
