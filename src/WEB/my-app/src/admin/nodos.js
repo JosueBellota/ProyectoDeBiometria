@@ -244,38 +244,38 @@ export default function NodosAdmin() {
                     Medidas mal (4h): <b>{medidasMal}</b>
                 </p>
 
-                <table className="usuarios-tabla">
-                    <thead>
-                    <tr>
-                        <th>#</th>
-                        <th>Usuario</th>
-                        <th>Correo</th>
-                        <th>Nombre nodo</th>
-                        <th>ID nodo</th>
-                        <th>Activo (24h)</th>
-                        <th>Última lectura</th>
-                        <th>Creado</th>
-                        <th>Mediciones correctas</th>
-                        <th>Motivo</th>
-                    </tr>
-                    </thead>
-                    <tbody>
-                    {rows.map((r, i) => (
-                        <tr key={r.nodoId || i}>
-                        <td>{i + 1}</td>
-                        <td>{r.nombreUsuario}</td>
-                        <td>{r.correoUsuario}</td>
-                        <td>{r.nodoNombre}</td>
-                        <td style={{ fontFamily: "monospace" }}>{r.nodoId}</td>
-                        <td>{r.activo24h ? "🟢 Activo" : "⚪ Inactivo"}</td>
-                        <td>{fmt(r.lastReadingAt)}</td>
-                        <td>{fmt(r.creadoEn)}</td>
-                        <td>{r.medicionesCorrectas ? "✅ Correctas" : "⚠️ Erróneas"}</td>
-                        <td>{r.motivoCalidad}</td>
-                        </tr>
-                    ))}
-                    </tbody>
-                </table>
+                <div style={{ overflowX: "auto" }}>
+                  <table className="usuarios-tabla">
+                      <thead>
+                      <tr>
+                          <th>#</th>
+                          <th>Usuario</th>
+                          <th>Correo</th>
+                          <th>Nombre nodo</th>
+                          <th>Activo (24h)</th>
+                          <th>Última lectura</th>
+                          <th>Creado</th>
+                          <th>Mediciones correctas</th>
+                          <th>Motivo</th>
+                      </tr>
+                      </thead>
+                      <tbody>
+                      {rows.map((r, i) => (
+                          <tr key={r.nodoId || i}>
+                          <td>{i + 1}</td>
+                          <td>{r.nombreUsuario}</td>
+                          <td>{r.correoUsuario}</td>
+                          <td>{r.nodoNombre}</td>
+                          <td>{r.activo24h ? "🟢 Activo" : "⚪ Inactivo"}</td>
+                          <td>{fmt(r.lastReadingAt)}</td>
+                          <td>{fmt(r.creadoEn)}</td>
+                          <td>{r.medicionesCorrectas ? "✅ Correctas" : "⚠️ Erróneas"}</td>
+                          <td>{r.motivoCalidad}</td>
+                          </tr>
+                      ))}
+                      </tbody>
+                  </table>
+                </div>
                 </>
             )}
         </div>
