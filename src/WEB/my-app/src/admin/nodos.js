@@ -1,14 +1,4 @@
-// --------------------------------------------------------------------------
-// Fichero: nodos.js
-// Responsable: Willyrex
-//
-// Descripción:
-// Panel de admin para ver nodos:
-// - activo24h: si tiene lecturas en las últimas 24h
-// - medicionesCorrectas: si NO todas las lecturas de las últimas 4h son erróneas
-// --------------------------------------------------------------------------
-
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import Menu from "./templates/Menu";
 import { obtenerUsuarioLogueado } from "../logicaFake/auth";
@@ -135,6 +125,8 @@ export default function NodosAdmin() {
   const [error, setError] = useState("");
   const [rows, setRows] = useState([]);
 
+  const initialLoad = useRef(true);
+
   // Auth
   useEffect(() => {
     const user = obtenerUsuarioLogueado();
@@ -145,77 +137,76 @@ export default function NodosAdmin() {
     }
   }, [navigate]);
 
-  // Carga datos
-  useEffect(() => {
-    let cancel = false;
+  const cargarNodos = useCallback(async () => {
+    setCargando(true);
+    setError("");
 
-    const cargar = async () => {
-      setCargando(true);
-      setError("");
+    try {
+      const nodos = await obtenerNodosAdmin();
 
-      try {
-        const nodos = await obtenerNodosAdmin();
+      const base = (Array.isArray(nodos) ? nodos : []).map(r => {
+        const last =
+          r.lastReadingAt ??
+          r.ultimaLectura ??
+          r.timestampUltimaLectura ??
+          r.tiempo ??
+          null;
 
-        const base = (Array.isArray(nodos) ? nodos : []).map(r => {
-          const last =
-            r.lastReadingAt ??
-            r.ultimaLectura ??
-            r.timestampUltimaLectura ??
-            r.tiempo ??
-            null;
+        return {
+          uid: r.uid ?? r.propietarioId ?? "",
+          nombreUsuario: r.nombreUsuario ?? r.nombre ?? "(Sin nombre)",
+          correoUsuario: r.correoUsuario ?? r.correo ?? "(Sin correo)",
+          nodoId: r.nodoId ?? r.id_nodo ?? r.id ?? "",
+          nodoNombre: r.nodoNombre ?? r.nombreNodo ?? "(Sin nombre)",
+          creadoEn: r.creadoEn ?? r.createdAt ?? null,
+          lastReadingAt: last,
+          activo24h: isActiveByLastReading(last),
+          medicionesCorrectas: true,
+          motivoCalidad: "Cargando…",
+        };
+      });
 
-          return {
-            uid: r.uid ?? r.propietarioId ?? "",
-            nombreUsuario: r.nombreUsuario ?? r.nombre ?? "(Sin nombre)",
-            correoUsuario: r.correoUsuario ?? r.correo ?? "(Sin correo)",
-            nodoId: r.nodoId ?? r.id_nodo ?? r.id ?? "",
-            nodoNombre: r.nodoNombre ?? r.nombreNodo ?? "(Sin nombre)",
-            creadoEn: r.creadoEn ?? r.createdAt ?? null,
-            lastReadingAt: last,
-            activo24h: isActiveByLastReading(last),
-            medicionesCorrectas: true,
-            motivoCalidad: "Cargando…",
-          };
-        });
+      const ahora = Date.now();
+      const fechaInicio = new Date(ahora - MS_4H);
+      const fechaFin = new Date(ahora);
 
-        const ahora = Date.now();
-        const fechaInicio = new Date(ahora - MS_4H);
-        const fechaFin = new Date(ahora);
+      const enriched = await Promise.all(
+        base.map(async row => {
+          try {
+            const lect = await obtenerLecturas({
+              nombreNodo: row.nodoNombre,
+              propietarioId: row.uid,
+              fechaInicio,
+              fechaFin,
+            });
 
-        const enriched = await Promise.all(
-          base.map(async row => {
-            try {
-              const lect = await obtenerLecturas({
-                nombreNodo: row.nodoNombre,
-                propietarioId: row.uid,
-                fechaInicio,
-                fechaFin,
-              });
+            const calidad = evaluarCalidadUltimas4h(lect || []);
 
-              const calidad = evaluarCalidadUltimas4h(lect || []);
+            return {
+              ...row,
+              medicionesCorrectas: calidad.medicionesCorrectas,
+              motivoCalidad: calidad.motivo,
+            };
+          } catch {
+            return { ...row, motivoCalidad: "Error leyendo lecturas" };
+          }
+        })
+      );
 
-              return {
-                ...row,
-                medicionesCorrectas: calidad.medicionesCorrectas,
-                motivoCalidad: calidad.motivo,
-              };
-            } catch {
-              return { ...row, motivoCalidad: "Error leyendo lecturas" };
-            }
-          })
-        );
-
-        if (!cancel) setRows(enriched);
-      } catch (e) {
-        if (!cancel) setError("Error cargando nodos");
-      } finally {
-        if (!cancel) setCargando(false);
-      }
-    };
-
-    cargar();
-    return () => (cancel = true);
+      setRows(enriched);
+    } catch (e) {
+      setError("Error cargando nodos");
+    } finally {
+      setCargando(false);
+    }
   }, []);
+
+  useEffect(() => {
+    if (initialLoad.current) {
+      cargarNodos();
+      initialLoad.current = false;
+    }
+  }, [cargarNodos]);
 
   const totalUsuarios = useMemo(
     () => new Set(rows.map(r => r.uid).filter(Boolean)).size,
@@ -230,7 +221,10 @@ export default function NodosAdmin() {
       <Menu />
       <main className="home-content">
         <div className="intranet-content-block">
-            <h1 className="intranet-title">📡 Panel de Administración - Nodos</h1>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <h1 className="intranet-title">📡 Panel de Administración - Nodos</h1>
+                <button onClick={cargarNodos} className="refresh-btn">Actualizar</button>
+            </div>
 
             {cargando ? (
                 <p>Cargando nodos…</p>

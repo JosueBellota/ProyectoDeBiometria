@@ -1,19 +1,9 @@
-// --------------------------------------------------------------------------
-// Fichero: Intranet.js
-// Responsable: Josue Bellota Ichaso
-//
-// Descripción:
-// Este fichero contiene la intranet de administrador.
-// --------------------------------------------------------------------------
-
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { obtenerUsuarioLogueado } from "./../logicaFake/auth";
 import { mainAdmin } from "./../logicaFake/logicaFake";
 import Menu from "./templates/Menu";
 import "./css/admin.css";
-
-let testEjecutado = false;
 
 function IntranetAdmin() {
   const navigate = useNavigate();
@@ -21,6 +11,8 @@ function IntranetAdmin() {
   const [cargando, setCargando] = useState(true);
   const [showAddUserModal, setShowAddUserModal] = useState(false);
   const [newUser, setNewUser] = useState({ nombre: "", correo: "", rol: "ciudadano" });
+
+  const initialLoad = useRef(true);
 
   // ✅ Verificar si el usuario está logueado y es admin
   useEffect(() => {
@@ -47,25 +39,25 @@ function IntranetAdmin() {
     return "Formato de fecha desconocido";
   };
 
-  useEffect(() => {
-    if (!testEjecutado) {
-      const ejecutar = async () => {
-        try {
-          const res = await mainAdmin();
-          setUsuarios(res);
-        } catch (error) {
-          console.error("❌ Error al obtener usuarios:", error);
-          setUsuarios([{ error: error.message }]);
-        } finally {
-          setCargando(false);
-        }
-      };
-      ejecutar();
-      testEjecutado = true;
-    } else {
+  const fetchUsers = useCallback(async () => {
+    setCargando(true);
+    try {
+      const res = await mainAdmin();
+      setUsuarios(res);
+    } catch (error) {
+      console.error("❌ Error al obtener usuarios:", error);
+      setUsuarios([{ error: error.message }]);
+    } finally {
       setCargando(false);
     }
   }, []);
+
+  useEffect(() => {
+    if (initialLoad.current) {
+      fetchUsers();
+      initialLoad.current = false;
+    }
+  }, [fetchUsers]);
 
   const handleAddUser = () => {
     // Aquí iría la lógica para añadir el usuario a la base de datos
@@ -83,7 +75,10 @@ function IntranetAdmin() {
         <div className="intranet-content-block">
           <h1 className="intranet-title">👩‍💼 Panel de Administración - Usuarios Registrados</h1>
           
-          <button onClick={() => setShowAddUserModal(true)} className="add-user-btn">Añadir Usuario</button>
+          <div>
+            <button onClick={() => setShowAddUserModal(true)} className="add-user-btn">Añadir Usuario</button>
+            <button onClick={fetchUsers} className="refresh-btn">Actualizar</button>
+          </div>
 
           {cargando ? (
             <p>Cargando lista de usuarios...</p>
