@@ -319,6 +319,49 @@ export async function resolverIncidencia(incidenciaId, adminId, respuesta) {
   }
 }
 
+// ----------------------------------------------------------
+// crearUsuario(datos)
+//
+// Crea un nuevo usuario en el backend.
+//
+// Parámetros:
+//   - datos: Objeto con { nombre, correo, rol, password }.
+// ----------------------------------------------------------
+export async function crearUsuario(datos) {
+  try {
+    const res = await fetch(`${API_BASE}/usuarios`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(datos),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Error al crear usuario");
+    return data;
+  } catch (error) {
+    console.error("❌ Error en crearUsuario:", error);
+    return { error: error.message };
+  }
+}
+
+// ----------------------------------------------------------
+// eliminarUsuario(idUsuario)
+//
+// Elimina un usuario del backend.
+// ----------------------------------------------------------
+export async function eliminarUsuario(idUsuario) {
+  try {
+    const res = await fetch(`${API_BASE}/usuarios/${idUsuario}`, {
+      method: 'DELETE',
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Error al eliminar usuario");
+    return data;
+  } catch (error) {
+    console.error("❌ Error en eliminarUsuario:", error);
+    return { error: error.message };
+  }
+}
+
 // --------------------------------------------------------------------------
 // 🔄 Funciones principales
 // --------------------------------------------------------------------------
@@ -390,12 +433,13 @@ export async function mainAdmin() {
     return usuarios.map((u) => ({
       paso: "GET /usuarios",
       resultado: {
-        idUsuario: u.uid,
+        idUsuario: u.uid || u.id, // Asegurar compatibilidad con ID
         nombre: u.nombre,
         correo: u.correo,
         rol: u.rol,
         monedas: u.monedas,     
-        premios: u.premios,     
+        premios: u.premios,
+        fechaRegistro: u.creadoEn // Mapeamos creadoEn a fechaRegistro
       },
     }));
   } catch (error) {

@@ -1,7 +1,12 @@
 import React, { useEffect, useState, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { obtenerUsuarioLogueado } from "./../logicaFake/auth";
-import { mainAdmin } from "./../logicaFake/logicaFake";
+import { 
+  mainAdmin, 
+  crearUsuario, 
+  eliminarUsuario, 
+  actualizarDatosUsuario 
+} from "./../logicaFake/logicaFake";
 import Menu from "./templates/Menu";
 import "./css/admin.css";
 
@@ -9,8 +14,14 @@ function IntranetAdmin() {
   const navigate = useNavigate();
   const [usuarios, setUsuarios] = useState([]);
   const [cargando, setCargando] = useState(true);
+  
+  // Estado para crear usuario
   const [showAddUserModal, setShowAddUserModal] = useState(false);
-  const [newUser, setNewUser] = useState({ nombre: "", correo: "", rol: "ciudadano" });
+  const [newUser, setNewUser] = useState({ nombre: "", correo: "", rol: "ciudadano", password: "" });
+  
+  // Estado para editar usuario
+  const [showEditUserModal, setShowEditUserModal] = useState(false);
+  const [editingUser, setEditingUser] = useState(null);
 
   const initialLoad = useRef(true);
 
@@ -32,10 +43,13 @@ function IntranetAdmin() {
 
   const formatearFecha = (fecha) => {
     if (!fecha) return "Sin fecha";
+    // Si es string (ISO) o timestamp numérico
     if (typeof fecha === "string" || typeof fecha === "number")
       return new Date(fecha).toLocaleString();
+    // Si es objeto Timestamp de Firebase
     if (fecha.seconds) return new Date(fecha.seconds * 1000).toLocaleString();
     if (fecha._seconds) return new Date(fecha._seconds * 1000).toLocaleString();
+    
     return "Formato de fecha desconocido";
   };
 
@@ -59,13 +73,85 @@ function IntranetAdmin() {
     }
   }, [fetchUsers]);
 
-  const handleAddUser = () => {
-    // Aquí iría la lógica para añadir el usuario a la base de datos
-    console.log("Añadir nuevo usuario:", newUser);
-    // Por ahora, solo lo añadimos al estado local para demostración
-    setUsuarios([...usuarios, { resultado: { ...newUser, fechaRegistro: new Date() } }]);
-    setShowAddUserModal(false);
-    setNewUser({ nombre: "", correo: "", rol: "ciudadano" });
+  // --- CREAR USUARIO ---
+  const handleAddUser = async () => {
+    if (!newUser.nombre || !newUser.correo || !newUser.password) {
+      alert("Por favor completa todos los campos (nombre, correo, contraseña).");
+      return;
+    }
+    
+    try {
+      const res = await crearUsuario(newUser);
+      if (res.error) {
+        alert("Error al crear usuario: " + res.error);
+      } else {
+        alert("Usuario creado correctamente.");
+        setShowAddUserModal(false);
+        setNewUser({ nombre: "", correo: "", rol: "ciudadano", password: "" });
+        fetchUsers();
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Ocurrió un error al crear el usuario.");
+    }
+  };
+
+  // --- ELIMINAR USUARIO ---
+  const handleDeleteUser = async (idUsuario) => {
+    if (!window.confirm("¿Estás seguro de que deseas eliminar este usuario? Esta acción no se puede deshacer.")) {
+      return;
+    }
+
+    try {
+      const res = await eliminarUsuario(idUsuario);
+      if (res.error) {
+        alert("Error al eliminar: " + res.error);
+      } else {
+        alert("Usuario eliminado correctamente.");
+        fetchUsers();
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Ocurrió un error al eliminar el usuario.");
+    }
+  };
+
+  // --- EDITAR USUARIO ---
+  const startEditUser = (userResult) => {
+    // userResult es el objeto que viene dentro de u.resultado
+    setEditingUser({
+      id: userResult.idUsuario, // Asegúrate de que este campo exista en el objeto mapeado en logicaFake
+      nombre: userResult.nombre,
+      correo: userResult.correo,
+      rol: userResult.rol,
+      // No editamos password aquí por seguridad, ni fecha
+    });
+    setShowEditUserModal(true);
+  };
+
+  const handleSaveEditUser = async () => {
+    if (!editingUser) return;
+    
+    try {
+      const datosActualizar = {
+        nombre: editingUser.nombre,
+        correo: editingUser.correo, // Ojo: cambiar correo en Firebase Auth requiere re-autenticación a veces, pero LogicaDeNegocio lo maneja
+        rol: editingUser.rol
+      };
+
+      const res = await actualizarDatosUsuario(editingUser.id, datosActualizar);
+      if (res.error) {
+        alert("Error al actualizar: " + res.error);
+      } else {
+        alert("Usuario actualizado correctamente.");
+        setShowEditUserModal(false);
+        setEditingUser(null);
+        fetchUsers();
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Error al actualizar usuario.");
+    }
   };
 
   return (
@@ -110,8 +196,18 @@ function IntranetAdmin() {
                         {formatearFecha(u.resultado?.fechaRegistro)}
                       </td>
                       <td data-label="Acciones">
-                        <button className="action-btn edit-btn">Editar</button>
-                        <button className="action-btn delete-btn">Eliminar</button>
+                        <button 
+                          className="action-btn edit-btn"
+                          onClick={() => startEditUser(u.resultado)}
+                        >
+                          Editar
+                        </button>
+                        <button 
+                          className="action-btn delete-btn" 
+                          onClick={() => handleDeleteUser(u.resultado?.idUsuario)}
+                        >
+                          Eliminar
+                        </button>
                       </td>
                     </tr>
                   ))}
@@ -121,6 +217,7 @@ function IntranetAdmin() {
           )}
         </div>
 
+        {/* MODAL CREAR USUARIO */}
         {showAddUserModal && (
           <div className="modal-backdrop">
             <div className="modal-content">
@@ -137,6 +234,12 @@ function IntranetAdmin() {
                 value={newUser.correo}
                 onChange={(e) => setNewUser({ ...newUser, correo: e.target.value })}
               />
+              <input
+                type="password"
+                placeholder="Contraseña"
+                value={newUser.password}
+                onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
+              />
               <select
                 value={newUser.rol}
                 onChange={(e) => setNewUser({ ...newUser, rol: e.target.value })}
@@ -151,6 +254,39 @@ function IntranetAdmin() {
             </div>
           </div>
         )}
+
+        {/* MODAL EDITAR USUARIO */}
+        {showEditUserModal && editingUser && (
+          <div className="modal-backdrop">
+            <div className="modal-content">
+              <h2>Editar Usuario</h2>
+              <input
+                type="text"
+                placeholder="Nombre"
+                value={editingUser.nombre}
+                onChange={(e) => setEditingUser({ ...editingUser, nombre: e.target.value })}
+              />
+              <input
+                type="email"
+                placeholder="Correo Electrónico"
+                value={editingUser.correo}
+                onChange={(e) => setEditingUser({ ...editingUser, correo: e.target.value })}
+              />
+              <select
+                value={editingUser.rol}
+                onChange={(e) => setEditingUser({ ...editingUser, rol: e.target.value })}
+              >
+                <option value="ciudadano">Ciudadano</option>
+                <option value="admin">Admin</option>
+              </select>
+              <div className="modal-actions">
+                <button onClick={handleSaveEditUser}>Actualizar</button>
+                <button onClick={() => setShowEditUserModal(false)}>Cancelar</button>
+              </div>
+            </div>
+          </div>
+        )}
+
       </main>
     </div>
   );
