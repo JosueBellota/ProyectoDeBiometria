@@ -107,9 +107,18 @@ export default function IncidenciasAdmin() {
     return <span className={`status-badge ${classMap[estado] || ""}`}>{estado.replace("_", " ")}</span>;
   };
   
-  const formatDate = (timestamp) => {
-    if (!timestamp?.seconds) return "N/A";
-    return new Date(timestamp.seconds * 1000).toLocaleString();
+  const formatDate = (fecha) => {
+    if (!fecha) return "N/A";
+    if (typeof fecha === "string" || typeof fecha === "number") {
+      return new Date(fecha).toLocaleString();
+    }
+    if (fecha.seconds) {
+      return new Date(fecha.seconds * 1000).toLocaleString();
+    }
+    if (fecha._seconds) { // A menudo, Firebase serializa a este formato
+      return new Date(fecha._seconds * 1000).toLocaleString();
+    }
+    return "Fecha inválida";
   };
 
   const renderFiltros = () => (
@@ -142,7 +151,7 @@ export default function IncidenciasAdmin() {
                   <tr>
                     <th>Asunto</th>
                     <th>Usuario</th>
-                    <th>Fecha Reporte</th>
+                    <th>Fechas (Reporte/Resolución)</th>
                     <th>Estado</th>
                     <th>Acciones</th>
                   </tr>
@@ -152,7 +161,14 @@ export default function IncidenciasAdmin() {
                     <tr key={inc.id}>
                       <td>{inc.titulo}</td>
                       <td>{usuariosMap.get(inc.usuarioId)?.nombre || "Desconocido"}</td>
-                      <td>{formatDate(inc.fecha)}</td>
+                      <td>
+                        <div style={{display: 'flex', flexDirection: 'column'}}>
+                            <span><strong>Reporte:</strong> {formatDate(inc.fecha)}</span>
+                            {inc.estado === 'resuelta' && inc.fechaResolucion && (
+                                <span><strong>Resuelta:</strong> {formatDate(inc.fechaResolucion)}</span>
+                            )}
+                        </div>
+                      </td>
                       <td>{getEstadoBadge(inc.estado)}</td>
                       <td>
                         {inc.estado === 'pendiente' && (
@@ -181,7 +197,10 @@ export default function IncidenciasAdmin() {
                     </div>
                     <div className="card-body">
                         <p className="card-desc"><strong>Reportado por:</strong> {usuariosMap.get(inc.usuarioId)?.nombre || "Desconocido"}</p>
-                        <p className="card-desc"><strong>Fecha:</strong> {formatDate(inc.fecha)}</p>
+                        <p className="card-desc"><strong>Reporte:</strong> {formatDate(inc.fecha)}</p>
+                        {inc.estado === 'resuelta' && inc.fechaResolucion && (
+                             <p className="card-desc"><strong>Resuelta:</strong> {formatDate(inc.fechaResolucion)}</p>
+                        )}
                     </div>
                     <div className="card-footer">
                         {inc.estado === 'pendiente' && (

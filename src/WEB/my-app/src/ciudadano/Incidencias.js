@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from "react";
 import HeaderRegistrado from "./templates/HeaderRegistrado";
 import { obtenerUsuarioLogueado } from "../logicaFake/auth";
-import { reportarIncidencia, obtenerIncidencias } from "../logicaFake/logicaFake";
+import { reportarIncidencia, obtenerIncidencias, obtenerUsuarioCompleto } from "../logicaFake/logicaFake";
 import "../css/main.css"; // Reutilizamos estilos generales
 import "./css/incidencias.css";
 
 export default function Incidencias() {
   const [usuario, setUsuario] = useState(null);
   const [incidencias, setIncidencias] = useState([]);
+  const [admins, setAdmins] = useState({}); // Para cachear nombres de admins
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -32,6 +33,18 @@ export default function Incidencias() {
       setError(res.error);
     } else {
       setIncidencias(res);
+      // Cargar los nombres de los admins para las incidencias resueltas
+      const adminIds = [...new Set(res.filter(i => i.estado === 'resuelta' && i.adminId).map(i => i.adminId))];
+      const adminPromises = adminIds.map(id => obtenerUsuarioCompleto(id));
+      const adminResults = await Promise.all(adminPromises);
+      
+      const newAdmins = {};
+      adminResults.forEach((admin, index) => {
+        if (!admin.error) {
+          newAdmins[adminIds[index]] = admin;
+        }
+      });
+      setAdmins(prevAdmins => ({...prevAdmins, ...newAdmins}));
     }
     setLoading(false);
   };
@@ -70,6 +83,20 @@ export default function Incidencias() {
       default:
         return <span className="incidencias-badge secondary">{estado}</span>;
     }
+  };
+
+  const formatDate = (fecha) => {
+    if (!fecha) return "Fecha desconocida";
+    if (typeof fecha === "string" || typeof fecha === "number") {
+      return new Date(fecha).toLocaleString();
+    }
+    if (fecha.seconds) {
+      return new Date(fecha.seconds * 1000).toLocaleString();
+    }
+    if (fecha._seconds) { // A menudo, Firebase serializa a este formato
+      return new Date(fecha._seconds * 1000).toLocaleString();
+    }
+    return "Fecha inválida";
   };
 
   return (
@@ -146,17 +173,29 @@ export default function Incidencias() {
                       <div key={incidencia.id} className="incidencias-list-item">
                         <div className="incidencias-item-header">
                           <h6 className="incidencias-item-title">{incidencia.titulo}</h6>
-                          <small className="incidencias-item-date">
-                            {incidencia.fecha?.seconds ? new Date(incidencia.fecha.seconds * 1000).toLocaleDateString() : 'Fecha desconocida'}
-                          </small>
+                          <div style={{textAlign: 'right'}}>
+                            <small className="incidencias-item-date">
+                                <strong>Reportado:</strong> {formatDate(incidencia.fecha)}
+                            </small>
+                            {incidencia.estado === 'resuelta' && incidencia.fechaResolucion && (
+                                <small className="incidencias-item-date" style={{display: 'block'}}>
+                                    <strong>Resuelta:</strong> {formatDate(incidencia.fechaResolucion)}
+                                </small>
+                            )}
+                          </div>
                         </div>
                         <p className="incidencias-item-desc">{incidencia.descripcion}</p>
                         <div className="incidencias-item-footer">
                           {getEstadoBadge(incidencia.estado)}
                           {incidencia.respuesta && (
-                            <small className="incidencias-respuesta">
-                              Respuesta: {incidencia.respuesta}
-                            </small>
+                            <div className="incidencias-respuesta">
+                              <span><strong>Respuesta del admin:</strong> {incidencia.respuesta}</span>
+                              {incidencia.estado === 'resuelta' && incidencia.adminId && admins[incidencia.adminId] && (
+                                <span style={{display: 'block', marginTop: '5px'}}>
+                                  <strong>Resuelto por:</strong> {admins[incidencia.adminId].nombre}
+                                </span>
+                              )}
+                            </div>
                           )}
                         </div>
                       </div>
