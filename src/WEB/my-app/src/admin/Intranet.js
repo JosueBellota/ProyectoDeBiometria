@@ -159,7 +159,7 @@ function IntranetAdmin() {
       <Menu />
       <main className="home-content">
         <div className="intranet-content-block">
-          <h1 className="intranet-title">👩‍💼 Panel de Administración - Usuarios Registrados</h1>
+          <h1 className="intranet-title">👩‍💼 Usuarios Registrados</h1>
           
           <div>
             <button onClick={() => setShowAddUserModal(true)} className="add-user-btn">Añadir Usuario</button>
@@ -173,7 +173,7 @@ function IntranetAdmin() {
           ) : usuarios[0].error ? (
             <span className="error">{usuarios[0].error}</span>
           ) : (
-            <div style={{ overflowX: "auto" }}>
+            <div className="usuarios-tabla-container" style={{ overflowX: "auto" }}>
               <table className="usuarios-tabla">
                 <thead>
                   <tr>

@@ -222,7 +222,7 @@ export default function NodosAdmin() {
       <main className="home-content">
         <div className="intranet-content-block">
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <h1 className="intranet-title">📡 Panel de Administración - Nodos</h1>
+                <h1 className="intranet-title">📡 Nodos Registrados</h1>
                 <button onClick={cargarNodos} className="refresh-btn">Actualizar</button>
             </div>
 
@@ -238,7 +238,7 @@ export default function NodosAdmin() {
                     Medidas mal (4h): <b>{medidasMal}</b>
                 </p>
 
-                <div style={{ overflowX: "auto" }}>
+                <div className="usuarios-tabla-container" style={{ overflowX: "auto" }}>
                   <table className="usuarios-tabla">
                       <thead>
                       <tr>
