@@ -1,0 +1,226 @@
+
+.incidencias-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem 1rem;
+}
+
+.incidencias-title {
+    margin-bottom: 1.5rem;
+    font-size: 2rem;
+    font-weight: 700;
+    color: #333;
+}
+
+.incidencias-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.5rem;
+}
+
+.incidencias-form-col {
+    flex: 1 1 400px; /* Min width 400px, grow and shrink */
+}
+
+.incidencias-list-col {
+    flex: 1 1 500px; /* Min width 500px, grow and shrink */
+}
+
+.incidencias-card {
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    border: 1px solid #ddd;
+    overflow: hidden;
+}
+
+.incidencias-card-header {
+    padding: 1rem;
+    background-color: #22604D; /* Primary color */
+    color: white;
+    border-bottom: 1px solid #1b4c3e;
+}
+
+.incidencias-card-header.secondary {
+    background-color: #6c757d;
+    border-bottom: 1px solid #545b62;
+}
+
+.incidencias-card-header h5 {
+    margin: 0;
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+.incidencias-card-body {
+    padding: 1.5rem;
+}
+
+.incidencias-card-body.p-0 {
+    padding: 0;
+}
+
+.incidencias-form-group {
+    margin-bottom: 1rem;
+}
+
+.incidencias-label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+    color: #333;
+}
+
+.incidencias-input {
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    font-size: 1rem;
+    border: 1px solid #ced4da;
+    border-radius: 0.25rem;
+    box-sizing: border-box; /* Important for width: 100% */
+}
+
+.incidencias-input:focus {
+    border-color: #22604D;
+    outline: 0;
+    box-shadow: 0 0 0 0.2rem rgba(34, 96, 77, 0.25);
+}
+
+.incidencias-btn {
+    display: block;
+    width: 100%;
+    padding: 0.5rem 1rem;
+    font-size: 1rem;
+    font-weight: 600;
+    color: #fff;
+    background-color: #22604D;
+    border: none;
+    border-radius: 0.25rem;
+    cursor: pointer;
+    transition: background-color 0.15s ease-in-out;
+}
+
+.incidencias-btn:hover {
+    background-color: #1b4c3e;
+}
+
+.incidencias-btn:disabled {
+    background-color: #5a7d72;
+    cursor: not-allowed;
+}
+
+.incidencias-alert {
+    padding: 1rem;
+    margin-top: 1rem;
+    border-radius: 0.25rem;
+    font-weight: 500;
+}
+
+.incidencias-alert.error {
+    color: #721c24;
+    background-color: #f8d7da;
+    border: 1px solid #f5c6cb;
+}
+
+.incidencias-alert.success {
+    color: #155724;
+    background-color: #d4edda;
+    border: 1px solid #c3e6cb;
+}
+
+.incidencias-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.incidencias-list-item {
+    padding: 1rem;
+    border-bottom: 1px solid #eee;
+}
+
+.incidencias-list-item:last-child {
+    border-bottom: none;
+}
+
+.incidencias-item-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 0.5rem;
+}
+
+.incidencias-item-title {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 700;
+    color: #333;
+}
+
+.incidencias-item-date {
+    font-size: 0.85rem;
+    color: #6c757d;
+}
+
+.incidencias-item-desc {
+    margin-bottom: 0.5rem;
+    font-size: 0.9rem;
+    color: #444;
+}
+
+.incidencias-item-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.incidencias-badge {
+    display: inline-block;
+    padding: 0.35em 0.65em;
+    font-size: 0.75em;
+    font-weight: 700;
+    line-height: 1;
+    text-align: center;
+    white-space: nowrap;
+    vertical-align: baseline;
+    border-radius: 0.25rem;
+}
+
+.incidencias-badge.warning {
+    color: #212529;
+    background-color: #ffc107;
+}
+
+.incidencias-badge.info {
+    color: #fff;
+    background-color: #17a2b8;
+}
+
+.incidencias-badge.success {
+    color: #fff;
+    background-color: #28a745;
+}
+
+.incidencias-badge.secondary {
+    color: #fff;
+    background-color: #6c757d;
+}
+
+.incidencias-respuesta {
+    font-size: 0.85rem;
+    color: #155724;
+    font-weight: 700;
+    margin-left: 0.5rem;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .incidencias-row {
+        flex-direction: column;
+    }
+    
+    .incidencias-form-col,
+    .incidencias-list-col {
+        flex: 1 1 100%;
+    }
+}

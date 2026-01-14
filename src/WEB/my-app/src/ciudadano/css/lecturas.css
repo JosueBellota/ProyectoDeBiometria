@@ -1,4 +1,50 @@
-.readings-container {
-    max-height: 60vh;
-    overflow-y: auto;
+
+/* ... existing content ... */
+
+/* Table Styles */
+.lecturas-table-responsive {
+    width: 100%;
+    overflow-x: auto;
+    border: 1px solid #dee2e6;
+    border-radius: 0.25rem;
+}
+
+.lecturas-table {
+    width: 100%;
+    margin-bottom: 0;
+    color: #212529;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+}
+
+.lecturas-table th,
+.lecturas-table td {
+    padding: 0.5rem;
+    vertical-align: top;
+    border-top: 1px solid #dee2e6;
+    text-align: left;
+}
+
+.lecturas-table thead th {
+    vertical-align: bottom;
+    border-bottom: 2px solid #dee2e6;
+    background-color: #343a40;
+    color: #fff;
+    position: sticky;
+    top: 0;
+    z-index: 1;
+}
+
+.lecturas-table tbody tr:nth-of-type(odd) {
+    background-color: rgba(0, 0, 0, 0.05);
+}
+
+.lecturas-table tbody tr:hover {
+    background-color: rgba(0, 0, 0, 0.075);
+}
+
+.lecturas-table-cell-unit {
+    color: #666;
+    font-size: 0.85em;
+    margin-left: 4px;
 }

@@ -76,6 +76,10 @@ export default function Menu() {
             NODOS
           </Link>
 
+          <Link to="/admin/incidencias" onClick={closeMenu}>
+            INCIDENCIAS
+          </Link>
+
           <button onClick={handleLogout} aria-label="Cerrar sesión">
             CERRAR SESIÓN
           </button>
