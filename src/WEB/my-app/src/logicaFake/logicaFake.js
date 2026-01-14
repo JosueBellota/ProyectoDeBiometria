@@ -231,6 +231,95 @@ export async function actualizarMonedasUsuario(idUsuario, monedas) {
 }
 
 // --------------------------------------------------------------------------
+// 🚨 Funciones de Incidencias
+// --------------------------------------------------------------------------
+
+// ----------------------------------------------------------
+// reportarIncidencia(usuarioId, titulo, descripcion)
+//
+// Crea una nueva incidencia en el backend.
+// ----------------------------------------------------------
+export async function reportarIncidencia(usuarioId, titulo, descripcion) {
+  try {
+    const res = await fetch(`${API_BASE}/incidencias`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ usuarioId, titulo, descripcion }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Error al reportar incidencia");
+    return data;
+  } catch (error) {
+    console.error("❌ Error en reportarIncidencia:", error);
+    return { error: error.message };
+  }
+}
+
+// ----------------------------------------------------------
+// obtenerIncidencias(filtro)
+//
+// Obtiene incidencias (filtradas por usuarioId o estado).
+// filtro: { usuarioId, estado }
+// ----------------------------------------------------------
+export async function obtenerIncidencias(filtro = {}) {
+  const params = new URLSearchParams();
+  if (filtro.usuarioId) params.append("usuarioId", filtro.usuarioId);
+  if (filtro.estado) params.append("estado", filtro.estado);
+
+  try {
+    const res = await fetch(`${API_BASE}/incidencias?${params.toString()}`);
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Error al obtener incidencias");
+    return data;
+  } catch (error) {
+    console.error("❌ Error en obtenerIncidencias:", error);
+    return { error: error.message };
+  }
+}
+
+// ----------------------------------------------------------
+// asignarIncidencia(incidenciaId, adminId)
+//
+// Asigna una incidencia a un administrador.
+// ----------------------------------------------------------
+export async function asignarIncidencia(incidenciaId, adminId) {
+  try {
+    const res = await fetch(`${API_BASE}/incidencias/asignar`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ incidenciaId, adminId }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Error al asignar incidencia");
+    return data;
+  } catch (error) {
+    console.error("❌ Error en asignarIncidencia:", error);
+    return { error: error.message };
+  }
+}
+
+// ----------------------------------------------------------
+// resolverIncidencia(incidenciaId, adminId, respuesta)
+//
+// Resuelve una incidencia con una respuesta del administrador.
+// ----------------------------------------------------------
+export async function resolverIncidencia(incidenciaId, adminId, respuesta) {
+  try {
+    const res = await fetch(`${API_BASE}/incidencias/resolver`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ incidenciaId, adminId, respuesta }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Error al resolver incidencia");
+    return data;
+  } catch (error) {
+    console.error("❌ Error en resolverIncidencia:", error);
+    return { error: error.message };
+  }
+}
+
+// --------------------------------------------------------------------------
 // 🔄 Funciones principales
 // --------------------------------------------------------------------------
 
