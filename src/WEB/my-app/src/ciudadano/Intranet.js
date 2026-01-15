@@ -272,27 +272,27 @@ const DynamicSensorIcons = ({ lecturas }) => {
 const legendData = {
     'calidad': {
         title: 'Calidad del Aire General',
-        green: 'Verde: Buena / Razonable',
-        yellow: 'Amarillo: Regular',
-        red: 'Rojo: Desfavorable / Mala',
+        green: 'Buena / Razonable',
+        yellow: 'Regular',
+        red: 'Desfavorable / Mala',
     },
     'co': {
         title: 'Monóxido de Carbono (CO)',
-        green: 'Verde: Buena (≤ 7 mg/m³)',
-        yellow: 'Amarillo: Regular (7 - 10 mg/m³)',
-        red: 'Rojo: Mala (> 10 mg/m³)',
+        green: 'Buena (≤ 7 mg/m³)',
+        yellow: 'Regular (7 - 10 mg/m³)',
+        red: 'Mala (> 10 mg/m³)',
     },
     'no2': {
         title: 'Dióxido de Nitrógeno (NO2)',
-        green: 'Verde: Buena (≤ 90 µg/m³)',
-        yellow: 'Amarillo: Regular (90 - 120 µg/m³)',
-        red: 'Rojo: Mala (> 120 µg/m³)',
+        green: 'Buena (≤ 90 µg/m³)',
+        yellow: 'Regular (90 - 120 µg/m³)',
+        red: 'Mala (> 120 µg/m³)',
     },
     'o3': {
         title: 'Ozono (O3)',
-        green: 'Verde: Buena (≤ 100 µg/m³)',
-        yellow: 'Amarillo: Regular (100 - 130 µg/m³)',
-        red: 'Rojo: Mala (> 130 µg/m³)',
+        green: 'Buena (≤ 100 µg/m³)',
+        yellow: 'Regular (100 - 130 µg/m³)',
+        red: 'Mala (> 130 µg/m³)',
     }
 };
 
