@@ -37,6 +37,9 @@ const LIMITS = {
 };
 
 const getStatus = (type, value) => {
+    // Si no hay valor (0 o undefined), asumimos bueno o un estado neutro
+    if (!value && value !== 0) return { label: 'Sin datos', color: '#bdc3c7' };
+    
     const config = LIMITS[type];
     for (const r of config.ranges) {
         if (value <= r.max) return r;
@@ -44,43 +47,53 @@ const getStatus = (type, value) => {
     return config.ranges[config.ranges.length - 1];
 };
 
-const AirQualityExposure = ({ startDate, endDate }) => {
+const AirQualityExposure = ({ startDate, endDate, readings = [] }) => {
     
     const [averages, setAverages] = useState({ co: 0, no2: 0, o3: 0 });
+    const [hasData, setHasData] = useState(false);
 
     // ----------------------------------------------------------------------
-    // 2. Generación de Datos Ficticios para el Periodo
+    // 2. Cálculo Real basado en lecturas proporcionadas
     // ----------------------------------------------------------------------
     useEffect(() => {
+        // Filtramos por fecha, aunque se supone que el padre ya las filtra.
+        // Pero para asegurar consistencia con el título del periodo:
         const start = new Date(startDate);
         const end = new Date(endDate);
-        
-        // Calculamos días de diferencia para saber cuántos puntos generar
-        const diffTime = Math.abs(end - start);
-        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1; 
-        
-        // Generamos un promedio aleatorio base para cada contaminante para este usuario
-        // CO: 0.5 - 9.0
-        // NO2: 20 - 110
-        // O3: 30 - 120
-        const generateAvg = (min, max) => {
-            let sum = 0;
-            // Simulamos lecturas por cada día del periodo
-            for (let i = 0; i < diffDays; i++) {
-                // Variación diaria
-                const dailyVal = min + Math.random() * (max - min);
-                sum += dailyVal;
-            }
-            return sum / diffDays;
-        };
+        // Ajustamos end para incluir todo el día
+        end.setHours(23, 59, 59, 999);
 
-        setAverages({
-            co: generateAvg(0.5, 9.0),
-            no2: generateAvg(20, 110),
-            o3: generateAvg(30, 120)
+        const validReadings = readings.filter(r => {
+            const t = new Date(r.timestamp._seconds * 1000);
+            return t >= start && t <= end;
         });
 
-    }, [startDate, endDate]);
+        if (validReadings.length === 0) {
+            setAverages({ co: 0, no2: 0, o3: 0 });
+            setHasData(false);
+            return;
+        }
+
+        setHasData(true);
+
+        const sums = { co: 0, no2: 0, o3: 0 };
+        const counts = { co: 0, no2: 0, o3: 0 };
+
+        validReadings.forEach(r => {
+            const type = r.tipo_sensor ? r.tipo_sensor.toLowerCase() : '';
+            if (sums.hasOwnProperty(type) && typeof r.valor === 'number') {
+                sums[type] += r.valor;
+                counts[type]++;
+            }
+        });
+
+        setAverages({
+            co: counts.co > 0 ? sums.co / counts.co : 0,
+            no2: counts.no2 > 0 ? sums.no2 / counts.no2 : 0,
+            o3: counts.o3 > 0 ? sums.o3 / counts.o3 : 0
+        });
+
+    }, [startDate, endDate, readings]);
 
 
     return (
@@ -99,6 +112,11 @@ const AirQualityExposure = ({ startDate, endDate }) => {
                 <p style={{ color: '#7f8c8d', fontSize: '0.9rem', margin: 0 }}>
                     Promedio calculado sobre el periodo del <strong>{new Date(startDate).toLocaleDateString()}</strong> al <strong>{new Date(endDate).toLocaleDateString()}</strong>.
                 </p>
+                {!hasData && (
+                    <p style={{ color: '#e67e22', fontWeight: 'bold', marginTop: '10px' }}>
+                        ⚠️ No se encontraron lecturas para este periodo. Mostrando valores por defecto.
+                    </p>
+                )}
             </div>
 
             {/* Grid de Tarjetas */}
@@ -194,8 +212,8 @@ const AirQualityExposure = ({ startDate, endDate }) => {
                     const statusNO2 = getStatus('no2', averages.no2);
                     const statusO3 = getStatus('o3', averages.o3);
                     
-                    const severities = { '#4caf50': 1, '#ffeb3b': 2, '#f44336': 3 };
-                    const labels = { '#4caf50': 'BUENA', '#ffeb3b': 'REGULAR', '#f44336': 'DESFAVORABLE' };
+                    const severities = { '#4caf50': 1, '#ffeb3b': 2, '#f44336': 3, '#bdc3c7': 0 };
+                    const labels = { '#4caf50': 'BUENA', '#ffeb3b': 'REGULAR', '#f44336': 'DESFAVORABLE', '#bdc3c7': 'SIN DATOS' };
                     
                     const maxSeverity = Math.max(
                         severities[statusCO.color],
@@ -203,6 +221,21 @@ const AirQualityExposure = ({ startDate, endDate }) => {
                         severities[statusO3.color]
                     );
                     
+                    // Si no hay datos (maxSeverity 0), mostramos gris
+                    if (maxSeverity === 0) {
+                         return (
+                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                                <div style={{
+                                    fontSize: '2.2rem',
+                                    fontWeight: '900',
+                                    color: '#bdc3c7',
+                                }}>
+                                    SIN DATOS SUFICIENTES
+                                </div>
+                            </div>
+                         );
+                    }
+
                     const finalColor = Object.keys(severities).find(key => severities[key] === maxSeverity);
                     const finalLabel = labels[finalColor];
 
@@ -228,7 +261,7 @@ const AirQualityExposure = ({ startDate, endDate }) => {
             </div>
             
             <div style={{ marginTop: '20px', fontSize: '0.85rem', color: '#95a5a6', textAlign: 'center', fontStyle: 'italic' }}>
-                * Estimación basada en simulaciones de tus rutas habituales y datos de estaciones cercanas.
+                * Calculado estrictamente a partir de las lecturas registradas en la plataforma.
             </div>
         </div>
     );

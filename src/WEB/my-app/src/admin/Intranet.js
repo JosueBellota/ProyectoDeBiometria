@@ -165,9 +165,11 @@ function IntranetAdmin() {
           {/* Vista Previa: Estimación de Exposición (Simulación) para Admin */}
           <div style={{ marginBottom: '30px', padding: '15px', border: '1px solid #ddd', borderRadius: '8px', backgroundColor: '#f9f9f9' }}>
               <h4 style={{ marginTop: 0 }}>👁️ Vista Previa: Estimación de Exposición (Ejemplo Semanal)</h4>
+              <p style={{fontSize: '0.8rem', color: '#666'}}>* En esta vista previa de Admin no se cargan lecturas reales.</p>
               <AirQualityExposure 
                 startDate={new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()} 
                 endDate={new Date().toISOString()} 
+                readings={[]} // Pasamos vacío para que no falle, mostrará "Sin Datos" o similar
               />
           </div>
 

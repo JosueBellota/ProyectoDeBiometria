@@ -525,7 +525,7 @@ function Intranet() {
 
           </MapContainer>
 
-          <AirQualityExposure startDate={fechaInicio} endDate={fechaFin} />
+          <AirQualityExposure startDate={fechaInicio} endDate={fechaFin} readings={allLecturas} />
 
           <div className="mt-3 text-center">
             <button 
