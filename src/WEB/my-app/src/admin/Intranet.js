@@ -8,6 +8,7 @@ import {
   actualizarDatosUsuario 
 } from "./../logicaFake/logicaFake";
 import Menu from "./templates/Menu";
+import AirQualityExposure from "../ciudadano/AirQualityExposure";
 import "./css/admin.css";
 
 function IntranetAdmin() {
@@ -19,6 +20,9 @@ function IntranetAdmin() {
   const [showAddUserModal, setShowAddUserModal] = useState(false);
   const [newUser, setNewUser] = useState({ nombre: "", correo: "", rol: "ciudadano", password: "" });
   
+  // Estado para visualización de calidad del aire (Admin)
+  const [selectedSensor, setSelectedSensor] = useState('calidad');
+
   // Estado para editar usuario
   const [showEditUserModal, setShowEditUserModal] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
@@ -161,6 +165,25 @@ function IntranetAdmin() {
         <div className="intranet-content-block">
           <h1 className="intranet-title">👩‍💼 Usuarios Registrados</h1>
           
+          {/* Vista Previa: Estimación de Exposición (Simulación) para Admin */}
+          <div style={{ marginBottom: '30px', padding: '15px', border: '1px solid #ddd', borderRadius: '8px', backgroundColor: '#f9f9f9' }}>
+              <h4 style={{ marginTop: 0 }}>👁️ Vista Previa: Estimación de Exposición</h4>
+              <div style={{ marginBottom: '10px' }}>
+                <label style={{ marginRight: '10px', fontWeight: 'bold' }}>Sensor:</label>
+                <select 
+                    value={selectedSensor} 
+                    onChange={(e) => setSelectedSensor(e.target.value)}
+                    style={{ padding: '5px', borderRadius: '4px', border: '1px solid #ccc' }}
+                >
+                    <option value="calidad">Calidad General</option>
+                    <option value="co">CO</option>
+                    <option value="no2">NO2</option>
+                    <option value="o3">O3</option>
+                </select>
+              </div>
+              <AirQualityExposure sensorType={selectedSensor} />
+          </div>
+
           <div>
             <button onClick={() => setShowAddUserModal(true)} className="add-user-btn">Añadir Usuario</button>
             <button onClick={fetchUsers} className="refresh-btn">Actualizar</button>

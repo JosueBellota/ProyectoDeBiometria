@@ -5,6 +5,7 @@ import { MapContainer, TileLayer, Popup, useMapEvents, Marker } from "react-leaf
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import InterpolationLayer from "./InterpolationLayer";
+import AirQualityExposure from "./AirQualityExposure";
 import data from './FeaturesFaq.json';
 import { obtenerLecturas } from "./../logicaFake/logicaFake";
 import { agregarMedidasVariadas, eliminarMedidasVariadas } from "./../logicaFake/medidasVariadas";
@@ -523,6 +524,9 @@ function Intranet() {
              ))}
 
           </MapContainer>
+
+          <AirQualityExposure sensorType={selectedSensor} />
+
           <div className="mt-3 text-center">
             <button 
                 className="btn btn-secondary" 
