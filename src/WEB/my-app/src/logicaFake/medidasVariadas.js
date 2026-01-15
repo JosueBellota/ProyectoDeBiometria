@@ -3,24 +3,27 @@
 // Responsable: El Agente
 //
 // Descripción:
-// Script para insertar 60 lecturas en el centro de Gandia.
-// 20 lecturas por contaminante (CO, NO2, O3).
-// Variación entre niveles recomendables, máximo permitido y peligrosos.
-// Radio máximo de 250 metros.
+// Script para insertar lecturas de prueba.
+// Separado en:
+// 1. Centro de Gandía (60 lecturas variadas).
+// 2. Estación Oficial (20 lecturas simulando la estación).
 // --------------------------------------------------------------------------
 
 const BASE_URL = "https://us-central1-proyectodebiometria.cloudfunctions.net/ServidorREST";
 const PROPIETARIO_ID = "mcJtObhq2iOpCnm6AT6xbFB8zYT2"; 
-const NODO_ID = "nodo_variado_test";
-const NODO_MALAS_ID = "nodo_malas_test"; // Nuevo nodo para lecturas malas
+
+const NODO_CENTRO_ID = "nodo_variado_test";
+const NODO_ESTACION_ID = "nodo_estacion_test";
 
 const GANDIA_CENTER_LAT = 38.96667;
 const GANDIA_CENTER_LNG = -0.18333;
-const MAX_RADIUS_METERS = 250;
+
+const STATION_LAT = 38.968129;
+const STATION_LNG = -0.193242;
 
 // Aproximación de grados para 250m
-// 1 grado latitud ~ 111 km -> 1 km = 1/111 deg -> 250m = 0.25/111 = 0.00225 deg
 const MAX_RADIUS_DEG = 0.00225;
+const STATION_RADIUS_DEG = 0.003; 
 
 const SENSORS = ['co', 'no2', 'o3'];
 
@@ -47,50 +50,48 @@ function getRandomArbitrary(min, max) {
   return Math.random() * (max - min) + min;
 }
 
-function getRandomLocation() {
-    // Generar punto aleatorio dentro del círculo
-    const r = MAX_RADIUS_DEG * Math.sqrt(Math.random());
+function getRandomLocation(centerLat, centerLng, radiusDeg) {
+    const r = radiusDeg * Math.sqrt(Math.random());
     const theta = Math.random() * 2 * Math.PI;
 
     return {
-        lat: GANDIA_CENTER_LAT + r * Math.cos(theta),
-        lng: GANDIA_CENTER_LNG + r * Math.sin(theta)
+        lat: centerLat + r * Math.cos(theta),
+        lng: centerLng + r * Math.sin(theta)
     };
 }
 
-export async function agregarMedidasVariadas() {
-    console.log("🚀 Iniciando carga de 60 medidas variadas...");
+// --------------------------------------------------------------------------
+// 1. LECTURAS VARIADAS EN EL CENTRO (60 Lecturas)
+// --------------------------------------------------------------------------
+export async function agregarMedidasCentro() {
+    console.log("🚀 Iniciando carga de 60 medidas variadas en Centro...");
     
-    // 1. Crear el nodo contenedor si no existe (o asegurarnos de que existe)
     try {
         await fetch(`${BASE_URL}/nodos`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ nombre: NODO_ID, propietarioId: PROPIETARIO_ID }),
+            body: JSON.stringify({ nombre: NODO_CENTRO_ID, propietarioId: PROPIETARIO_ID }),
         });
-        console.log(`Nodo ${NODO_ID} asegurado.`);
-    } catch (e) { 
-        console.warn("Posiblemente el nodo ya existe o hubo error menor", e); 
-    }
+        console.log(`Nodo ${NODO_CENTRO_ID} asegurado.`);
+    } catch (e) { console.warn("Nodo ya existe o error", e); }
 
     let count = 0;
 
     for (const sensor of SENSORS) {
         for (let i = 0; i < 20; i++) {
-            // Seleccionar rango aleatorio para variar (0: bueno, 1: regular, 2: malo)
-            // Intentar distribuir equitativamente: i % 3
+            // i % 3 para distribuir Bueno/Regular/Malo equitativamente
             const rangeType = i % 3; 
             const range = RANGES[sensor][rangeType];
             const valor = getRandomArbitrary(range.min, range.max);
             
-            const loc = getRandomLocation();
+            const loc = getRandomLocation(GANDIA_CENTER_LAT, GANDIA_CENTER_LNG, MAX_RADIUS_DEG);
 
             try {
                 await fetch(`${BASE_URL}/lecturas`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
-                        nombreNodo: NODO_ID,
+                        nombreNodo: NODO_CENTRO_ID,
                         propietarioId: PROPIETARIO_ID,
                         lecturas: [{ tipo: sensor.toUpperCase(), valor: valor }],
                         latitud: loc.lat,
@@ -98,20 +99,52 @@ export async function agregarMedidasVariadas() {
                     }),
                 });
                 count++;
-                if (count % 10 === 0) console.log(`Enviadas ${count}/60 lecturas...`);
+                if (count % 10 === 0) console.log(`Centro: ${count}/60 lecturas...`);
             } catch (e) {
-                console.error(`Error enviando lectura ${sensor} ${i}`, e);
+                console.error(`Error enviando lectura centro ${sensor} ${i}`, e);
             }
         }
     }
-    console.log("✅ Carga de medidas variadas completada.");
-    
-    // --- NUEVO: 20 Lecturas alrededor de la Estación Oficial ---
-    console.log("🚀 Añadiendo 20 lecturas cerca de la Estación Oficial...");
-    
-    const STATION_LAT = 38.968129;
-    const STATION_LNG = -0.193242;
-    const STATION_RADIUS_DEG = 0.003; // ~300 metros
+    console.log("✅ Carga de medidas CENTRO completada.");
+}
+
+export async function eliminarMedidasCentro() {
+    console.log("🚀 Eliminando nodo de medidas CENTRO...");
+    try {
+        const response = await fetch(`${BASE_URL}/nodos`, {
+            method: "DELETE",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ 
+                nombreNodo: NODO_CENTRO_ID, 
+                propietarioId: PROPIETARIO_ID 
+            }),
+        });
+
+        if (response.ok) {
+            console.log(`Nodo ${NODO_CENTRO_ID} eliminado.`);
+        } else {
+            throw new Error(response.statusText);
+        }
+    } catch (e) {
+        console.error(`Excepción eliminando nodo ${NODO_CENTRO_ID}`, e);
+        throw e;
+    }
+}
+
+// --------------------------------------------------------------------------
+// 2. LECTURAS ALREDEDOR DE LA ESTACIÓN OFICIAL (20 Lecturas)
+// --------------------------------------------------------------------------
+export async function agregarMedidasEstacion() {
+    console.log("🚀 Iniciando carga de 20 medidas en Estación Oficial...");
+
+    try {
+        await fetch(`${BASE_URL}/nodos`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ nombre: NODO_ESTACION_ID, propietarioId: PROPIETARIO_ID }),
+        });
+        console.log(`Nodo ${NODO_ESTACION_ID} asegurado.`);
+    } catch (e) { console.warn("Nodo ya existe o error", e); }
 
     // Valores de referencia (Simulando lo que mide la estación)
     const STATION_REF = {
@@ -122,35 +155,27 @@ export async function agregarMedidasVariadas() {
 
     let stationCount = 0;
     for (let i = 0; i < 20; i++) {
-        const sensor = SENSORS[i % 3]; // Rotar sensores: CO, NO2, O3
+        const sensor = SENSORS[i % 3]; // Rotar sensores
         
-        // Distancia aleatoria (más probabilidad cerca del centro)
+        // Distancia aleatoria centrada en la estación
+        // Usamos la misma lógica manual para el radio cuadrado para concentrar en el centro
         const r = STATION_RADIUS_DEG * Math.pow(Math.random(), 2); 
         const theta = Math.random() * 2 * Math.PI;
         
         const lat = STATION_LAT + r * Math.cos(theta);
         const lng = STATION_LNG + r * Math.sin(theta);
 
-        // Calcular variabilidad basada en la distancia
-        // Si r es 0 (centro), variación es 0. Si es r_max, variación máxima.
+        // Ruido según distancia
         const distRatio = r / STATION_RADIUS_DEG;
-        
-        // Base oficial
         const baseValue = STATION_REF[sensor];
         
-        // Ruido: A mayor distancia, más ruido (positivo o negativo)
-        // Ejemplo CO: base 0.3. Ruido max +/- 2.0. En el centro +/- 0.
-        // Ejemplo NO2: base 12. Ruido max +/- 30.
         let maxNoise = 0;
         if (sensor === 'co') maxNoise = 2.0; 
         if (sensor === 'no2') maxNoise = 40;
         if (sensor === 'o3') maxNoise = 40;
 
         const noise = (Math.random() * 2 - 1) * maxNoise * distRatio;
-        
         let finalValue = baseValue + noise;
-        
-        // Asegurar que no sea negativo
         if (finalValue < 0) finalValue = 0;
 
         try {
@@ -158,7 +183,7 @@ export async function agregarMedidasVariadas() {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    nombreNodo: NODO_ID,
+                    nombreNodo: NODO_ESTACION_ID,
                     propietarioId: PROPIETARIO_ID,
                     lecturas: [{ tipo: sensor.toUpperCase(), valor: finalValue }],
                     latitud: lat,
@@ -166,117 +191,33 @@ export async function agregarMedidasVariadas() {
                 }),
             });
             stationCount++;
-            if (stationCount % 5 === 0) console.log(`Estación Oficial: ${stationCount}/20 lecturas...`);
+            if (stationCount % 5 === 0) console.log(`Estación: ${stationCount}/20 lecturas...`);
         } catch (e) {
             console.error(`Error enviando lectura estación ${i}`, e);
         }
     }
-    console.log("✅ Lecturas de estación oficial añadidas.");
+    console.log("✅ Carga de medidas ESTACIÓN completada.");
 }
 
-export async function eliminarMedidasVariadas() {
-    console.log("🚀 Eliminando nodo de medidas variadas...");
+export async function eliminarMedidasEstacion() {
+    console.log("🚀 Eliminando nodo de medidas ESTACIÓN...");
     try {
         const response = await fetch(`${BASE_URL}/nodos`, {
             method: "DELETE",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ 
-                nombreNodo: NODO_ID, 
+                nombreNodo: NODO_ESTACION_ID, 
                 propietarioId: PROPIETARIO_ID 
             }),
         });
 
         if (response.ok) {
-            console.log(`Nodo ${NODO_ID} y sus lecturas eliminados.`);
+            console.log(`Nodo ${NODO_ESTACION_ID} eliminado.`);
         } else {
-            console.error(`Error eliminando nodo ${NODO_ID}: ${response.statusText}`);
             throw new Error(response.statusText);
         }
     } catch (e) {
-        console.error(`Excepción eliminando nodo ${NODO_ID}`, e);
-        throw e;
-    }
-}
-
-// --------------------------------------------------------------------------
-// Nuevas funciones para medidas "MALAS" (Regular/Mal)
-// --------------------------------------------------------------------------
-
-export async function agregarMedidasMalas() {
-    console.log("🚀 Iniciando carga de 40 medidas malas/regulares...");
-
-    // 1. Crear el nodo de pruebas malas si no existe
-    try {
-        await fetch(`${BASE_URL}/nodos`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ nombre: NODO_MALAS_ID, propietarioId: PROPIETARIO_ID }),
-        });
-        console.log(`Nodo ${NODO_MALAS_ID} asegurado.`);
-    } catch (e) {
-        console.warn("Posiblemente el nodo de malas ya existe", e);
-    }
-
-    let count = 0;
-    
-    // Queremos 40 lecturas en total.
-    // Repartimos entre los 3 sensores: ~13-14 por sensor.
-    // Usaremos solo índices 1 (Regular) y 2 (Malo) de RANGES.
-    
-    for (const sensor of SENSORS) {
-        const numLecturas = 14; // Un poco más de 40 total (42)
-
-        for (let i = 0; i < numLecturas; i++) {
-            // 50% Regular, 50% Malo
-            const rangeType = Math.random() < 0.5 ? 1 : 2; 
-            const range = RANGES[sensor][rangeType];
-            const valor = getRandomArbitrary(range.min, range.max);
-
-            const loc = getRandomLocation(); // Misma zona, centro de Gandía
-
-            try {
-                await fetch(`${BASE_URL}/lecturas`, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        nombreNodo: NODO_MALAS_ID,
-                        propietarioId: PROPIETARIO_ID,
-                        lecturas: [{ tipo: sensor.toUpperCase(), valor: valor }],
-                        latitud: loc.lat,
-                        longitud: loc.lng,
-                    }),
-                });
-                count++;
-                if (count % 10 === 0) console.log(`Enviadas ${count}/~42 lecturas malas...`);
-            } catch (e) {
-                console.error(`Error enviando lectura mala ${sensor} ${i}`, e);
-            }
-        }
-    }
-    console.log("✅ Carga de medidas malas completada.");
-}
-
-
-export async function eliminarMedidasMalas() {
-    console.log("🚀 Eliminando nodo de medidas malas...");
-    try {
-        const response = await fetch(`${BASE_URL}/nodos`, {
-            method: "DELETE",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ 
-                nombreNodo: NODO_MALAS_ID, 
-                propietarioId: PROPIETARIO_ID 
-            }),
-        });
-
-        if (response.ok) {
-            console.log(`Nodo ${NODO_MALAS_ID} y sus lecturas eliminados.`);
-        } else {
-            console.error(`Error eliminando nodo ${NODO_MALAS_ID}: ${response.statusText}`);
-            throw new Error(response.statusText);
-        }
-    } catch (e) {
-        console.error(`Excepción eliminando nodo ${NODO_MALAS_ID}`, e);
+        console.error(`Excepción eliminando nodo ${NODO_ESTACION_ID}`, e);
         throw e;
     }
 }

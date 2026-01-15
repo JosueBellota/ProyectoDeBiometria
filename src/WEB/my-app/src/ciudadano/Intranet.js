@@ -8,7 +8,12 @@ import InterpolationLayer from "./InterpolationLayer";
 import AirQualityExposure from "./AirQualityExposure";
 import data from './FeaturesFaq.json';
 import { obtenerLecturas } from "./../logicaFake/logicaFake";
-import { agregarMedidasVariadas, eliminarMedidasVariadas, agregarMedidasMalas, eliminarMedidasMalas } from "./../logicaFake/medidasVariadas";
+import { 
+    agregarMedidasCentro, 
+    eliminarMedidasCentro, 
+    agregarMedidasEstacion, 
+    eliminarMedidasEstacion 
+} from "./../logicaFake/medidasVariadas";
 import { renderToStaticMarkup } from 'react-dom/server';
 import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
 import SensorsIcon from '@mui/icons-material/Sensors';
@@ -743,58 +748,60 @@ function Intranet() {
             <button
                 className="btn btn-success ms-2"
                 onClick={async () => {
-                    const confirm = window.confirm("¿Añadir 60 lecturas variadas en Gandía?");
+                    const confirm = window.confirm("¿Añadir 60 lecturas variadas en Centro Gandía?");
                     if (!confirm) return;
-                    await agregarMedidasVariadas();
-                    alert("✅ 60 lecturas variadas añadidas.");
+                    await agregarMedidasCentro();
+                    alert("✅ 60 lecturas variadas (Centro) añadidas.");
                     handleFiltrar();
                 }}
             >
-                📊 Lecturas Variadas Añadir
+                🏙️ Lecturas Centro Añadir
             </button>
             <button
                 className="btn btn-danger ms-2"
                 onClick={async () => {
-                    const confirm = window.confirm("¿Eliminar lecturas variadas?");
+                    const confirm = window.confirm("¿Eliminar lecturas variadas del Centro?");
                     if (!confirm) return;
                     try {
-                        await eliminarMedidasVariadas();
-                        alert("🗑️ Lecturas variadas eliminadas.");
+                        await eliminarMedidasCentro();
+                        alert("🗑️ Lecturas Centro eliminadas.");
                     } catch (e) {
-                        alert("❌ Error eliminando lecturas variadas.");
+                        alert("❌ Error eliminando lecturas Centro.");
                     }
                     handleFiltrar();
                 }}
             >
-                🗑️ Lecturas Variadas Eliminar
+                🗑️ Eliminar Centro
             </button>
+
             <button
-                className="btn btn-warning ms-2"
+                className="btn btn-info ms-2"
+                style={{color: 'white'}}
                 onClick={async () => {
-                    const confirm = window.confirm("¿Añadir ~40 lecturas Regulares/Malas?");
+                    const confirm = window.confirm("¿Añadir 20 lecturas cerca de Estación Oficial?");
                     if (!confirm) return;
-                    await agregarMedidasMalas();
-                    alert("📉 40 lecturas Regulares/Malas añadidas.");
+                    await agregarMedidasEstacion();
+                    alert("🏭 20 lecturas (Estación) añadidas.");
                     handleFiltrar();
                 }}
             >
-                📉 Añadir Lecturas Malas
+                🏭 Añadir Estación
             </button>
             <button
                 className="btn btn-dark ms-2"
                 onClick={async () => {
-                    const confirm = window.confirm("¿Eliminar lecturas malas?");
+                    const confirm = window.confirm("¿Eliminar lecturas de Estación?");
                     if (!confirm) return;
                     try {
-                        await eliminarMedidasMalas();
-                        alert("🗑️ Lecturas malas eliminadas.");
+                        await eliminarMedidasEstacion();
+                        alert("🗑️ Lecturas Estación eliminadas.");
                     } catch (e) {
-                        alert("❌ Error eliminando lecturas malas.");
+                        alert("❌ Error eliminando lecturas Estación.");
                     }
                     handleFiltrar();
                 }}
             >
-                🗑️ Eliminar Lecturas Malas
+                🗑️ Eliminar Estación
             </button>
           </div>
         </section>
