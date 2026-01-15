@@ -174,6 +174,58 @@ const AirQualityExposure = ({ startDate, endDate }) => {
                     );
                 })}
             </div>
+
+            {/* Calidad del Aire Media General */}
+            <div style={{
+                marginTop: '25px',
+                padding: '20px',
+                borderRadius: '12px',
+                backgroundColor: '#f8f9fa',
+                border: '1px solid #e9ecef',
+                textAlign: 'center'
+            }}>
+                <h4 style={{ margin: '0 0 10px 0', color: '#2c3e50', fontSize: '1.1rem' }}>
+                    🌟 Calidad del Aire Global del Periodo
+                </h4>
+                
+                {(() => {
+                    // Calculamos la calidad general basada en el peor de los 3
+                    const statusCO = getStatus('co', averages.co);
+                    const statusNO2 = getStatus('no2', averages.no2);
+                    const statusO3 = getStatus('o3', averages.o3);
+                    
+                    const severities = { '#4caf50': 1, '#ffeb3b': 2, '#f44336': 3 };
+                    const labels = { '#4caf50': 'BUENA', '#ffeb3b': 'REGULAR', '#f44336': 'DESFAVORABLE' };
+                    
+                    const maxSeverity = Math.max(
+                        severities[statusCO.color],
+                        severities[statusNO2.color],
+                        severities[statusO3.color]
+                    );
+                    
+                    const finalColor = Object.keys(severities).find(key => severities[key] === maxSeverity);
+                    const finalLabel = labels[finalColor];
+
+                    return (
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                            <div style={{
+                                fontSize: '2.2rem',
+                                fontWeight: '900',
+                                color: finalColor,
+                                textShadow: '1px 1px 2px rgba(0,0,0,0.1)',
+                                letterSpacing: '1px'
+                            }}>
+                                {finalLabel}
+                            </div>
+                            <p style={{ margin: '10px 0 0 0', color: '#555', maxWidth: '600px', fontSize: '0.95rem' }}>
+                                {maxSeverity === 1 && "¡Felicidades! Tu exposición general ha sido óptima y saludable durante este periodo."}
+                                {maxSeverity === 2 && "Atención: Algunos contaminantes han estado en niveles moderados. Se recomienda precaución en días de mayor actividad."}
+                                {maxSeverity === 3 && "Aviso: Has estado expuesto a niveles elevados de contaminación. Considera reducir el tiempo en zonas de tráfico intenso."}
+                            </p>
+                        </div>
+                    );
+                })()}
+            </div>
             
             <div style={{ marginTop: '20px', fontSize: '0.85rem', color: '#95a5a6', textAlign: 'center', fontStyle: 'italic' }}>
                 * Estimación basada en simulaciones de tus rutas habituales y datos de estaciones cercanas.
