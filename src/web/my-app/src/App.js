@@ -33,6 +33,7 @@ import Condiciones from "./Condiciones";
 import Nodos from "./admin/nodos"; 
 import IncidenciasAdmin from "./admin/Incidencias";
 import LecturasAdmin from "./admin/Lecturas";
+import LecturasBusqueda from "./admin/LecturasBusqueda";
 
 // --------------------------------------------------------------------------
 // ✅ Componente Principal: App
@@ -107,6 +108,7 @@ function App() {
       element={usuario && usuario.rol === "admin" ? <Nodos /> : <Navigate to="/login" />}
       />
       <Route path="/admin/lecturas" element={usuario && usuario.rol === "admin" ? <LecturasAdmin /> : <Navigate to="/login" />} />
+      <Route path="/admin/historial-lecturas" element={usuario && usuario.rol === "admin" ? <LecturasBusqueda /> : <Navigate to="/login" />} />
       <Route path="/admin/incidencias" element={usuario && usuario.rol === "admin" ? <IncidenciasAdmin /> : <Navigate to="/login" />} />
 
 

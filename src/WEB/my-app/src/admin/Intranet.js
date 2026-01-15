@@ -158,8 +158,8 @@ function IntranetAdmin() {
     <div className="home-page">
       <Menu />
       <main className="home-content">
+        <h1 className="home-hero-title">GESTIÓN DE USUARIOS</h1>
         <div className="intranet-content-block">
-          <h1 className="intranet-title">👩‍💼 Usuarios Registrados</h1>
           
           <div>
             <button onClick={() => setShowAddUserModal(true)} className="add-user-btn">Añadir Usuario</button>

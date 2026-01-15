@@ -455,7 +455,7 @@ function Intranet() {
       <main className="home-content">
         {/* Hero */}
         <section className="home-hero">
-          <h1 className="home-hero-title">Mapa de Contaminantes Gandía</h1>
+          <h1 className="home-hero-title">Mapa de Contaminantes</h1>
           <p className="home-hero-subtitle">Tu ruta, tu aire, tu impacto.</p>
           
           {/* NUEVA BARRA DE FILTROS HORIZONTAL */}

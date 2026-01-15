@@ -104,7 +104,7 @@ export default function Incidencias() {
       <HeaderRegistrado />
       
       <main className="incidencias-container">
-        <h1 className="incidencias-title">Gestión de Incidencias</h1>
+        <h1 className="home-hero-title">INCIDENCIAS</h1>
 
         <div className="incidencias-row">
           {/* Columna Izquierda: Formulario de Reporte */}

@@ -446,8 +446,8 @@ function LecturasAdmin() {
       <Menu />
 
       <main className="home-content">
+        <h1 className="home-hero-title">MAPA DE CONTAMINANTES</h1>
         <div className="intranet-content-block">
-        <h1 className="intranet-title">🗺️ Mapa de Contaminantes Gandía</h1>
         
         {/* Hero */}
         <section className="home-hero" style={{marginTop: '20px'}}>

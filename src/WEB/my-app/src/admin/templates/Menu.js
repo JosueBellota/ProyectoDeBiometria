@@ -80,6 +80,10 @@ export default function Menu() {
             MAPA
           </Link>
 
+          <Link to="/admin/historial-lecturas" onClick={closeMenu}>
+            LECTURAS
+          </Link>
+
           <Link to="/admin/incidencias" onClick={closeMenu}>
             INCIDENCIAS
           </Link>
