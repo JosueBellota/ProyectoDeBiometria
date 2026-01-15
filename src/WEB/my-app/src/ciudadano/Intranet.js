@@ -8,7 +8,7 @@ import InterpolationLayer from "./InterpolationLayer";
 import AirQualityExposure from "./AirQualityExposure";
 import data from './FeaturesFaq.json';
 import { obtenerLecturas } from "./../logicaFake/logicaFake";
-import { agregarMedidasVariadas, eliminarMedidasVariadas } from "./../logicaFake/medidasVariadas";
+import { agregarMedidasVariadas, eliminarMedidasVariadas, agregarMedidasMalas, eliminarMedidasMalas } from "./../logicaFake/medidasVariadas";
 import { renderToStaticMarkup } from 'react-dom/server';
 import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
 import SensorsIcon from '@mui/icons-material/Sensors';
@@ -767,6 +767,34 @@ function Intranet() {
                 }}
             >
                 🗑️ Lecturas Variadas Eliminar
+            </button>
+            <button
+                className="btn btn-warning ms-2"
+                onClick={async () => {
+                    const confirm = window.confirm("¿Añadir ~40 lecturas Regulares/Malas?");
+                    if (!confirm) return;
+                    await agregarMedidasMalas();
+                    alert("📉 40 lecturas Regulares/Malas añadidas.");
+                    handleFiltrar();
+                }}
+            >
+                📉 Añadir Lecturas Malas
+            </button>
+            <button
+                className="btn btn-dark ms-2"
+                onClick={async () => {
+                    const confirm = window.confirm("¿Eliminar lecturas malas?");
+                    if (!confirm) return;
+                    try {
+                        await eliminarMedidasMalas();
+                        alert("🗑️ Lecturas malas eliminadas.");
+                    } catch (e) {
+                        alert("❌ Error eliminando lecturas malas.");
+                    }
+                    handleFiltrar();
+                }}
+            >
+                🗑️ Eliminar Lecturas Malas
             </button>
           </div>
         </section>

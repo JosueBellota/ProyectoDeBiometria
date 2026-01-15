@@ -12,6 +12,7 @@
 const BASE_URL = "https://us-central1-proyectodebiometria.cloudfunctions.net/ServidorREST";
 const PROPIETARIO_ID = "mcJtObhq2iOpCnm6AT6xbFB8zYT2"; 
 const NODO_ID = "nodo_variado_test";
+const NODO_MALAS_ID = "nodo_malas_test"; // Nuevo nodo para lecturas malas
 
 const GANDIA_CENTER_LAT = 38.96667;
 const GANDIA_CENTER_LNG = -0.18333;
@@ -193,6 +194,89 @@ export async function eliminarMedidasVariadas() {
         }
     } catch (e) {
         console.error(`Excepción eliminando nodo ${NODO_ID}`, e);
+        throw e;
+    }
+}
+
+// --------------------------------------------------------------------------
+// Nuevas funciones para medidas "MALAS" (Regular/Mal)
+// --------------------------------------------------------------------------
+
+export async function agregarMedidasMalas() {
+    console.log("🚀 Iniciando carga de 40 medidas malas/regulares...");
+
+    // 1. Crear el nodo de pruebas malas si no existe
+    try {
+        await fetch(`${BASE_URL}/nodos`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ nombre: NODO_MALAS_ID, propietarioId: PROPIETARIO_ID }),
+        });
+        console.log(`Nodo ${NODO_MALAS_ID} asegurado.`);
+    } catch (e) {
+        console.warn("Posiblemente el nodo de malas ya existe", e);
+    }
+
+    let count = 0;
+    
+    // Queremos 40 lecturas en total.
+    // Repartimos entre los 3 sensores: ~13-14 por sensor.
+    // Usaremos solo índices 1 (Regular) y 2 (Malo) de RANGES.
+    
+    for (const sensor of SENSORS) {
+        const numLecturas = 14; // Un poco más de 40 total (42)
+
+        for (let i = 0; i < numLecturas; i++) {
+            // 50% Regular, 50% Malo
+            const rangeType = Math.random() < 0.5 ? 1 : 2; 
+            const range = RANGES[sensor][rangeType];
+            const valor = getRandomArbitrary(range.min, range.max);
+
+            const loc = getRandomLocation(); // Misma zona, centro de Gandía
+
+            try {
+                await fetch(`${BASE_URL}/lecturas`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        nombreNodo: NODO_MALAS_ID,
+                        propietarioId: PROPIETARIO_ID,
+                        lecturas: [{ tipo: sensor.toUpperCase(), valor: valor }],
+                        latitud: loc.lat,
+                        longitud: loc.lng,
+                    }),
+                });
+                count++;
+                if (count % 10 === 0) console.log(`Enviadas ${count}/~42 lecturas malas...`);
+            } catch (e) {
+                console.error(`Error enviando lectura mala ${sensor} ${i}`, e);
+            }
+        }
+    }
+    console.log("✅ Carga de medidas malas completada.");
+}
+
+
+export async function eliminarMedidasMalas() {
+    console.log("🚀 Eliminando nodo de medidas malas...");
+    try {
+        const response = await fetch(`${BASE_URL}/nodos`, {
+            method: "DELETE",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ 
+                nombreNodo: NODO_MALAS_ID, 
+                propietarioId: PROPIETARIO_ID 
+            }),
+        });
+
+        if (response.ok) {
+            console.log(`Nodo ${NODO_MALAS_ID} y sus lecturas eliminados.`);
+        } else {
+            console.error(`Error eliminando nodo ${NODO_MALAS_ID}: ${response.statusText}`);
+            throw new Error(response.statusText);
+        }
+    } catch (e) {
+        console.error(`Excepción eliminando nodo ${NODO_MALAS_ID}`, e);
         throw e;
     }
 }
