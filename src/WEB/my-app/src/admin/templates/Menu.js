@@ -76,6 +76,14 @@ export default function Menu() {
             NODOS
           </Link>
 
+          <Link to="/admin/lecturas" onClick={closeMenu}>
+            MAPA
+          </Link>
+
+          <Link to="/admin/historial-lecturas" onClick={closeMenu}>
+            LECTURAS
+          </Link>
+
           <Link to="/admin/incidencias" onClick={closeMenu}>
             INCIDENCIAS
           </Link>

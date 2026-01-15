@@ -220,9 +220,9 @@ export default function NodosAdmin() {
     <div className="home-page">
       <Menu />
       <main className="home-content">
+        <h1 className="home-hero-title">GESTIÓN DE NODOS</h1>
         <div className="intranet-content-block">
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <h1 className="intranet-title">📡 Nodos Registrados</h1>
+            <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", marginBottom: "15px" }}>
                 <button onClick={cargarNodos} className="refresh-btn">Actualizar</button>
             </div>
 

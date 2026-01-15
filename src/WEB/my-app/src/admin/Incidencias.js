@@ -135,7 +135,7 @@ export default function IncidenciasAdmin() {
     <div className="home-page">
       <Menu />
       <main className="incidencias-admin-container">
-        <h1 className="incidencias-admin-title">Gestión de Incidencias</h1>
+        <h1 className="home-hero-title">GESTIÓN DE INCIDENCIAS</h1>
 
         {renderFiltros()}
 

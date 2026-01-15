@@ -156,9 +156,6 @@ function GeneralSearchView({ misNodos }) {
     return (
         <div>
             <div>
-                <h5 className="mb-0">LECTURAS DE SENSORES</h5>
-            </div>
-            <div>
                 <div className="row gx-2 gy-3 align-items-end">
                     <div className="col-md-3">
                         <label className="form-label small">Fecha Inicio</label>
@@ -233,6 +230,7 @@ function Lecturas() {
             <HeaderRegistrado />
             <div className="home-page">
                 <main className="container py-4">
+                    <h1 className="home-hero-title">HISTORIAL DE LECTURAS</h1>
                     <div className="row">
                         <div className="col-lg-12">
                             <GeneralSearchView misNodos={misNodos} />

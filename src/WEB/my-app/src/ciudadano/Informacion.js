@@ -89,11 +89,10 @@ export default function Informacion() {
       <HeaderRegistrado />
 
       <div className="intranet-container">
-        <div className="intranet-content-block">
-          <h1 className="intranet-title">
-            Guía de calidad del aire
-          </h1>
+        
+        <h1 className="home-hero-title">INFORMACIÓN</h1>
 
+        <div className="intranet-content-block">
           <p className="intranet-subtitle">
             Consulta los principales contaminantes, sus efectos en la salud y los rangos de calidad utilizados en nuestro mapa.
           </p>

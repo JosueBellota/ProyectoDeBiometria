@@ -1036,3 +1036,186 @@ input[type="date"].form-control {
 .text-center { text-align: center; }
 .small { font-size: 0.875em; }
 .form-label { margin-bottom: 0.5rem; display: inline-block; font-weight: bold; color: var(--color-text); }
+
+
+/* -----------------------------------------------------------------------
+   NEW COMPACT FILTER BAR STYLES
+   ----------------------------------------------------------------------- */
+
+.filter-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    align-items: center;
+    background: white;
+    padding: 12px 20px;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    margin-bottom: 20px;
+    justify-content: space-between;
+    border: 1px solid #eaeaea;
+}
+
+.filter-group {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.filter-label {
+    font-weight: 700;
+    font-size: 0.9rem;
+    color: #444;
+    white-space: nowrap;
+}
+
+/* Horizontal Scroll for Sensors */
+.sensor-scroll {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding-bottom: 4px; /* Space for scrollbar if visible */
+    max-width: 400px;
+    scrollbar-width: none; /* Hide scrollbar Firefox */
+}
+.sensor-scroll::-webkit-scrollbar {
+    display: none; /* Hide scrollbar Chrome/Safari for cleaner look */
+}
+
+.sensor-chip {
+    border: 1px solid #ddd;
+    background: #f8f9fa;
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #555;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+}
+
+.sensor-chip:hover {
+    background: #e9ecef;
+    border-color: #ccc;
+}
+
+.sensor-chip.active {
+    background: var(--color-primary);
+    color: white;
+    border-color: var(--color-primary);
+    box-shadow: 0 2px 6px rgba(34, 96, 77, 0.3);
+}
+
+.compact-date {
+    border: 1px solid #ced4da;
+    border-radius: 8px;
+    padding: 6px 10px;
+    font-size: 0.85rem;
+    color: #444;
+    background-color: #fff;
+    max-width: 140px;
+    font-family: var(--font-base);
+}
+
+.radius-control {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #f8f9fa;
+    padding: 4px 10px;
+    border-radius: 8px;
+    border: 1px solid #eee;
+}
+
+.radius-label {
+    font-size: 0.8rem;
+    color: #666;
+    white-space: nowrap;
+    min-width: 60px;
+}
+
+.compact-range {
+    width: 100px;
+    cursor: pointer;
+}
+
+.action-group {
+    display: flex;
+    gap: 10px;
+    margin-left: auto; /* Push to right if space available */
+}
+
+.btn-compact {
+    padding: 6px 16px;
+    font-size: 0.9rem;
+    border-radius: 8px;
+    font-weight: 600;
+    border: none;
+    cursor: pointer;
+    transition: background 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.btn-apply {
+    background-color: var(--color-primary);
+    color: white;
+}
+.btn-apply:hover {
+    background-color: var(--color-primary-dark);
+}
+
+.btn-toggle {
+    background-color: white;
+    border: 1px solid #ccc;
+    color: #555;
+}
+.btn-toggle:hover {
+    background-color: #f1f1f1;
+}
+
+/* Mobile adjustments for Filter Bar */
+@media (max-width: 900px) {
+    .filter-bar {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 15px;
+    }
+    
+    .sensor-scroll {
+        max-width: 100%; /* Full width on mobile */
+        padding-bottom: 8px; /* Show scroll hint */
+    }
+    
+    .filter-group {
+        flex-wrap: wrap;
+        width: 100%;
+    }
+    
+    .compact-date {
+        flex: 1; /* Grow to fill space */
+    }
+    
+    .radius-control {
+        width: 100%;
+        margin-top: 5px;
+    }
+    .compact-range {
+        flex: 1;
+    }
+
+    .action-group {
+        width: 100%;
+        margin-left: 0;
+        justify-content: space-between;
+    }
+    
+    .btn-compact {
+        flex: 1;
+        justify-content: center;
+    }
+}
