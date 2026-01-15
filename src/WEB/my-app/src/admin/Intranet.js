@@ -8,7 +8,6 @@ import {
   actualizarDatosUsuario 
 } from "./../logicaFake/logicaFake";
 import Menu from "./templates/Menu";
-import AirQualityExposure from "../ciudadano/AirQualityExposure";
 import "./css/admin.css";
 
 function IntranetAdmin() {
@@ -162,17 +161,6 @@ function IntranetAdmin() {
         <div className="intranet-content-block">
           <h1 className="intranet-title">👩‍💼 Usuarios Registrados</h1>
           
-          {/* Vista Previa: Estimación de Exposición (Simulación) para Admin */}
-          <div style={{ marginBottom: '30px', padding: '15px', border: '1px solid #ddd', borderRadius: '8px', backgroundColor: '#f9f9f9' }}>
-              <h4 style={{ marginTop: 0 }}>👁️ Vista Previa: Estimación de Exposición (Ejemplo Semanal)</h4>
-              <p style={{fontSize: '0.8rem', color: '#666'}}>* En esta vista previa de Admin no se cargan lecturas reales.</p>
-              <AirQualityExposure 
-                startDate={new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()} 
-                endDate={new Date().toISOString()} 
-                readings={[]} // Pasamos vacío para que no falle, mostrará "Sin Datos" o similar
-              />
-          </div>
-
           <div>
             <button onClick={() => setShowAddUserModal(true)} className="add-user-btn">Añadir Usuario</button>
             <button onClick={fetchUsers} className="refresh-btn">Actualizar</button>

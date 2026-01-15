@@ -32,6 +32,7 @@ import VerificarEmail from "./VerificarEmail"; // <-- Importado
 import Condiciones from "./Condiciones";
 import Nodos from "./admin/nodos"; 
 import IncidenciasAdmin from "./admin/Incidencias";
+import LecturasAdmin from "./admin/Lecturas";
 
 // --------------------------------------------------------------------------
 // ✅ Componente Principal: App
@@ -105,6 +106,7 @@ function App() {
       path="/admin/nodos"
       element={usuario && usuario.rol === "admin" ? <Nodos /> : <Navigate to="/login" />}
       />
+      <Route path="/admin/lecturas" element={usuario && usuario.rol === "admin" ? <LecturasAdmin /> : <Navigate to="/login" />} />
       <Route path="/admin/incidencias" element={usuario && usuario.rol === "admin" ? <IncidenciasAdmin /> : <Navigate to="/login" />} />
 
 
