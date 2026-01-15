@@ -20,9 +20,6 @@ function IntranetAdmin() {
   const [showAddUserModal, setShowAddUserModal] = useState(false);
   const [newUser, setNewUser] = useState({ nombre: "", correo: "", rol: "ciudadano", password: "" });
   
-  // Estado para visualización de calidad del aire (Admin)
-  const [selectedSensor, setSelectedSensor] = useState('calidad');
-
   // Estado para editar usuario
   const [showEditUserModal, setShowEditUserModal] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
@@ -167,21 +164,11 @@ function IntranetAdmin() {
           
           {/* Vista Previa: Estimación de Exposición (Simulación) para Admin */}
           <div style={{ marginBottom: '30px', padding: '15px', border: '1px solid #ddd', borderRadius: '8px', backgroundColor: '#f9f9f9' }}>
-              <h4 style={{ marginTop: 0 }}>👁️ Vista Previa: Estimación de Exposición</h4>
-              <div style={{ marginBottom: '10px' }}>
-                <label style={{ marginRight: '10px', fontWeight: 'bold' }}>Sensor:</label>
-                <select 
-                    value={selectedSensor} 
-                    onChange={(e) => setSelectedSensor(e.target.value)}
-                    style={{ padding: '5px', borderRadius: '4px', border: '1px solid #ccc' }}
-                >
-                    <option value="calidad">Calidad General</option>
-                    <option value="co">CO</option>
-                    <option value="no2">NO2</option>
-                    <option value="o3">O3</option>
-                </select>
-              </div>
-              <AirQualityExposure sensorType={selectedSensor} />
+              <h4 style={{ marginTop: 0 }}>👁️ Vista Previa: Estimación de Exposición (Ejemplo Semanal)</h4>
+              <AirQualityExposure 
+                startDate={new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()} 
+                endDate={new Date().toISOString()} 
+              />
           </div>
 
           <div>
