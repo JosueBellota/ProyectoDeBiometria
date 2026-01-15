@@ -430,9 +430,8 @@ function LecturasAdmin() {
       // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); 
 
-  const handleSensorChange = (event) => {
-    setSelectedSensor(event.target.value);
-    // YA NO LLAMAMOS A handleFiltrar(). El cambio es instantáneo vía lecturasFiltradas.
+  const handleSensorChange = (s) => {
+    setSelectedSensor(s);
   };
 
   const toggleMapView = () => {
@@ -448,40 +447,75 @@ function LecturasAdmin() {
 
       <main className="home-content">
         <div className="intranet-content-block">
-        <h1 className="intranet-title">🗺️ Mapa y Pruebas</h1>
-        <p>Herramienta para visualizar el mapa y realizar pruebas de carga de datos.</p>
+        <h1 className="intranet-title">🗺️ Mapa de Contaminantes Gandía</h1>
         
         {/* Hero */}
         <section className="home-hero" style={{marginTop: '20px'}}>
-          <div className="mb-3" style={{maxWidth: '300px', margin: '0 auto'}}>
-            <select className="form-select" onChange={handleSensorChange} value={selectedSensor}>
-                <option value="calidad">Calidad del Aire</option>
-                <option value="co">CO</option>
-                <option value="no2">NO2</option>
-                <option value="o3">O3</option>
-            </select>
+          
+          {/* NUEVA BARRA DE FILTROS HORIZONTAL (COPIADA DE CIUDADANO) */}
+          <div className="filter-bar">
+              {/* Grupo Sensor - Desplegable Compacto */}
+              <div className="filter-group">
+                  <span className="filter-label">Filtrar por:</span>
+                  <select 
+                    className="form-select form-select-sm" 
+                    style={{ width: 'auto', fontWeight: '600', borderRadius: '8px' }}
+                    value={selectedSensor}
+                    onChange={(e) => handleSensorChange(e.target.value)}
+                  >
+                      <option value="calidad">Calidad General</option>
+                      <option value="co">CO (Monóxido)</option>
+                      <option value="no2">NO2 (Nitrógeno)</option>
+                      <option value="o3">O3 (Ozono)</option>
+                  </select>
+              </div>
+
+              {/* Grupo Fechas */}
+              <div className="filter-group">
+                  <input 
+                    type="date" 
+                    className="compact-date" 
+                    value={fechaInicio} 
+                    onChange={e => setFechaInicio(e.target.value)} 
+                    title="Fecha Inicio"
+                  />
+                  <span style={{color: '#999'}}>—</span>
+                  <input 
+                    type="date" 
+                    className="compact-date" 
+                    value={fechaFin} 
+                    onChange={e => setFechaFin(e.target.value)} 
+                    title="Fecha Fin"
+                  />
+              </div>
+
+              {/* Grupo Radio */}
+              <div className="radius-control">
+                  <span className="radius-label">Radio: {(radio / 1000).toFixed(1)} km</span>
+                  <input 
+                    type="range" 
+                    className="compact-range" 
+                    min="500" 
+                    max="50000" 
+                    step="500" 
+                    value={radio} 
+                    onChange={e => setRadio(parseInt(e.target.value, 10))} 
+                  />
+              </div>
+
+              {/* Botones Acción */}
+              <div className="action-group">
+                   <button onClick={toggleMapView} className="btn-compact btn-toggle" title="Cambiar Vista Mapa">
+                       {mapView === 'points' ? "🗺️ Mapa" : "📍 Puntos"}
+                   </button>
+                   <button onClick={handleFiltrar} className="btn-compact btn-apply">
+                       Aplicar
+                   </button>
+              </div>
           </div>
-           <div className="row gx-2 gy-3 align-items-end">
-                <div className="col-md-3">
-                    <label className="form-label small">Fecha Inicio</label>
-                    <input type="date" className="form-control" value={fechaInicio} onChange={e => setFechaInicio(e.target.value)} />
-                </div>
-                <div className="col-md-3">
-                    <label className="form-label small">Fecha Fin</label>
-                    <input type="date" className="form-control" value={fechaFin} onChange={e => setFechaFin(e.target.value)} />
-                </div>
-                <div className="col-md-2">
-                    <label className="form-label small">Radio: <strong>{(radio / 1000).toFixed(1)} km</strong></label>
-                    <input type="range" className="form-range" min="500" max="50000" step="500" value={radio} onChange={e => setRadio(parseInt(e.target.value, 10))} />
-                </div>
-                 <div className="col-md-2 d-flex align-items-end">
-                    <button onClick={handleFiltrar} className="btn btn-primary w-100">Aplicar filtros</button>
-                </div>
-            </div>
+
             {error && <div className="alert alert-danger mt-3">{error}</div>}
-          <button onClick={toggleMapView} className="btn btn-outline-secondary mb-2 mt-3">
-            {mapView === 'points' ? "Mostrar Mapa de Interpolación" : "Mostrar Lecturas"}
-          </button>
+          
           <MapContainer center={gandiaPosition} zoom={13} className="home-main-map">
             <TileLayer
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
