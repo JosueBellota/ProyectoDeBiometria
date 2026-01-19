@@ -26,10 +26,14 @@ import InformacionCiudadano from "./ciudadano/Informacion";
 import Lecturas from "./ciudadano/Lecturas";
 import Tienda from "./ciudadano/Tienda";
 import PerfilCiudadano from "./ciudadano/Perfil";
+import Incidencias from "./ciudadano/Incidencias"; // <-- Importado
 import { escucharSesion } from "./logicaFake/auth";
 import VerificarEmail from "./VerificarEmail"; // <-- Importado
 import Condiciones from "./Condiciones";
 import Nodos from "./admin/nodos"; 
+import IncidenciasAdmin from "./admin/Incidencias";
+import LecturasAdmin from "./admin/Lecturas";
+import LecturasBusqueda from "./admin/LecturasBusqueda";
 
 // --------------------------------------------------------------------------
 // ✅ Componente Principal: App
@@ -90,6 +94,7 @@ function App() {
 
       {/* ------------------ Rutas de Ciudadano ------------------ */}
       <Route path="/ciudadano/intranet" element={usuario && usuario.rol === "ciudadano" ? <IntranetCiudadano /> : <Navigate to="/login" />} />
+      <Route path="/ciudadano/incidencias" element={usuario && usuario.rol === "ciudadano" ? <Incidencias /> : <Navigate to="/login" />} />
       <Route path="/ciudadano/lecturas" element={usuario && usuario.rol === "ciudadano" ? <Lecturas /> : <Navigate to="/login" />} />
       <Route path="/ciudadano/informacion" element={usuario && usuario.rol === "ciudadano" ? <InformacionCiudadano/> : <Navigate to="/login" />} />
       <Route path="/ciudadano/tienda" element={usuario && usuario.rol === "ciudadano" ? <Tienda /> : <Navigate to="/login" />} />
@@ -102,6 +107,9 @@ function App() {
       path="/admin/nodos"
       element={usuario && usuario.rol === "admin" ? <Nodos /> : <Navigate to="/login" />}
       />
+      <Route path="/admin/lecturas" element={usuario && usuario.rol === "admin" ? <LecturasAdmin /> : <Navigate to="/login" />} />
+      <Route path="/admin/historial-lecturas" element={usuario && usuario.rol === "admin" ? <LecturasBusqueda /> : <Navigate to="/login" />} />
+      <Route path="/admin/incidencias" element={usuario && usuario.rol === "admin" ? <IncidenciasAdmin /> : <Navigate to="/login" />} />
 
 
       {/* ------------------ Redirección por Defecto ------------------ */}

@@ -41,10 +41,10 @@ export default function HeaderRegistrado() {
     cargarUsuario();
   }, []);
 
-  const handleLogout = () => {
-    cerrarSesion();
+  const handleLogout = async () => {
+    await cerrarSesion();
     closeMenu();
-    navigate("/");
+    window.location.href = "/";
   };
 
   return (
@@ -74,6 +74,9 @@ export default function HeaderRegistrado() {
           
           <Link to="/ciudadano/Informacion" onClick={closeMenu}>
             INFORMACIÓN
+          </Link>
+          <Link to="/ciudadano/incidencias" onClick={closeMenu}>
+            INCIDENCIAS
           </Link>
           <Link to="/ciudadano/lecturas" onClick={closeMenu}>
             LECTURAS

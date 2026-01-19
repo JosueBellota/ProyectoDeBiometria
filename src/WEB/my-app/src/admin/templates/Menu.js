@@ -40,10 +40,10 @@ export default function Menu() {
     cargarUsuario();
   }, []);
 
-  const handleLogout = () => {
-    cerrarSesion();
+  const handleLogout = async () => {
+    await cerrarSesion();
     closeMenu();
-    navigate("/");
+    window.location.href = "/";
   };
 
   return (
@@ -74,6 +74,18 @@ export default function Menu() {
           
           <Link to="/admin/nodos" onClick={closeMenu}>
             NODOS
+          </Link>
+
+          <Link to="/admin/lecturas" onClick={closeMenu}>
+            MAPA
+          </Link>
+
+          <Link to="/admin/historial-lecturas" onClick={closeMenu}>
+            LECTURAS
+          </Link>
+
+          <Link to="/admin/incidencias" onClick={closeMenu}>
+            INCIDENCIAS
           </Link>
 
           <button onClick={handleLogout} aria-label="Cerrar sesión">
