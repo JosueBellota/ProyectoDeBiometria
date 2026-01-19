@@ -41,10 +41,10 @@ export default function HeaderRegistrado() {
     cargarUsuario();
   }, []);
 
-  const handleLogout = () => {
-    cerrarSesion();
+  const handleLogout = async () => {
+    await cerrarSesion();
     closeMenu();
-    navigate("/");
+    window.location.href = "/";
   };
 
   return (

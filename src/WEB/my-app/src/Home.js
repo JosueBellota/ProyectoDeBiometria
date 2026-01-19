@@ -178,12 +178,6 @@ function Home() {
   const [error, setError] = useState(null);
 
   // Configuración fija para usuarios no registrados
-  const hoy = new Date();
-  const inicioDia = new Date();
-  inicioDia.setHours(0,0,0,0);
-  const finDia = new Date();
-  finDia.setHours(23,59,59,999);
-  
   const radioFijo = 20000; // 20 km
 
   const airQualityPoints = useMemo(() => {
@@ -206,20 +200,65 @@ function Home() {
     return Object.values(pointsByLocation);
   }, [allLecturas, selectedSensor]);
 
+  const [fechaMostrada, setFechaMostrada] = useState(new Date());
+
   const cargarLecturas = async () => {
     setLoading(true);
     setError(null);
-    const opciones = {
+
+    // Intentar carga de HOY
+    const hoy = new Date();
+    const inicioHoy = new Date(hoy); inicioHoy.setHours(0,0,0,0);
+    const finHoy = new Date(hoy); finHoy.setHours(23,59,59,999);
+
+    const opcionesHoy = {
         latitud: gandiaCenterLat,
         longitud: gandiaCenterLng,
         radio: radioFijo,
-        fechaInicio: inicioDia,
-        fechaFin: finDia,
+        fechaInicio: inicioHoy,
+        fechaFin: finHoy,
         tiposensor: selectedSensor === 'calidad' ? '' : selectedSensor, 
     };
     
     try {
-        const res = await obtenerLecturas(opciones);
+        let res = await obtenerLecturas(opcionesHoy);
+        
+        // Si no hay lecturas de hoy, buscar en los últimos 30 días
+        if (!res.error && res.length === 0) {
+            console.log("No hay lecturas de hoy, buscando historial reciente...");
+            const hace30Dias = new Date(hoy);
+            hace30Dias.setDate(hace30Dias.getDate() - 30);
+            
+            const opcionesHistorial = {
+                ...opcionesHoy,
+                fechaInicio: hace30Dias,
+                fechaFin: finHoy
+            };
+
+            const resHistorial = await obtenerLecturas(opcionesHistorial);
+
+            if (!resHistorial.error && resHistorial.length > 0) {
+                // Encontrar la fecha más reciente con datos
+                // Ordenamos por timestamp descendente
+                const lecturasOrdenadas = resHistorial.sort((a, b) => b.timestamp._seconds - a.timestamp._seconds);
+                const ultimaLectura = lecturasOrdenadas[0];
+                const ultimaFecha = new Date(ultimaLectura.timestamp._seconds * 1000);
+                
+                // Filtrar solo las lecturas de ESE día
+                const inicioUltimaFecha = new Date(ultimaFecha); inicioUltimaFecha.setHours(0,0,0,0);
+                const finUltimaFecha = new Date(ultimaFecha); finUltimaFecha.setHours(23,59,59,999);
+                
+                res = resHistorial.filter(l => {
+                    const t = new Date(l.timestamp._seconds * 1000);
+                    return t >= inicioUltimaFecha && t <= finUltimaFecha;
+                });
+                
+                setFechaMostrada(ultimaFecha);
+            }
+        } else {
+             setFechaMostrada(hoy);
+        }
+
         if (res.error) {
             console.error("❌ Error al obtener lecturas:", res.error);
             setError(res.error);
@@ -273,20 +312,37 @@ function Home() {
           <h1 className="home-hero-title">CLOUDMETRIC</h1>
           <p className="home-hero-subtitle">Tu ruta, tu aire, tu impacto.</p>
           
-          <div className="mb-3" style={{maxWidth: '300px', margin: '0 auto'}}>
-            <select className="form-select" onChange={handleSensorChange} value={selectedSensor}>
-                <option value="calidad">Calidad del Aire</option>
-                <option value="co">CO</option>
-                <option value="no2">NO2</option>
-                <option value="o3">O3</option>
-            </select>
+          <div style={{fontSize: '0.9rem', color: '#666', marginBottom: '15px'}}>
+              Datos del: <strong>{fechaMostrada.toLocaleDateString()}</strong>
+          </div>
+
+          {/* NUEVA BARRA DE FILTROS HORIZONTAL (Adaptada para No Registrados) */}
+          <div className="filter-bar" style={{ justifyContent: 'center', gap: '20px' }}>
+              {/* Grupo Sensor */}
+              <div className="filter-group">
+                  <span className="filter-label">Filtrar por:</span>
+                  <select 
+                    className="form-select form-select-sm" 
+                    style={{ width: 'auto', fontWeight: '600', borderRadius: '8px' }}
+                    value={selectedSensor}
+                    onChange={handleSensorChange}
+                  >
+                      <option value="calidad">Calidad General</option>
+                      <option value="co">CO (Monóxido)</option>
+                      <option value="no2">NO2 (Nitrógeno)</option>
+                      <option value="o3">O3 (Ozono)</option>
+                  </select>
+              </div>
+
+              {/* Botones Acción */}
+              <div className="action-group">
+                   <button onClick={toggleMapView} className="btn-compact btn-toggle" title="Cambiar Vista Mapa">
+                       {mapView === 'points' ? "🗺️ Mapa" : "📍 Puntos"}
+                   </button>
+              </div>
           </div>
            
             {error && <div className="alert alert-danger mt-3">{error}</div>}
-          
-          <button onClick={toggleMapView} className="btn btn-outline-secondary mb-2">
-            {mapView === 'points' ? "Mostrar Mapa de Interpolación" : "Mostrar Lecturas"}
-          </button>
           
           <MapContainer center={[gandiaCenterLat, gandiaCenterLng]} zoom={13} className="home-main-map">
             <TileLayer
