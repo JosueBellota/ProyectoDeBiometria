@@ -38,17 +38,65 @@ function GeneralSearchView({ todosNodos }) {
     const buscarLecturas = async () => {
         setCargando(true);
         setError(null);
+        
+        let inicio = new Date(fechaInicio);
+        let fin = new Date(fechaFin);
+        // Asegurar horas
+        inicio.setHours(0,0,0,0);
+        fin.setHours(23,59,59,999);
+
         try {
             const opciones = {
                 latitud: GANDIA_LOCATION.lat,
                 longitud: GANDIA_LOCATION.lon,
                 radio: radio,
-                fechaInicio: new Date(fechaInicio),
-                fechaFin: new Date(fechaFin),
+                fechaInicio: inicio,
+                fechaFin: fin,
                 tiposensor: tiposensor, 
             };
-            const res = await obtenerLecturas(opciones);
+            let res = await obtenerLecturas(opciones);
             if (res.error) throw new Error(res.error);
+            
+            // --- LOGICA SMART FALLBACK ---
+            if (res.length === 0) {
+                 const hoy = new Date();
+                 // Si la fecha fin es hoy, intentamos buscar hacia atrás
+                 const esHoy = fin.getDate() === hoy.getDate() && fin.getMonth() === hoy.getMonth() && fin.getFullYear() === hoy.getFullYear();
+                 
+                 if (esHoy) {
+                     console.log("🔄 Buscando historial reciente (Admin)...");
+                     const hace30Dias = new Date(fin);
+                     hace30Dias.setDate(hace30Dias.getDate() - 30);
+                     
+                     const opcionesHistorial = {
+                         ...opciones,
+                         fechaInicio: hace30Dias,
+                         fechaFin: fin
+                     };
+                     
+                     const resHistorial = await obtenerLecturas(opcionesHistorial);
+                     
+                     if (!resHistorial.error && resHistorial.length > 0) {
+                         // Encontrar la fecha más reciente
+                         const lecturasOrdenadas = resHistorial.sort((a, b) => b.timestamp._seconds - a.timestamp._seconds);
+                         const ultimaLectura = lecturasOrdenadas[0];
+                         const ultimaFecha = new Date(ultimaLectura.timestamp._seconds * 1000);
+                         
+                         const nuevaFechaInicio = ultimaFecha.toISOString().split('T')[0];
+                         
+                         if (nuevaFechaInicio !== fechaInicio) {
+                             setFechaInicio(nuevaFechaInicio);
+                             
+                             const inicioNuevo = new Date(nuevaFechaInicio); inicioNuevo.setHours(0,0,0,0);
+                             res = resHistorial.filter(l => {
+                                 const t = new Date(l.timestamp._seconds * 1000);
+                                 return t >= inicioNuevo;
+                             });
+                         }
+                     }
+                 }
+            }
+
             setResultados(res);
         } catch (err) {
             setError(err.message);

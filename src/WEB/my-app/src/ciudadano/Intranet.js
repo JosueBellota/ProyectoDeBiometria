@@ -388,22 +388,88 @@ function Intranet() {
     console.log("Botón 'Aplicar filtros' clickeado - Realizando consulta a la API.");
     setLoading(true);
     setError(null);
+    
+    let inicio = new Date(fechaInicio);
+    let fin = new Date(fechaFin);
+    
+    // Asegurar horas
+    inicio.setHours(0,0,0,0);
+    fin.setHours(23,59,59,999);
+
     const opciones = {
         latitud: gandiaCenterLat,
         longitud: gandiaCenterLng,
         radio: radio,
-        fechaInicio: new Date(fechaInicio),
-        fechaFin: new Date(fechaFin),
-        tiposensor: '' // OPTIMIZACIÓN: Pedimos TODOS los sensores para filtrar localmente
+        fechaInicio: inicio,
+        fechaFin: fin,
+        tiposensor: '' 
     };
+    
     console.log("Opciones de filtrado (API):", opciones);
+    
     try {
-        const res = await obtenerLecturas(opciones);
-        console.log("Respuesta API:", res);
+        let res = await obtenerLecturas(opciones);
+        
+        // Lógica de "Smart Fallback" si no hay resultados en la búsqueda inicial
+        // y estamos usando el rango por defecto (o similar, para no molestar al usuario si filtró explícitamente y dio 0)
+        // Pero para simplificar, lo haremos si el resultado es vacío, intentamos buscar hacia atrás para proponer datos.
+        if (!res.error && res.length === 0) {
+             console.log("⚠️ No se encontraron lecturas en el rango seleccionado.");
+             
+             // Solo intentamos autocompletar si la fecha fin es HOY (comportamiento por defecto)
+             const hoy = new Date();
+             const esHoy = fin.getDate() === hoy.getDate() && fin.getMonth() === hoy.getMonth() && fin.getFullYear() === hoy.getFullYear();
+
+             if (esHoy) {
+                 console.log("🔄 Buscando historial reciente (últimos 30 días) para sugerir datos...");
+                 const hace30Dias = new Date(fin);
+                 hace30Dias.setDate(hace30Dias.getDate() - 30);
+                 
+                 const opcionesHistorial = {
+                     ...opciones,
+                     fechaInicio: hace30Dias,
+                     fechaFin: fin
+                 };
+                 
+                 const resHistorial = await obtenerLecturas(opcionesHistorial);
+                 
+                 if (!resHistorial.error && resHistorial.length > 0) {
+                     // Encontrar la fecha más reciente con datos
+                     const lecturasOrdenadas = resHistorial.sort((a, b) => b.timestamp._seconds - a.timestamp._seconds);
+                     const ultimaLectura = lecturasOrdenadas[0];
+                     const ultimaFecha = new Date(ultimaLectura.timestamp._seconds * 1000);
+                     
+                     console.log("✅ Datos encontrados recientes el:", ultimaFecha.toLocaleDateString());
+                     
+                     // Actualizar fechaInicio para reflejar el rango que tiene datos
+                     // Rango: [Última lectura] -> [Hoy]
+                     // Ajustamos el string para el input date
+                     const nuevaFechaInicio = ultimaFecha.toISOString().split('T')[0];
+                     
+                     // Solo actualizamos si es diferente para evitar loops raros (aunque el user manda)
+                     if (nuevaFechaInicio !== fechaInicio) {
+                         setFechaInicio(nuevaFechaInicio);
+                         // El usuario verá que la fecha cambia y aparecen los datos
+                         // Filtramos el resultado para que coincida con el nuevo rango "teórico" de 30 días o mostramos todo lo encontrado
+                         // Lo correcto es mostrar lo que hemos encontrado en el rango ampliado
+                         // Pero como hemos cambiado fechaInicio, el rango visual ahora será 'nuevaFechaInicio' a 'fechaFin'
+                         // Así que filtramos resHistorial para que cumpla >= nuevaFechaInicio
+                         
+                         const inicioNuevo = new Date(nuevaFechaInicio); inicioNuevo.setHours(0,0,0,0);
+                         res = resHistorial.filter(l => {
+                             const t = new Date(l.timestamp._seconds * 1000);
+                             return t >= inicioNuevo;
+                         });
+                     }
+                 }
+             }
+        }
+
+        console.log("Respuesta API final:", res);
+        
         if (res.error) {
             console.error("❌ Error al obtener lecturas:", res.error);
             setError(res.error);
-            // No borramos allLecturas si hay error, mantenemos caché vieja o vacía
         } else {
             console.log("Lecturas actualizadas y guardadas en memoria.");
             setAllLecturas(res);
