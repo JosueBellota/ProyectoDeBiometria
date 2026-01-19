@@ -20,8 +20,7 @@ export default function HeaderNoRegistrado() {
     <header className="headerNR">
       <div className="headerNR-left">
         <Link to="/" onClick={closeMenu}>
-          <img src="/logo.svg" alt="Logo" className="headerNR-logo headerNR-logo-mobile" />
-          <img src="/Logo_texto.png" alt="Logo con texto" className="headerNR-logo headerNR-logo-desktop" />
+          <img src="/logo.svg" alt="Logo" className="headerNR-logo" />
         </Link>
       </div>
 
