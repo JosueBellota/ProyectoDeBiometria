@@ -309,9 +309,9 @@ const Legend = ({ sensor }) => {
     return (
         <div className="info-legend">
             <h4>{data.title}</h4>
-            <p><span style={{backgroundColor: 'rgba(0, 128, 0, 0.3)', width: '20px', height: '20px', display: 'inline-block', marginRight: '10px'}}></span>{data.green}</p>
-            <p><span style={{backgroundColor: 'rgba(255, 255, 0, 0.3)', width: '20px', height: '20px', display: 'inline-block', marginRight: '10px'}}></span>{data.yellow}</p>
-            <p><span style={{backgroundColor: 'rgba(255, 0, 0, 0.3)', width: '20px', height: '20px', display: 'inline-block', marginRight: '10px'}}></span>{data.red}</p>
+            <p><span style={{backgroundColor: 'rgba(0, 128, 0, 0.9)', width: '20px', height: '20px', display: 'inline-block', marginRight: '10px'}}></span>{data.green}</p>
+            <p><span style={{backgroundColor: 'rgba(255, 255, 0, 0.9)', width: '20px', height: '20px', display: 'inline-block', marginRight: '10px'}}></span>{data.yellow}</p>
+            <p><span style={{backgroundColor: 'rgba(255, 0, 0, 0.9)', width: '20px', height: '20px', display: 'inline-block', marginRight: '10px'}}></span>{data.red}</p>
         </div>
     );
 };
@@ -329,8 +329,8 @@ function LecturasAdmin() {
   const semanaPasada = new Date();
   semanaPasada.setDate(hoy.getDate() - 7);
 
-  const [fechaInicio, setFechaInicio] = useState(() => localStorage.getItem('fechaInicio') || semanaPasada.toISOString().split('T')[0]);
-  const [fechaFin, setFechaFin] = useState(() => localStorage.getItem('fechaFin') || hoy.toISOString().split('T')[0]);
+  const [fechaInicio, setFechaInicio] = useState(semanaPasada.toISOString().split('T')[0]);
+  const [fechaFin, setFechaFin] = useState(hoy.toISOString().split('T')[0]);
   const [radio, setRadio] = useState(() => {
       const saved = localStorage.getItem('radio');
       return saved ? parseInt(saved, 10) : 5000;
@@ -561,44 +561,74 @@ function LecturasAdmin() {
 
             {error && <div className="alert alert-danger mt-3">{error}</div>}
           
-          <MapContainer center={gandiaPosition} zoom={13} className="home-main-map">
-            <TileLayer
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-            />
-            {loading ? <p>Cargando...</p> : (
-                mapView === 'points' ? (
-                <DynamicSensorIcons lecturas={lecturasFiltradas} />
-                ) : (
-                <InterpolationLayer 
-                    lecturas={lecturasParaMapa} 
-                    colorScale={colorScales[selectedSensor]} 
-                    isAirQualityView={selectedSensor === 'calidad'} 
-                    sensorName={legendData[selectedSensor]?.title || selectedSensor}
-                    unit={units[selectedSensor]}
-                    limits={sensorLimits[selectedSensor]}
-                />
-                )
-            )}
-             {mapView === 'interpolation' && <Legend sensor={selectedSensor} />}
-             
-             {/* Estaciones Oficiales */}
-             {officialStations.map(station => (
-                 <Marker 
-                    key={station.id} 
-                    position={[station.lat, station.lng]} 
-                    icon={officialStationIcon}
-                    zIndexOffset={1000} // Prioridad visual alta
-                 >
-                     <Popup>
-                         <StationPopup station={station} />
-                     </Popup>
-                 </Marker>
-             ))}
+          <div style={{ position: 'relative' }}>
+            <MapContainer center={gandiaPosition} zoom={13} className="home-main-map">
+              <TileLayer
+                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+              />
+              {loading ? <p>Cargando...</p> : (
+                  mapView === 'points' ? (
+                  <DynamicSensorIcons lecturas={lecturasFiltradas} />
+                  ) : (
+                  <InterpolationLayer 
+                      lecturas={lecturasParaMapa} 
+                      colorScale={colorScales[selectedSensor]} 
+                      isAirQualityView={selectedSensor === 'calidad'} 
+                      sensorName={legendData[selectedSensor]?.title || selectedSensor}
+                      unit={units[selectedSensor]}
+                      limits={sensorLimits[selectedSensor]}
+                  />
+                  )
+              )}
+              {mapView === 'interpolation' && <Legend sensor={selectedSensor} />}
+              
+              {/* Estaciones Oficiales */}
+              {officialStations.map(station => (
+                  <Marker 
+                      key={station.id} 
+                      position={[station.lat, station.lng]} 
+                      icon={officialStationIcon}
+                      zIndexOffset={1000} // Prioridad visual alta
+                  >
+                      <Popup>
+                          <StationPopup station={station} />
+                      </Popup>
+                  </Marker>
+              ))}
 
-          </MapContainer>
+            </MapContainer>
+            
+            <button 
+              onClick={() => {
+                const element = document.getElementById('estimacion-exposicion');
+                if (element) {
+                  element.scrollIntoView({ behavior: 'smooth' });
+                }
+              }}
+              style={{
+                position: 'absolute',
+                bottom: '20px',
+                left: '50%',
+                transform: 'translateX(-50%)',
+                zIndex: 1000,
+                backgroundColor: 'white',
+                border: 'none',
+                padding: '10px 20px',
+                borderRadius: '20px',
+                boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+                fontWeight: 'bold',
+                cursor: 'pointer',
+                color: '#333'
+              }}
+            >
+              Estimación de exposición personal
+            </button>
+          </div>
 
-          <AirQualityExposure startDate={fechaInicio} endDate={fechaFin} readings={allLecturas} />
+          <div id="estimacion-exposicion">
+            <AirQualityExposure startDate={fechaInicio} endDate={fechaFin} readings={allLecturas} />
+          </div>
 
           <div className="mt-3 text-center">
             <button 
