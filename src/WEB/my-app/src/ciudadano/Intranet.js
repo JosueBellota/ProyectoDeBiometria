@@ -324,8 +324,8 @@ function Intranet() {
   const semanaPasada = new Date();
   semanaPasada.setDate(hoy.getDate() - 7);
 
-  const [fechaInicio, setFechaInicio] = useState(() => localStorage.getItem('fechaInicio') || semanaPasada.toISOString().split('T')[0]);
-  const [fechaFin, setFechaFin] = useState(() => localStorage.getItem('fechaFin') || hoy.toISOString().split('T')[0]);
+  const [fechaInicio, setFechaInicio] = useState(semanaPasada.toISOString().split('T')[0]);
+  const [fechaFin, setFechaFin] = useState(hoy.toISOString().split('T')[0]);
   const [radio, setRadio] = useState(() => {
       const saved = localStorage.getItem('radio');
       return saved ? parseInt(saved, 10) : 5000;
